@@ -130,6 +130,19 @@ export interface Plan {
   explicitFeatures: FeatureId[];
   /** Resolved closure in stable topological order (explicit + required). */
   features: FeatureId[];
+  /** Ambient project context (nested workspace / PM default source). */
+  context?: ProjectContext;
+}
+
+// ---------- project context (P0) ----------
+/** Where the package-manager *default* came from. */
+export type PmSource = "env" | "parent" | "default";
+
+export interface ProjectContext {
+  /** True when the target lives under an existing workspace root. */
+  nestedWorkspace: boolean;
+  /** Source of the PM default value (independent of any explicit `--pm`). */
+  pmFrom: PmSource;
 }
 
 // ---------- materialization ----------
@@ -142,5 +155,10 @@ export interface VirtualFile {
 }
 
 // ---------- conditions & hooks ----------
-export type Condition = (answers: Answers) => boolean;
+/**
+ * Conditions observe the *resolved* selection (qualified ids + closure) via
+ * `answers.features`; the optional `context` carries ambient facts (nested
+ * workspace). Both parameters are data — conditions stay pure.
+ */
+export type Condition = (answers: Answers, context?: ProjectContext) => boolean;
 export type Hook = (ctx: unknown) => void | Promise<void>;

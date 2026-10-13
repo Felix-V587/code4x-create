@@ -5,7 +5,7 @@
 
 import { createHash } from "node:crypto";
 
-import type { Answers, Plan, VirtualFile } from "../domain/types.ts";
+import type { Answers, Plan, ProjectContext, VirtualFile } from "../domain/types.ts";
 
 export const RC_FILENAME = ".code4xrc.json";
 
@@ -17,6 +17,7 @@ export interface RcFile {
     sources: Record<string, string>;
     hashes: Record<string, string>;
   };
+  context: ProjectContext;
 }
 
 export function sha256(text: string): string {
@@ -29,6 +30,7 @@ export function buildRc(
   plan: Plan,
   files: VirtualFile[],
   cliVersion: string,
+  context: ProjectContext = { nestedWorkspace: false, pmFrom: "default" },
 ): RcFile {
   const sources: Record<string, string> = {};
   const hashes: Record<string, string> = {};
@@ -40,6 +42,7 @@ export function buildRc(
     generator: { cliVersion, preset: answers.preset ?? null },
     answers,
     plan: { features: plan.features, sources, hashes },
+    context,
   };
 }
 

@@ -14,6 +14,8 @@ export type {
   PackageJsonPatch,
   PackageManager,
   Plan,
+  PmSource,
+  ProjectContext,
   Requirement,
   ScriptEdit,
   VirtualFile,
@@ -32,4 +34,10 @@ export {
   resolve,
 } from "./domain/resolve.ts";
 export { render } from "./domain/render.ts";
+export { CancelledError, collectAnswers, isCIEnv, resolveInteractive } from "./domain/flow.ts";
+export type { FlowDeps, Prompter, SelectOption } from "./domain/flow.ts";
 export { findFeaturesRoot, findTemplatesRoot, loadRegistry } from "./io/loadRegistry.ts";
+export { createClackPrompter } from "./io/prompts.ts";
+export { detectNestedWorkspace } from "./io/workspace.ts";
+export { detectPackageManager, detectPackageManagerWithSource } from "./io/pm.ts";
+export type { PmDetection } from "./io/pm.ts";

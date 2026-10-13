@@ -10,7 +10,7 @@
  */
 
 import { fail } from "./errors.ts";
-import type { FeatureId, FrameworkId, Answers, Plan } from "./types.ts";
+import type { FeatureId, FrameworkId, Answers, Plan, ProjectContext } from "./types.ts";
 import type { Preset, Registry } from "./registry.ts";
 
 const COMMON_PREFIX = "common";
@@ -81,7 +81,7 @@ export function parseFeatureTokens(raw: string | string[] | undefined): string[]
   return tokens;
 }
 
-export function resolve(answers: Answers, reg: Registry): Plan {
+export function resolve(answers: Answers, reg: Registry, context?: ProjectContext): Plan {
   if (!reg.frameworks[answers.framework]) {
     fail("E-INVALID-VALUE", `unknown framework "${answers.framework}"`, {
       fix: `known frameworks: ${Object.keys(reg.frameworks).sort().join(", ") || "(none)"}`,
@@ -168,6 +168,7 @@ export function resolve(answers: Answers, reg: Registry): Plan {
     framework: answers.framework,
     explicitFeatures: explicit,
     features,
+    ...(context ? { context } : {}),
   };
 }
 

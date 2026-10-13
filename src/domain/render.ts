@@ -16,6 +16,7 @@ import type {
   FeatureId,
   PackageJsonPatch,
   Plan,
+  ProjectContext,
   ScriptEdit,
   VirtualFile,
   WiringBlock,
@@ -40,7 +41,11 @@ interface Hit {
 
 const MARKER = /^([ \t]*)\/\/ @code4x:(begin|end) (\S+)[ \t]*$/;
 
-export function render(plan: Plan, reg: Registry): VirtualFile[] {
+export function render(
+  plan: Plan,
+  reg: Registry,
+  context: ProjectContext | undefined = plan.context,
+): VirtualFile[] {
   const blueprint = reg.frameworks[plan.framework];
   if (!blueprint) {
     fail("E-INVALID-VALUE", `unknown framework "${plan.framework}"`);
@@ -82,7 +87,7 @@ export function render(plan: Plan, reg: Registry): VirtualFile[] {
   for (const c of contributions) {
     const isBlueprint = c.featureId === null;
     for (const spec of c.contribution.files ?? []) {
-      if (spec.when && !spec.when(conditionAnswers)) continue;
+      if (spec.when && !spec.when(conditionAnswers, context)) continue;
       const raw = reg.assets[`${c.assetPrefix}/${spec.src}`];
       if (raw === undefined) {
         fail("E-FILE-WRITE", `missing asset "${c.assetPrefix}/${spec.src}"`);
@@ -104,6 +109,7 @@ export function render(plan: Plan, reg: Registry): VirtualFile[] {
       contributions,
       conditionAnswers,
       reg.assets,
+      context,
     );
     addFile(outputs, assembly.path, contents, "assembly");
   }
@@ -130,6 +136,7 @@ function renderAssembly(
   contributions: ContributionSource[],
   answers: Answers,
   assets: Registry["assets"],
+  context: ProjectContext | undefined,
 ): string {
   const { tokens, regions } = parseSkeleton(assembly.skeleton, assembly.path);
   const declared = Object.keys(assembly.anchors);
@@ -160,6 +167,7 @@ function renderAssembly(
       answers,
       blueprintId,
       assets,
+      context,
     );
     lines.push(...rendered);
   }
@@ -212,10 +220,11 @@ function renderRegion(
   answers: Answers,
   blueprintId: string,
   assets: Registry["assets"],
+  context: ProjectContext | undefined,
 ): string[] {
   if (!spec) fail("E-UNK-ANCHOR", `no anchor spec for "${anchor}"`);
 
-  const hits = collectHits(anchor, contributions, answers, assets);
+  const hits = collectHits(anchor, contributions, answers, assets, context);
 
   if (spec.kind === "imports") {
     return indentLines(renderImports(hits), indent);
@@ -254,12 +263,13 @@ function collectHits(
   contributions: ContributionSource[],
   answers: Answers,
   assets: Registry["assets"],
+  context: ProjectContext | undefined,
 ): Hit[] {
   const hits: Hit[] = [];
   for (const c of contributions) {
     for (const wiring of c.contribution.wiring ?? []) {
       if (wiring.anchor !== anchor) continue;
-      if (wiring.when && !wiring.when(answers)) continue;
+      if (wiring.when && !wiring.when(answers, context)) continue;
       hits.push({
         block: resolveBlock(wiring.block, c.assetPrefix, assets),
         order: wiring.order,

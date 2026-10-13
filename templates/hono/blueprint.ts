@@ -24,7 +24,12 @@ const honoBlueprint: FrameworkBlueprint = {
   static: {
     files: [
       { src: "files/package.json", dest: "package.json" },
-      { src: "files/pnpm-workspace.yaml", dest: "pnpm-workspace.yaml" },
+      {
+        src: "files/pnpm-workspace.yaml",
+        dest: "pnpm-workspace.yaml",
+        // Nested monorepos own the build policy; don't shadow the parent root.
+        when: (_answers, context) => !context?.nestedWorkspace,
+      },
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
       { src: "files/_gitignore", dest: ".gitignore" },
       { src: "files/README.md", dest: "README.md" },
