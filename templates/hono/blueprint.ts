@@ -31,6 +31,7 @@ const honoBlueprint: FrameworkBlueprint = {
         when: (_answers, context) => !context?.nestedWorkspace,
       },
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
+      { src: "files/vite.config.ts", dest: "vite.config.ts" },
       { src: "files/_gitignore", dest: ".gitignore" },
       { src: "files/README.md", dest: "README.md" },
     ],
