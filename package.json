@@ -26,6 +26,7 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
+    "harness:vp": "bash fixtures/vp-harness/run.sh",
     "prepublishOnly": "vp run build"
   },
   "dependencies": {

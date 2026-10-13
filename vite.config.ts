@@ -27,6 +27,7 @@ export default defineConfig({
       "features/**/fragments/**",
       "docs/**",
       "dist/**",
+      "fixtures/**",
     ],
     options: {
       typeAware: true,
@@ -40,6 +41,7 @@ export default defineConfig({
       "features/**/fragments/**",
       "docs/**",
       "dist/**",
+      "fixtures/**",
     ],
   },
 });
