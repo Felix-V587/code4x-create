@@ -224,21 +224,21 @@ presets/{hono-api,vue-full}.ts
 
 ## 4. 端到端走查（渲染期目标产物）
 
-### Hono
+### Hono（vp 原生，2026-10-13 升级）
 
 `{base}` → `src/index.ts`：
 
 ```ts
-import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'      // ← blueprint.static 贡献
 
 const app = new Hono()
 app.use(logger())
 
-const port = Number(process.env.PORT ?? 3000)
-serve({ fetch: app.fetch, port }, (info) => { /* ... */ })
+export default app
 ```
+
+模板另含静态 `vite.config.ts`：`@hono/vite-dev-server`（`vp dev`）+ `@hono/vite-build/node`（`vp build` → `dist/index.js`）；`serve` 由插件注入，源码不再自行 serve（避免双起）。scripts：`dev=vp dev`、`build=vp build`、`start=node dist/index.js`；`PORT` 在 dev 为运行时读取、在 build 时固化进产物；生成项目 `vp check` 开箱通过（lint/fmt/typeCheck 已配置）。
 
 `{base + hono/zod}`：只多一行 import + 一条 validated route，`src/schemas/user.ts` 单独落盘：
 

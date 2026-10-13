@@ -61,3 +61,16 @@ CI 注意：**不能**依赖 `vp create --no-interactive` 透传；把参数放�
 - 可向 vp 提 issue：外部模板透传 `--no-interactive` 或提供 env 信号（当前 CI 只能用 `--` 显式参数）。
 - vp 版本漂移：harness 锁定最低 vp 版本做回归；`createConfig` schema 错误是硬错。
 - 包名 `create-code4x` 已核实未被占用（npm 404）。
+
+## 7. hono 模板 vp 原生化（2026-10-13）
+
+spike 实测（`@hono/vite-dev-server@0.26.1` + vite-plus 1.1.0 / rolldown 内核）：
+
+| 能力 | 结果 |
+|---|---|
+| `vp dev`（dev-server 接管 Hono） | ✅ 200；服务端改动 full-reload（官方 HMR 仅客户端） |
+| `vp build` + `@hono/vite-build/node` | ✅ `dist/index.js` 可 `node` 直跑（`serve` 由插件注入，源码不得再 serve） |
+| `vp pack`（tsdown） | ⚠️ 产出库 bundle、非可运行 server；且与 `vp build` 共用/互相清空 `dist` → 模板不用 |
+| `vp check`（无配置） | ⚠️ 默认失败（fmt 不忽略 `dist`）→ 模板 vite.config 已配 `ignorePatterns` + `typeCheck` |
+
+实现要点：模板 `src/index.ts` 改 `export default app`；devDeps 增 `vite-plus`/`@hono/vite-dev-server`/`@hono/vite-build`（移除 tsx）；`@hono/node-server` 保留（build 插件构建期注入 `serve` 需要）；`PORT` dev 运行时读取、build 固化进产物；harness lane A 增加 `vp build` + 运行 + curl 断言（已通过）。
