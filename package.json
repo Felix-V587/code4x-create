@@ -2,16 +2,8 @@
   "name": "create-code4x",
   "version": "0.0.0",
   "description": "Scaffold multi-framework projects with optional integrations.",
-  "homepage": "https://github.com/author/library#readme",
-  "bugs": {
-    "url": "https://github.com/author/library/issues"
-  },
   "license": "MIT",
-  "author": "Author Name <author.name@mail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/author/library.git"
-  },
+  "author": "longyong.xu <2310122662@qq.com>",
   "bin": {
     "create-code4x": "./dist/cli.mjs"
   },
