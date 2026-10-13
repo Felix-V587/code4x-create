@@ -263,7 +263,7 @@ const app = createApp(App)
 app.mount('#app')
 ```
 
-`{base + pinia}` / `{+ pinia + router}`：逐条插 `app.use(createPinia())` / `app.use(router)` + `import router from './router'`；`vite.config.ts` 为第二个 assembly（`vite-plugins` 锚点，blueprint static 贡献 `vue()`）；`src/App.vue` 为第三个 assembly（`app-template` 锚点，router 注入 `<router-view />`）。排序关键点：pinia < router 由 id tiebreak 固定，**与用户勾选顺序无关**——同一组合、不同选择轨迹生成**相同字节**（确定性演示）。
+`{base + pinia}` / `{+ pinia + router}`：逐条插 `app.use(createPinia())` / `app.use(router)` + `import router from './router'`；`vite.config.ts` 为第二个 assembly（`vite-plugins` 锚点，blueprint static 贡献 `vue()`）；`src/App.vue` 为第三个 assembly（`app-template` 锚点，router 注入 `<router-view />`）。排序关键点：pinia < router 由 id tiebreak 固定，**与用户勾选顺序无关**——同一组合、不同选择轨迹生成**相同字节**（确定性演示）。生成项目 **`vp check` 开箱通过**（vite.config 内置 lint/fmt/typeCheck 配置，`defineConfig` 来自 `vite-plus`）；`dev`/`build` 仍走 plain `vite` 链（vp 深度集成留待后续评估）。
 
 ### 复用论证：同一 manifest 抽象如何跨框架
 

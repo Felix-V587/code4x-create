@@ -74,3 +74,5 @@ spike 实测（`@hono/vite-dev-server@0.26.1` + vite-plus 1.1.0 / rolldown 内�
 | `vp check`（无配置） | ⚠️ 默认失败（fmt 不忽略 `dist`）→ 模板 vite.config 已配 `ignorePatterns` + `typeCheck` |
 
 实现要点：模板 `src/index.ts` 改 `export default app`；devDeps 增 `vite-plus`/`@hono/vite-dev-server`/`@hono/vite-build`（移除 tsx）；`@hono/node-server` 保留（build 插件构建期注入 `serve` 需要）；`PORT` dev 运行时读取、build 固化进产物；harness lane A 增加 `vp build` + 运行 + curl 断言（已通过）。
+
+**vue 模板对齐（2026-10-13）**：生成项目 `vp check` 开箱通过——vite.config 内置 lint/fmt/typeCheck 配置（`defineConfig` 来自 `vite-plus`，与 vp 注入形态一致）；dev/build 保持 plain `vite` 链（vue 的 vp dev/build 深度集成留待后续评估）。hono base 的 `package.json` 亦已对齐 oxfmt（`onlyBuiltDependencies` 多行）。
