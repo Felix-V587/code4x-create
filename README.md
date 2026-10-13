@@ -24,6 +24,8 @@ node dist/cli.mjs my-api -p hono-api -y              # 预设：api-guard + zod 
 
 发布后形态（尚未发布到 npm）：`pnpm create code4x my-api`。
 
+通过 Vite+ 统一入口（发布后）：`vp create code4x`（交互式）或 `vp create code4x -- my-api -f hono --features zod -y`（参数化；CI 同此写法——vp 不透传 `--no-interactive`，参数放 `--` 后）。本地未发布期的集成验证走 `create.templates` harness，见 [docs/05](./docs/05-vp-integration.md)。
+
 ## 参数与行为
 
 完整参数、默认值、退出码与边界行为见 [docs/04-prompt-flow.md](./docs/04-prompt-flow.md)。要点：

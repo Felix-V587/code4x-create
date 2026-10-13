@@ -24,6 +24,8 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
  └─ 通过 → 打印一行 manifest → render → 写盘 → PM/安装/git → 收尾文案
 ```
 
+**交互判定（实现语义）**：`interactive = 显式 --interactive/--no-interactive ?? (!CI && isTTY)`；`-y/--CI` 强制非交互；**非交互模式下缺失字段取默认**（仅 `targetDir` 缺失 → `E-DIR-REQUIRED`）。
+
 ### 1.3 节点定义
 
 | # | 节点（Answers 字段） | 触发条件（要问） | 跳过条件（已绑定） | 默认值 | 绑定来源 |
@@ -133,7 +135,7 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 
 - flag 与 config 同字段：flag 赢（CI 管线外层追加 flag 即可调任何 config 系统）。
 - preset 是「内容型 bundle」：只携带 `framework + features` 两字段。
-- 全链走完**无 -y 且仍缺字段** → 交互；**-y/--CI/agent** → 内置默认。
+- 全链走完：**交互模式**下仍缺字段 → 提问补齐；**非交互**（!TTY / `--no-interactive` / `-y` / CI）→ 缺失字段取内置默认（仅 `targetDir` 缺失 → `E-DIR-REQUIRED`）。
 
 ### 3.4 非法值 / 冲突处理（统一规则）
 
@@ -177,6 +179,8 @@ $ create-code4x my-api -f hono --features pinia
 ◇ Agent environment detected — switching to non-interactive defaults.
   Control via --preset / --config / flags. Use --interactive to force prompts.
 ```
+
+> vp 集成注意：`vp create` 不向外部模板透传 `--no-interactive`，CI 请使用 `--` 后的显式参数（如 `vp create code4x -- my-api -f hono -y`）；详见 [05-vp-integration.md](./05-vp-integration.md)。
 
 ## 4. 取消 / 中断语义
 
