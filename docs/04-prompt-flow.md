@@ -187,7 +187,7 @@ $ create-code4x my-api -f hono --features pinia
 | 阶段 | 中断源 | 行为 | 副作用清理 |
 |---|---|---|---|
 | P0/提问 | Ctrl-C / EOF（clack isCancel） | `outro("Operation cancelled")`；exit 130 | 无（I1 分界）：连 targetDir 的 mkdir 都未发生 |
-| 写盘 | SIGINT/SIGTERM/进程死亡 | staging 目录（`.code4x-tmp-<name>/`）中途胶着 | **target 永不出现残留半成品**；staging 由下一次运行同前缀清扫兜底（sweep-first） |
+| 写盘 | SIGINT/SIGTERM/进程死亡 | staging 目录（`.code4x-tmp-<name>/`）中途胶着 | staging 由下一次运行同前缀清扫兜底（sweep-first）；**target 出现即为完整项目**——唯一例外：`package.json` 在 rename 后写入（亚毫秒窗口，为兼容 vp 目录探测；见 `src/io/write.ts`） |
 | rename | 理论窗口 | 新目录：staging→target rename 原子；overwrite 场景存在 rm-rf→rename 小窗口——视为原子性极限，不追加额外机制 | |
 | 安装 spinner | Ctrl-C | 子进程以继承 stdio 方式 spawn，原生 kill 即停；保持文件；打印 "install interrupted, re-run `$ <pm> install`" | 生成文件保留（项目本身已完整） |
 | git | Ctrl-C | init 未完成目录保留 | 用户可手删 .git |

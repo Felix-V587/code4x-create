@@ -2,7 +2,7 @@
 
 通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档；Vue：`pinia` / `vue-router`。
 
-**实施状态**：M0–M4 已完成（Hono + Vue 双框架；参数式与交互式双模）；CI、vp 集成 harness 与发布在途。设计与决策文档见 [docs/](./docs/README.md)。
+**实施状态**：M0–M4 已完成（Hono + Vue 双框架；参数式与交互式双模）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 与发布在途。设计与决策文档见 [docs/](./docs/README.md)。
 
 ## 快速开始（仓库内）
 

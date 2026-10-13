@@ -12,13 +12,15 @@
 - **事后托管**：模板退出后 vp 检测产物（监听新写入的 `package.json`；检测不到则跳过集成）→ 写 agent/editor 文件、install、approve-builds 处理、fmt；非 monorepo 下另做 git init + hooks；monorepo 下改为 workspace 注册（根 yaml 加 pattern）+ root install，无 git init。
 - **本地模板**（monorepo `create.templates`）：以 `node <binPath>` 执行、参数透传同 `--`、同样进入 monorepo 集成；要求包有 bin。
 - **org 清单**（`createConfig.templates`）：仅 `@scope` 触发；暂不采用（清单无 per-entry args；bundled 相对路径为纯复制、不跑 bin，会丢引擎价值）。
+- **cwd / positional（实测）**：vp 以推断的父目录（如 `apps/`）作为模板进程 cwd，`--` 后的 positional 相对该 cwd 解析——monorepo 内应传**裸名**（`api`），传 `apps/api` 会双重嵌套。
+- **vp 事后改写（实测）**：向 root `pnpm-workspace.yaml` 追加 pattern（观测到未去重）、root 写入 `AGENTS.md`、把生成的 `vite.config.ts` 改写为 `lazyPlugins`（monorepo 集成）、root install；`.code4xrc.json` 在事后处理中保留。
 
 ## 2. 正确调用方式（发布后）
 
 ```bash
 vp create code4x                                          # 交互式（框架 → features → …）
 vp create code4x -- my-api -f hono --features zod -y      # 参数化；CI 同此写法
-vp create code4x -- apps/api -f hono --features zod       # monorepo 内建子项目
+vp create code4x -- api -f hono --features zod            # monorepo 内建子项目（裸名：vp 以推断父目录为 cwd，见 §1）
 ```
 
 CI 注意：**不能**依赖 `vp create --no-interactive` 透传；把参数放在 `--` 之后。
@@ -40,10 +42,19 @@ CI 注意：**不能**依赖 `vp create --no-interactive` 透传；把参数放�
 - `.code4xrc.json` 记录 `context: { nestedWorkspace, pmFrom }`（为将来 add-to-existing 留定位钩子）。
 - workspace 注册交给 vp（`updateWorkspaceConfig`），我们不写。
 
-## 5. 集成验证路线（harness）
+## 5. 集成验证（harness 已落地，2026-10-13 实测）
 
-- **发布前**：scratch monorepo（`create.templates` 注册 + shim 包指向本仓库 dist）验证独立/嵌套两条 lane；发布后：`vp create code4x -- ...` 直测（dlx lane）。
-- 待验证项：dlx 是否设置 `npm_config_user_agent`（影响 PM 默认提示）；vp 事后改写（catalog/devEngines/scripts）与 `.code4xrc.json` 的保留性；嵌套 workspace 的实际后果矩阵。
+`fixtures/vp-harness/`（`pnpm run harness:vp`）：scratch monorepo + `create.templates` 本地条目 + shim 指向本仓库 `dist/cli.mjs`；两条 lane + 一条观察 lane 实测通过：
+
+| lane | 透传参数（`--` 后） | 生成位置 | 结果 |
+|---|---|---|---|
+| A | `api -f hono --features zod,swagger-openapi -y --no-git` | `apps/api` | ✅ 断言全过 |
+| B | `web -f vue -p vue-full -y --no-git` | `apps/web` | ✅ 断言全过 |
+| 观察 | 不带 `--approve-builds` | `apps/noapprove` | ✅（热 store 下无 ignored-builds） |
+
+已确认：无嵌套 `pnpm-workspace.yaml`、rc 在 vp 事后处理中保留、`context.nestedWorkspace=true`、root install 执行；**staging 与 vp 目录探测的摩擦已修复**（`package.json` 延后至 rename 后写入，vp 日志恢复 `Scaffolded apps/api` / `Next: cd apps/api`）。
+
+仍待验证：发布后 dlx lane（`vp create code4x -- ...`）；dlx 是否设置 `npm_config_user_agent`；冷 store 下 ignored-builds 行为；vp 重复追加 pattern 的幂等性（vp 侧）。
 
 ## 6. 遗留与建议
 
