@@ -38,6 +38,7 @@ describe("hono base golden", () => {
       ".gitignore",
       "README.md",
       "package.json",
+      "pnpm-workspace.yaml",
       "src/index.ts",
       "tsconfig.json",
     ]);
@@ -58,6 +59,11 @@ describe("hono base golden", () => {
       dependencies: { hono: expect.any(String), "@hono/node-server": expect.any(String) },
     });
     expect(pkg?.contents).not.toContain("{PROJECT}");
+  });
+
+  test("ships a pnpm workspace allowBuilds for esbuild", () => {
+    const workspace = files.find((file) => file.path === "pnpm-workspace.yaml");
+    expect(workspace?.contents).toBe("allowBuilds:\n  esbuild: true\n");
   });
 
   test("no assembly markers leak into generated files", () => {

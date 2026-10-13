@@ -40,6 +40,7 @@ describe("cli e2e", () => {
     for (const relative of [
       "src/index.ts",
       "package.json",
+      "pnpm-workspace.yaml",
       "tsconfig.json",
       ".gitignore",
       "README.md",

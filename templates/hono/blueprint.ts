@@ -24,6 +24,7 @@ const honoBlueprint: FrameworkBlueprint = {
   static: {
     files: [
       { src: "files/package.json", dest: "package.json" },
+      { src: "files/pnpm-workspace.yaml", dest: "pnpm-workspace.yaml" },
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
       { src: "files/_gitignore", dest: ".gitignore" },
       { src: "files/README.md", dest: "README.md" },
