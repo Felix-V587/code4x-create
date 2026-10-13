@@ -23,7 +23,6 @@ function registry(features: Record<string, FeatureManifest> = {}): Registry {
     },
     features,
     presets: { "hono-api": { id: "hono-api", framework: "hono", features: [] } },
-    featureCatalog: {},
     assets: {},
   };
 }
@@ -157,12 +156,35 @@ describe("resolve", () => {
     expect(plan.features).toEqual(["hono/zod", "hono/swagger-openapi"]);
   });
 
-  test("unimplemented catalog feature is not selectable (E-INVALID-VALUE)", () => {
-    const reg: Registry = {
-      ...registry(),
-      featureCatalog: { "hono/future": "hono" },
-    };
-    const error = capture(() => resolve(answers({ framework: "hono", features: ["future"] }), reg));
+  test("unknown qualified feature is not selectable (E-INVALID-VALUE)", () => {
+    const error = capture(() =>
+      resolve(answers({ framework: "hono", features: ["hono/future"] }), registry()),
+    );
     expect(error.code).toBe("E-INVALID-VALUE");
+  });
+
+  test("vue feature under hono framework -> E-FEATURE-FRAMEWORK", () => {
+    const error = capture(() =>
+      resolve(answers({ framework: "hono", features: ["vue/pinia"] }), loadRegistry()),
+    );
+    expect(error.code).toBe("E-FEATURE-FRAMEWORK");
+  });
+
+  test("bare vue feature resolves under the vue framework", () => {
+    const plan = resolve(answers({ framework: "vue", features: ["pinia"] }), loadRegistry());
+    expect(plan.explicitFeatures).toEqual(["vue/pinia"]);
+    expect(plan.features).toEqual(["vue/pinia"]);
+  });
+
+  test("vue-full preset expands to pinia + router", () => {
+    const preset = expandPreset("vue-full", loadRegistry());
+    expect(preset.framework).toBe("vue");
+    expect(preset.features).toEqual(["vue/pinia", "vue/router"]);
+
+    const plan = resolve(
+      answers({ framework: preset.framework, features: preset.features }),
+      loadRegistry(),
+    );
+    expect(plan.features).toEqual(["vue/pinia", "vue/router"]);
   });
 });

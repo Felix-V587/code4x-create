@@ -58,7 +58,6 @@ function registryWith(options: {
     },
     features: options.features ?? {},
     presets: {},
-    featureCatalog: {},
     assets: options.assets ?? {},
   };
 }
@@ -530,5 +529,85 @@ describe("render / condition semantics", () => {
     const [file] = render(p, registry);
     expect(seen).toEqual([["hono/zod"]]);
     expect(file.contents).toContain("import { y } from 'x'");
+  });
+});
+
+describe("render / HTML comment anchors", () => {
+  const htmlSkeleton =
+    "<template>\n  <h1>Hi</h1>\n  <!-- @code4x:begin body -->\n  <!-- @code4x:end body -->\n</template>\n";
+
+  function htmlRegistry(
+    options: {
+      skeleton?: string;
+      anchors?: Record<string, { kind: "imports" | "list" | "single" }>;
+      features?: Record<string, FeatureManifest>;
+    } = {},
+  ): Registry {
+    return registryWith({
+      skeleton: options.skeleton ?? htmlSkeleton,
+      anchors: options.anchors ?? { body: { kind: "list" } },
+      features: options.features,
+    });
+  }
+
+  test("renders an HTML-comment region with indentation preserved", () => {
+    const registry = htmlRegistry({
+      features: {
+        "hono/a": {
+          id: "hono/a",
+          title: "a",
+          description: "a",
+          base: {
+            wiring: [
+              {
+                anchor: "body",
+                order: 0,
+                block: { kind: "raw", code: "<router-view />" },
+              },
+            ],
+          },
+        },
+      },
+    });
+    const [file] = render(plan(["hono/a"]), registry);
+    expect(file.contents).toBe("<template>\n  <h1>Hi</h1>\n  <router-view />\n</template>\n");
+    expect(file.contents).not.toContain("@code4x");
+  });
+
+  test("empty HTML region renders zero lines", () => {
+    const [file] = render(plan(), htmlRegistry());
+    expect(file.contents).toBe("<template>\n  <h1>Hi</h1>\n</template>\n");
+  });
+
+  test("missing HTML anchor -> E-MARKER", () => {
+    expectCode4xError(
+      () => render(plan(), htmlRegistry({ skeleton: "<template></template>\n" })),
+      "E-MARKER",
+    );
+  });
+
+  test("undeclared HTML marker -> E-MARKER", () => {
+    const registry = htmlRegistry({
+      skeleton:
+        "<template>\n  <!-- @code4x:begin extra -->\n  <!-- @code4x:end extra -->\n</template>\n",
+      anchors: { body: { kind: "list" } },
+    });
+    expectCode4xError(() => render(plan(), registry), "E-MARKER");
+  });
+
+  test("duplicate HTML marker -> E-MARKER", () => {
+    const registry = htmlRegistry({
+      skeleton:
+        "<template>\n  <!-- @code4x:begin body -->\n  <!-- @code4x:end body -->\n  <!-- @code4x:begin body -->\n  <!-- @code4x:end body -->\n</template>\n",
+    });
+    expectCode4xError(() => render(plan(), registry), "E-MARKER");
+  });
+
+  test("nested HTML marker -> E-MARKER", () => {
+    const registry = htmlRegistry({
+      skeleton:
+        "<template>\n  <!-- @code4x:begin body -->\n  <!-- @code4x:begin body -->\n  <!-- @code4x:end body -->\n  <!-- @code4x:end body -->\n</template>\n",
+    });
+    expectCode4xError(() => render(plan(), registry), "E-MARKER");
   });
 });

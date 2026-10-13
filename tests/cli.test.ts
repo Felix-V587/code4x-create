@@ -312,4 +312,104 @@ describe("cli e2e", () => {
     };
     expect(rc.context).toEqual({ nestedWorkspace: true, pmFrom: "default" });
   });
+
+  test("-f vue --features pinia,router generates a complete vue project", async () => {
+    const root = tempRoot();
+    const target = join(root, "vue-app");
+    const { code, stderr } = await invoke(
+      ["-f", "vue", "--features", "pinia,router", "-y", "--no-git", target],
+      root,
+    );
+    expect(stderr).toBe("");
+    expect(code).toBe(0);
+
+    for (const relative of [
+      "src/main.ts",
+      "vite.config.ts",
+      "src/stores/counter.ts",
+      "src/router/index.ts",
+      "src/views/Home.vue",
+      "index.html",
+      ".code4xrc.json",
+    ]) {
+      expect(existsSync(join(target, relative)), relative).toBe(true);
+    }
+
+    const main = readFileSync(join(target, "src/main.ts"), "utf8");
+    expect(main).toContain("import { createPinia } from 'pinia'");
+    expect(main).toContain("import router from './router'");
+    expect(main.indexOf("app.use(createPinia())")).toBeLessThan(main.indexOf("app.use(router)"));
+    expect(main).not.toContain("@code4x");
+
+    const vite = readFileSync(join(target, "vite.config.ts"), "utf8");
+    expect(vite).toContain("vue()");
+
+    const app = readFileSync(join(target, "src/App.vue"), "utf8");
+    expect(app).toContain("<router-view />");
+    expect(app).not.toContain("@code4x");
+
+    const pkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    expect(pkg.dependencies).toEqual({
+      vue: "^3.5.0",
+      pinia: "^4.0.0",
+      "vue-router": "^5.0.0",
+    });
+
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      plan: { features: string[]; sources: Record<string, string> };
+    };
+    expect(rc.plan.features).toEqual(["vue/pinia", "vue/router"]);
+    expect(rc.plan.sources["src/stores/counter.ts"]).toBe("vue/pinia");
+    expect(rc.plan.sources["src/router/index.ts"]).toBe("vue/router");
+  });
+
+  test("--features pinia (bare, no -f) infers the vue framework", async () => {
+    const root = tempRoot();
+    const target = join(root, "infer-vue");
+    const { code, stdout } = await invoke(["--features", "pinia", "-y", "--no-git", target], root);
+    expect(code).toBe(0);
+    expect(stdout).toContain("framework inferred: vue");
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { framework: string; features: string[] };
+    };
+    expect(rc.answers.framework).toBe("vue");
+    expect(rc.answers.features).toEqual(["pinia"]);
+  });
+
+  test("-p vue-full generates the full vue project", async () => {
+    const root = tempRoot();
+    const target = join(root, "vue-full");
+    const { code } = await invoke(["-p", "vue-full", "-y", "--no-git", target], root);
+    expect(code).toBe(0);
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { framework: string; preset: string };
+      plan: { features: string[] };
+    };
+    expect(rc.answers.framework).toBe("vue");
+    expect(rc.answers.preset).toBe("vue-full");
+    expect(rc.plan.features).toEqual(["vue/pinia", "vue/router"]);
+  });
+
+  test("--json stdout is pure JSON even when notes are emitted", async () => {
+    const root = tempRoot();
+    const target = join(root, "json-pure");
+    const { code, stdout, stderr } = await invoke(
+      ["--json", "--features", "pinia", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(0);
+    const payload = JSON.parse(stdout) as { answers: { framework: string } };
+    expect(payload.answers.framework).toBe("vue");
+    expect(stderr).toContain("framework inferred: vue");
+  });
+
+  test("non-json keeps notes on stdout", async () => {
+    const root = tempRoot();
+    const target = join(root, "note-stdout");
+    const { code, stdout } = await invoke(["--features", "pinia", "-y", "--no-git", target], root);
+    expect(code).toBe(0);
+    expect(stdout).toContain("framework inferred: vue");
+  });
 });
