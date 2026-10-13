@@ -54,7 +54,9 @@ const vueBlueprint: FrameworkBlueprint = {
       {
         anchor: "vite-plugins",
         order: 0,
-        block: { kind: "call", callee: "vue", expression: "" },
+        // Trailing comma included so the multiline `plugins` array stays
+        // oxfmt-clean (a fresh `vp check` passes without `--fix`).
+        block: { kind: "raw", code: "vue()," },
       },
     ],
   },

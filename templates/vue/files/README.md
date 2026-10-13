@@ -11,6 +11,8 @@ pnpm dev
 
 Build for production with `pnpm build`.
 
+`pnpm typecheck` runs `vue-tsc --noEmit`; `pnpm check` runs `vp check` (format + lint + type check).
+
 ## `.code4xrc.json`
 
 This hidden file records how the project was generated: the resolved feature set (including dependencies pulled in automatically), which generator produced each file, and per-file SHA-256 hashes.
