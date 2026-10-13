@@ -27,8 +27,7 @@ function file(files: VirtualFile[], path: string): VirtualFile {
   return found as VirtualFile;
 }
 
-const BASE_ZOD_INDEX = `import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
+const BASE_ZOD_INDEX = `import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { logger } from 'hono/logger'
 import { CreateUserSchema } from './schemas/user'
@@ -38,14 +37,10 @@ app.use(logger())
 
 app.post('/auth/register', zValidator('json', CreateUserSchema), (c) => c.json({ ok: true }))
 
-const port = Number(process.env.PORT ?? 3000)
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(\`listening on http://localhost:\${info.port}\`)
-})
+export default app
 `;
 
-const BASE_ZOD_GUARD_INDEX = `import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
+const BASE_ZOD_GUARD_INDEX = `import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
@@ -59,10 +54,7 @@ app.use(secureHeaders())
 
 app.post('/auth/register', zValidator('json', CreateUserSchema), (c) => c.json({ ok: true }))
 
-const port = Number(process.env.PORT ?? 3000)
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(\`listening on http://localhost:\${info.port}\`)
-})
+export default app
 `;
 
 describe("render / {base + hono/zod}", () => {
@@ -76,7 +68,7 @@ describe("render / {base + hono/zod}", () => {
     const schema = file(files, "src/schemas/user.ts");
     expect(schema.source).toBe("hono/zod");
     expect(schema.contents).toContain("export const CreateUserSchema");
-    expect(schema.contents).toContain('import { z } from "zod"');
+    expect(schema.contents).toContain("import { z } from 'zod'");
   });
 
   test("no markers leak", () => {
@@ -97,7 +89,7 @@ describe("render / {base + hono/zod}", () => {
       zod: "^4.6.6",
       "@hono/zod-validator": "^0.9.1",
     });
-    expect(pkg.devDependencies).toMatchObject({ tsx: expect.any(String) });
+    expect(pkg.devDependencies).toMatchObject({ "vite-plus": expect.any(String) });
   });
 });
 
@@ -152,8 +144,7 @@ describe("render / {base + hono/zod + hono/api-guard}", () => {
   });
 });
 
-const BASE_ZOD_SWAGGER_INDEX = `import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
+const BASE_ZOD_SWAGGER_INDEX = `import { Hono } from 'hono'
 import { swaggerUI } from '@hono/swagger-ui'
 import { zValidator } from '@hono/zod-validator'
 import { describeRoute, openAPIRouteHandler, resolver } from 'hono-openapi'
@@ -184,10 +175,7 @@ app.post(
 app.get('/openapi.json', openAPIRouteHandler(app, { documentation: openApiDocumentation }))
 app.get('/docs', swaggerUI({ url: '/openapi.json' }))
 
-const port = Number(process.env.PORT ?? 3000)
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(\`listening on http://localhost:\${info.port}\`)
-})
+export default app
 `;
 
 describe("render / {base + hono/zod + hono/swagger-openapi}", () => {

@@ -42,6 +42,7 @@ describe("cli e2e", () => {
 
     for (const relative of [
       "src/index.ts",
+      "vite.config.ts",
       "package.json",
       "pnpm-workspace.yaml",
       "tsconfig.json",
@@ -55,6 +56,8 @@ describe("cli e2e", () => {
     const index = readFileSync(join(target, "src/index.ts"), "utf8");
     expect(index).toContain("import { logger } from 'hono/logger'");
     expect(index).toContain("app.use(logger())");
+    expect(index).toContain("export default app");
+    expect(index).not.toContain("serve(");
     expect(index).not.toContain("@code4x");
 
     const pkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {

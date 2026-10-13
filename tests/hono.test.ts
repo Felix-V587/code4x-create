@@ -15,17 +15,13 @@ const ANSWERS: Answers = {
   git: true,
 };
 
-const EXPECTED_INDEX = `import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
+const EXPECTED_INDEX = `import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 
 const app = new Hono()
 app.use(logger())
 
-const port = Number(process.env.PORT ?? 3000)
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(\`listening on http://localhost:\${info.port}\`)
-})
+export default app
 `;
 
 describe("hono base golden", () => {
@@ -41,24 +37,56 @@ describe("hono base golden", () => {
       "pnpm-workspace.yaml",
       "src/index.ts",
       "tsconfig.json",
+      "vite.config.ts",
     ]);
   });
 
-  test("src/index.ts matches the golden skeleton", () => {
+  test("src/index.ts matches the golden skeleton (vp-native, no serve)", () => {
     const index = files.find((file) => file.path === "src/index.ts");
     expect(index?.source).toBe("assembly");
     expect(index?.contents).toBe(EXPECTED_INDEX);
+    expect(index?.contents).toContain("export default app");
+    expect(index?.contents).not.toContain("@hono/node-server");
+    expect(index?.contents).not.toContain("serve(");
   });
 
-  test("package.json has the normalized name and no placeholder", () => {
+  test("package.json has the normalized name and vp-native scripts/deps", () => {
     const pkg = files.find((file) => file.path === "package.json");
     expect(pkg).toBeDefined();
     expect(JSON.parse(pkg?.contents ?? "{}")).toMatchObject({
       name: "my-api",
       type: "module",
+      scripts: {
+        dev: "vp dev",
+        build: "vp build",
+        start: "node dist/index.js",
+        typecheck: "tsc --noEmit",
+      },
       dependencies: { hono: expect.any(String), "@hono/node-server": expect.any(String) },
+      devDependencies: {
+        "vite-plus": expect.any(String),
+        "@hono/vite-dev-server": expect.any(String),
+        "@hono/vite-build": expect.any(String),
+      },
     });
     expect(pkg?.contents).not.toContain("{PROJECT}");
+    expect(pkg?.contents).not.toContain("tsx");
+  });
+
+  test("vite.config.ts wires dev-server + build and ignores dist", () => {
+    const vite = files.find((file) => file.path === "vite.config.ts");
+    expect(vite?.contents).toContain("defineConfig");
+    expect(vite?.contents).toContain("vite-plus");
+    expect(vite?.contents).toContain("devServer({ entry: 'src/index.ts' })");
+    expect(vite?.contents).toContain("build({ entry: 'src/index.ts', port })");
+    expect(vite?.contents).toContain("ignorePatterns: ['dist/**']");
+  });
+
+  test("tsconfig typechecks src + vite.config.ts", () => {
+    const tsconfig = files.find((file) => file.path === "tsconfig.json");
+    expect(JSON.parse(tsconfig?.contents ?? "{}")).toMatchObject({
+      include: ["src", "vite.config.ts"],
+    });
   });
 
   test("ships a pnpm workspace allowBuilds for esbuild", () => {
