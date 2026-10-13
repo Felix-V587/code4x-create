@@ -141,6 +141,8 @@ serve({ fetch: app.fetch, port }, (info) => {
 
 `single` 锚点用例：若某集成需要把 `new Hono()` 换成 class 包装（如 `@hono/zod-openapi`），装配不是加一行而是换基准块——`single` 锚点 + 蓝图提供 `default` 块，feature 贡献整段替换。**[LOD]** 该机制是否实际启用取决于 swagger 生态选型（见 §5 OQ-7）。
 
+标记支持两种语法：JS 行注释 `// @code4x:begin <anchor>` 与 HTML 注释 `<!-- @code4x:begin <anchor> -->`（均为完整独占行，共享同一校验语义）；HTML 形式用于 `.vue` / `.html` 骨架。
+
 ### 2.2 block 排序与 tie-break
 
 - 锚点内排序键 = `(block.order, featureTopoRank, feature.id 字典序)`，全稳定（无时钟、与对象 key 顺序无关）。
@@ -261,7 +263,7 @@ const app = createApp(App)
 app.mount('#app')
 ```
 
-`{base + pinia}` / `{+ pinia + router}`：逐条插 `app.use(createPinia())` / `app.use(router)` + `import router from './router'`；`vite.config.ts` 基线不变（plugins 区无 feature 参与，仅 blueprint 的 `vue()`）。排序关键点：pinia < router 由 id tiebreak 固定，**与用户勾选顺序无关**——同一组合、不同选择轨迹生成**相同字节**（确定性演示）。
+`{base + pinia}` / `{+ pinia + router}`：逐条插 `app.use(createPinia())` / `app.use(router)` + `import router from './router'`；`vite.config.ts` 为第二个 assembly（`vite-plugins` 锚点，blueprint static 贡献 `vue()`）；`src/App.vue` 为第三个 assembly（`app-template` 锚点，router 注入 `<router-view />`）。排序关键点：pinia < router 由 id tiebreak 固定，**与用户勾选顺序无关**——同一组合、不同选择轨迹生成**相同字节**（确定性演示）。
 
 ### 复用论证：同一 manifest 抽象如何跨框架
 

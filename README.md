@@ -1,8 +1,8 @@
 # create-code4x
 
-通用项目创建脚手架（对标 create-vite）：以**参数**（v1，已实现）或**交互式提问**（M4，进行中）创建多框架项目，并按框架可选集成常用能力——Hono：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档；Vue：`pinia` / `vue-router`（在途）。
+通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档；Vue：`pinia` / `vue-router`。
 
-**实施状态**：M0–M2 已完成（Hono 基座 + 三个 feature），M3（Vue）与 M4（交互流程 / CI）在途。设计与决策文档见 [docs/](./docs/README.md)。
+**实施状态**：M0–M4 已完成（Hono + Vue 双框架；参数式与交互式双模）；CI、vp 集成 harness 与发布在途。设计与决策文档见 [docs/](./docs/README.md)。
 
 ## 快速开始（仓库内）
 
@@ -20,6 +20,7 @@ cd my-api && pnpm install && pnpm dev
 node dist/cli.mjs my-api -f hono -y                  # 仅基座
 node dist/cli.mjs my-api -f hono --features zod -y   # + zod 校验
 node dist/cli.mjs my-api -p hono-api -y              # 预设：api-guard + zod + swagger-openapi
+node dist/cli.mjs my-vue -p vue-full -y              # 预设：Vue + pinia + vue-router
 ```
 
 发布后形态（尚未发布到 npm）：`pnpm create code4x my-api`。

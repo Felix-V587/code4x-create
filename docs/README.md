@@ -19,7 +19,7 @@
 | M0 | ✅ 已完成 | core 类型 + hono base + 非交互生成可运行项目 |
 | M1 | ✅ 已完成 | `hono/zod` + `hono/api-guard`（package.json merge + entry wiring） |
 | M2 | ✅ 已完成 | `hono/swagger-openapi`（requires zod；`/openapi.json` + `/docs`） |
-| M3 | ⏳ 待做 | vue + pinia/router（框架可插拔 + vite.config 组装） |
+| M3 | ✅ 已完成 | vue + pinia/router（双 assembly 文件 + 勾选顺序无关） |
 | M4 | ✅ 已完成 | 交互式流程（可注入 Prompter）+ 非 TTY 默认语义 + P0 嵌套 workspace 条件化 |
 | M4+ | ⏳ 待做 | Tier-1/2 CI、presets、vp 集成 harness 与 0.1.0 发布 |
 
