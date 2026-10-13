@@ -11,11 +11,21 @@
 | [03-feature-wiring-spec.md](./03-feature-wiring-spec.md) | 核心机制规格：FeatureManifest 类型草案、组装点(wiring) 语义、错误码、目录结构、hono/vue 走查样例 | ✅ 定稿候选 |
 | [04-prompt-flow.md](./04-prompt-flow.md) | 交互问题流 + 参数映射：状态机、逐问呈现、flag/preset/config 优先级、取消语义、边界清单、候选拍板 OQ-A~E | ✅ 定稿候选 |
 
+## 实施状态（2026-10-13）
+
+| 里程碑 | 状态 | 说明 |
+|---|---|---|
+| M0 | ✅ 已完成 | core 类型 + hono base + 非交互生成可运行项目 |
+| M1 | ✅ 已完成 | `hono/zod` + `hono/api-guard`（package.json merge + entry wiring） |
+| M2 | ✅ 已完成 | `hono/swagger-openapi`（requires zod；`/openapi.json` + `/docs`） |
+| M3 | ⏳ 待做 | vue + pinia/router（框架可插拔 + vite.config 组装） |
+| M4 | ⏳ 待做 | 交互式流程 + Tier-1/2 CI + presets → 0.1.0 |
+
 ## 环境约定
 
 - 本仓库已用 **Vite+** 初始化（`vp` 工具链：`vp install` / `vp check` / `vp test` / `vp pack`），详见根目录 AGENTS.md。
 - 包管理器：pnpm 12；TypeScript ESM。
-- ⚠️ 包名等元信息仍为模板占位（`including-stir` 等），正式开发时需改为 `create-code4x` 对应命名。
+- 包名为 `create-code4x`；`repository` 等元信息字段将于发布前补充。
 
 ## 文档维护约定
 

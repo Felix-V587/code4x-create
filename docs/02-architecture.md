@@ -82,15 +82,15 @@ docs/                                                 # 设计文档（本目录
 
 - 先单包组织（目录即拆包边界），未来拆分是机械工作。
 - changesets 管理版本；matrix 全绿才发。
-- ⚠️ 当前仓库为 Vite+ 初始化模板（占位名 `including-stir`），正式开发时需将 package.json 元信息改为 `create-code4x` 对应命名，并按 Vite+（`vp`）工作流开发。
+- 本仓库使用 Vite+（`vp`）工作流开发（见根目录 AGENTS.md）；包名为 `create-code4x`，`repository` 等元信息将于发布前补充。
 
-## 7. MVP 里程碑
+## 7. MVP 里程碑（状态更新：2026-10-13）
 
-- **M0（walking skeleton）**：core 类型（Answers / Plan / FeatureManifest / AssemblySpec）+ hono base + **非交互**生成可运行项目（PM 探测、git init 开关）。
-- **M1**：`hono/zod`（package.json merge + entry wiring）。
-- **M2**：`hono/swagger-openapi`（requires zod，验证依赖与交互模型）。
-- **M3**：vue + pinia + router（验证框架可插拔 + vite.config 组装）。
-- **M4**：Tier-1/2 CI、完整交互流程、presets → 发布 0.1.0。
+- ✅ **M0（walking skeleton）**：core 类型（Answers / Plan / FeatureManifest / AssemblySpec）+ hono base + **非交互**生成可运行项目（PM 探测、git init 开关）。
+- ✅ **M1**：`hono/zod` + `hono/api-guard`（package.json merge + entry wiring 的真实路径）。
+- ✅ **M2**：`hono/swagger-openapi`（requires zod；zod 路由 `when` 双变体 + 中间件式 `/openapi.json`、`/docs`）。
+- ⏳ **M3**：vue + pinia + router（验证框架可插拔 + vite.config 组装）。
+- ⏳ **M4**：Tier-1/2 CI、完整交互流程、presets → 发布 0.1.0。
 - **Defer**：react（低风险增量）、add-to-existing、远程模板、第三方插件、Bun/Deno 变体。
 
 ## 8. 风险与缓解
@@ -114,3 +114,4 @@ docs/                                                 # 设计文档（本目录
 | OQ-5 | 骨架锚点 vs 整库 EJS？ | 骨架 + 锚点（EJS 不解决多贡献者组装） |
 | OQ-6 | `common/*` 跨框架通道？ | schema 进、真实例不进 v1（mock 验证） |
 | OQ-7 | single 槽 v1 启用？ | 机制保留；倾向中间件式 → 暂不启用。核实：`hono-openapi` 1.3.5（中间件式，"加行"模型）vs `@hono/zod-openapi` 1.6.3（包装类，"换基准块"模型） |
+| D-1 | 生成模板与 pnpm ≥10 ignored builds | 模板声明 `pnpm.onlyBuiltDependencies: ["esbuild"]`，规避 `ERR_PNPM_IGNORED_BUILDS` 导致的 install 退出码错误（npm/yarn 下无副作用） |
