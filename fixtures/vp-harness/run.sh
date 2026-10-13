@@ -49,11 +49,40 @@ run_lane() {
   assert_lane "$name" "$pos"
 }
 
+# Lane A is vp-native (hono): build with `vp build` and run the built server.
+assert_build_lane() {
+  local name="$1" pos="$2" port="$3" path="$4"
+  local dir="$TARGET/apps/$pos"
+  echo
+  echo "===== lane $name build smoke: vp build + node dist/index.js (port $port) ====="
+  set +e
+  ( cd "$dir" && PORT="$port" timeout "$VP_TIMEOUT" pnpm exec vp build ) \
+    2>&1 | tee "$LOG_DIR/vp-harness-$name-build.log"
+  local rc=${PIPESTATUS[0]}
+  set -e
+  echo "lane $name: vp build exit=$rc"
+  [ "$rc" -eq 0 ] || fail "lane $name: vp build exited $rc"
+  [ -f "$dir/dist/index.js" ] || fail "lane $name: missing dist/index.js"
+
+  ( cd "$dir" && setsid node dist/index.js > "$LOG_DIR/vp-harness-$name-serve.log" 2>&1 & echo $! > "$LOG_DIR/vp-harness-$name.pid" )
+  local srv
+  srv="$(cat "$LOG_DIR/vp-harness-$name.pid")"
+  sleep 3
+  local code
+  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://localhost:$port$path" || echo 000)"
+  kill -- -"$srv" 2>/dev/null || true
+  sleep 1
+  echo "lane $name: built server $path -> $code"
+  [ "$code" = "200" ] || fail "lane $name: built server $path expected 200, got $code"
+  echo "lane $name build smoke OK"
+}
+
 # 1. Setup the scratch monorepo (also builds the repo CLI).
 bash "$SCRIPT_DIR/setup.sh" "$TARGET"
 
 # 2. Lanes with --approve-builds.
 run_lane A api -f hono --features zod,swagger-openapi -y --no-git
+assert_build_lane A api 3996 /openapi.json
 run_lane B web -f vue -p vue-full -y --no-git
 
 # 3. Observation lane WITHOUT --approve-builds (expected to hit ignored-builds).

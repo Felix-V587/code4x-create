@@ -74,6 +74,10 @@ Lanes (both exit 0, all assertions pass):
 | B | `web -f vue -p vue-full -y --no-git` | `<target>/apps/web` | `{nestedWorkspace:true, pmFrom:"env"}` |
 | observation | `noapprove -f vue -p vue-full -y --no-git` (no `--approve-builds`) | `<target>/apps/noapprove` | — |
 
+Lane A additionally runs `PORT=3996 pnpm exec vp build` in `apps/api` and
+`node dist/index.js`, asserting `GET /openapi.json` → 200 (vp-native template
+integration evidence; `assert_build_lane` in `run.sh`).
+
 Observed vp behaviour (after the `src/io/write.ts` fix below):
 
 - **cwd / positional resolution**: vp runs the template with cwd = the inferred
