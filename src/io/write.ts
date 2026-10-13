@@ -3,6 +3,27 @@
  * directory (`.code4x-tmp-<name>-*`) followed by an atomic rename, so a target
  * never contains a half-written project (docs/04 §4).
  *
+ * Write order (deliberate):
+ *   1. every file whose basename is **not** `package.json` is written into
+ *      staging, then the staging dir is atomically renamed onto the target;
+ *   2. `package.json` files are written **directly into the final target**
+ *      afterwards (creating parent dirs as needed).
+ *
+ * Reason: Vite+ `vp create` detects the generated project directory by
+ * collecting the `package.json` paths the template process wrote and choosing
+ * the shallowest one (`runCommandAndDetectProjectDir` in vite-plus). Writing
+ * `package.json` into `.code4x-tmp-*` made vp pick the staging dir, so its
+ * post-processing (`vp fmt`, the `Next: cd …` hint) targeted a path that no
+ * longer existed after the rename. Deferring `package.json` makes the only
+ * observed write land on the final path.
+ *
+ * Trade-off: after the rename there is a sub-millisecond window where the
+ * target exists and is complete *except* `package.json`. A crash in that window
+ * leaves a directory with a missing `package.json` (still carrying the other
+ * files + `.code4xrc.json`, which keeps travelling through staging). This is
+ * the documented semantic change; atomicity for the bulk of the tree is
+ * unchanged.
+ *
  * Non-empty target dirs require `--overwrite`, which additionally refuses to
  * `rm -rf` anything that was not produced by create-code4x (no `.code4xrc.json`
  * present -> `E-OVERWRITE-REFUSED`).
@@ -68,9 +89,13 @@ export function writeProject(
   mkdirSync(parent, { recursive: true });
   sweep(parent, name);
 
+  // `package.json` is deferred until after the rename (see file header).
+  const deferred = files.filter((file) => basename(file.path) === "package.json");
+  const staged = files.filter((file) => basename(file.path) !== "package.json");
+
   const staging = mkdtempSync(join(parent, `${TMP_PREFIX}${name}-`));
   try {
-    for (const file of files) {
+    for (const file of staged) {
       const destination = join(staging, file.path);
       mkdirSync(dirname(destination), { recursive: true });
       writeFileSync(destination, file.contents);
@@ -80,6 +105,13 @@ export function writeProject(
   } catch (error) {
     rmSync(staging, { recursive: true, force: true });
     throw error;
+  }
+
+  // Write the deferred `package.json` files into the final target.
+  for (const file of deferred) {
+    const destination = join(resolved, file.path);
+    mkdirSync(dirname(destination), { recursive: true });
+    writeFileSync(destination, file.contents);
   }
 
   return files.map((file) => file.path);
