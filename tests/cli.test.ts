@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { run } from "../src/cli.ts";
+import { run, type CliIO } from "../src/cli.ts";
+import { scriptedPrompter } from "./prompter.ts";
 
 const roots: string[] = [];
 
@@ -17,7 +18,7 @@ afterAll(() => {
   for (const root of roots) rmSync(root, { recursive: true, force: true });
 });
 
-async function invoke(args: string[], cwd: string) {
+async function invoke(args: string[], cwd: string, extra: Partial<CliIO> = {}) {
   const out: string[] = [];
   const err: string[] = [];
   const code = await run(args, {
@@ -25,6 +26,8 @@ async function invoke(args: string[], cwd: string) {
     err: (line) => err.push(line),
     env: {},
     cwd,
+    isTTY: false,
+    ...extra,
   });
   return { code, stdout: out.join("\n"), stderr: err.join("\n") };
 }
@@ -63,6 +66,7 @@ describe("cli e2e", () => {
       generator: { cliVersion: string; preset: string | null };
       answers: { framework: string; features: string[] };
       plan: { features: string[]; sources: Record<string, string>; hashes: Record<string, string> };
+      context: { nestedWorkspace: boolean; pmFrom: string };
     };
     expect(rc.generator.cliVersion).toBe("0.0.0");
     expect(rc.answers.framework).toBe("hono");
@@ -70,6 +74,7 @@ describe("cli e2e", () => {
     expect(rc.plan.features).toEqual([]);
     expect(rc.plan.sources["src/index.ts"]).toBe("assembly");
     expect(rc.plan.hashes["src/index.ts"]).toMatch(/^[0-9a-f]{64}$/);
+    expect(rc.context).toEqual({ nestedWorkspace: false, pmFrom: "default" });
     expect(existsSync(join(target, ".git"))).toBe(false);
   });
 
@@ -241,5 +246,70 @@ describe("cli e2e", () => {
     };
     expect(rc.plan.features).toEqual(["hono/zod", "hono/swagger-openapi"]);
     expect(rc.plan.sources["src/docs/spec.ts"]).toBe("hono/swagger-openapi");
+  });
+
+  test("non-TTY without -y succeeds with defaults (features=[])", async () => {
+    const root = tempRoot();
+    const target = join(root, "non-tty-app");
+    const { code } = await invoke(["-f", "hono", "--no-git", target], root);
+    expect(code).toBe(0);
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { features: string[]; framework: string };
+    };
+    expect(rc.answers.framework).toBe("hono");
+    expect(rc.answers.features).toEqual([]);
+  });
+
+  test("interactive cancel -> exit 130 and zero side effects", async () => {
+    const root = tempRoot();
+    const target = join(root, "cancel-app");
+    const prompter = scriptedPrompter({ text: [target], cancelAt: "select" });
+    const { code } = await invoke([], root, { isTTY: true, createPrompter: () => prompter });
+    expect(code).toBe(130);
+    expect(existsSync(target)).toBe(false);
+    expect(prompter.log).toContain("outro:Operation cancelled");
+  });
+
+  test("--json in interactive mode -> usage error exit 2", async () => {
+    const root = tempRoot();
+    const { code, stderr } = await invoke(["--json"], root, {
+      isTTY: true,
+      createPrompter: () => scriptedPrompter({}),
+    });
+    expect(code).toBe(2);
+    expect(stderr).toContain("E-INVALID-VALUE");
+  });
+
+  test("interactive and full-flag paths produce byte-identical .code4xrc.json", async () => {
+    const root = tempRoot();
+    const target = join(root, "parity-app");
+    const prompter = scriptedPrompter({
+      text: [target],
+      select: ["hono", "npm"],
+      multiselect: [[]],
+      confirm: [false, false],
+    });
+    const first = await invoke([], root, { isTTY: true, createPrompter: () => prompter });
+    expect(first.code).toBe(0);
+    const interactiveRc = readFileSync(join(target, ".code4xrc.json"), "utf8");
+
+    const second = await invoke(["-f", "hono", "--no-git", "--overwrite", target], root);
+    expect(second.code).toBe(0);
+    const flagRc = readFileSync(join(target, ".code4xrc.json"), "utf8");
+    expect(flagRc).toBe(interactiveRc);
+  });
+
+  test("nested workspace suppresses pnpm-workspace.yaml and records context", async () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages: []\n");
+    const target = join(root, "apps", "api");
+    const { code } = await invoke(["-f", "hono", "-y", "--no-git", target], root);
+    expect(code).toBe(0);
+    expect(existsSync(join(target, "pnpm-workspace.yaml"))).toBe(false);
+    expect(existsSync(join(target, "package.json"))).toBe(true);
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      context: { nestedWorkspace: boolean; pmFrom: string };
+    };
+    expect(rc.context).toEqual({ nestedWorkspace: true, pmFrom: "default" });
   });
 });
