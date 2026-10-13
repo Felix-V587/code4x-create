@@ -1,6 +1,6 @@
 {
   "name": "create-code4x",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Scaffold multi-framework projects with optional integrations.",
   "license": "MIT",
   "author": "longyong.xu <2310122662@qq.com>",
@@ -8,18 +8,20 @@
     "create-code4x": "./dist/cli.mjs"
   },
   "files": [
-    "dist",
-    "templates",
-    "features"
+    "dist"
   ],
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "exports": {
     ".": "./dist/index.mjs",
     "./cli": "./dist/cli.mjs",
     "./package.json": "./package.json"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
     "build": "vp pack",

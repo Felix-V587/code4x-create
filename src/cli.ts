@@ -8,7 +8,7 @@
  */
 
 import { readFileSync, realpathSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import mri from "mri";
@@ -38,7 +38,32 @@ import { writeProject } from "./io/write.ts";
 import type { Answers, PackageManager, Plan, ProjectContext, VirtualFile } from "./domain/types.ts";
 import type { Registry } from "./domain/registry.ts";
 
-export const CLI_VERSION = "0.0.0";
+/**
+ * CLI version, read at runtime from the nearest `package.json` so all three
+ * shapes agree:
+ *   - vitest running source (`src/cli.ts` -> repo-root `package.json`);
+ *   - the `vp pack` output (`dist/cli.mjs` -> repo-root `package.json`);
+ *   - an installed tarball (`…/node_modules/create-code4x/dist/cli.mjs` ->
+ *     the package's own `package.json`, which npm always ships).
+ */
+function readCliVersion(): string {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const candidates = [join(here, "..", "package.json"), join(here, "..", "..", "package.json")];
+  for (const candidate of candidates) {
+    try {
+      const pkg = JSON.parse(readFileSync(candidate, "utf8")) as {
+        name?: unknown;
+        version?: unknown;
+      };
+      if (pkg.name === "create-code4x" && typeof pkg.version === "string") return pkg.version;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return "0.0.0";
+}
+
+export const CLI_VERSION = readCliVersion();
 
 export interface CliIO {
   out: (line: string) => void;

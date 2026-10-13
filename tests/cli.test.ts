@@ -71,7 +71,7 @@ describe("cli e2e", () => {
       plan: { features: string[]; sources: Record<string, string>; hashes: Record<string, string> };
       context: { nestedWorkspace: boolean; pmFrom: string };
     };
-    expect(rc.generator.cliVersion).toBe("0.0.0");
+    expect(rc.generator.cliVersion).toBe("0.1.0");
     expect(rc.answers.framework).toBe("hono");
     expect(rc.answers.features).toEqual([]);
     expect(rc.plan.features).toEqual([]);
