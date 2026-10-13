@@ -15,24 +15,28 @@ import { fileURLToPath } from "node:url";
 
 import type { FeatureManifest, FrameworkBlueprint } from "../domain/types.ts";
 import {
-  V1_FEATURE_CATALOG,
   type Preset,
   type Registry,
   type RuntimeAssembly,
   type RuntimeBlueprint,
 } from "../domain/registry.ts";
 import honoBlueprint from "../../templates/hono/blueprint.ts";
+import vueBlueprint from "../../templates/vue/blueprint.ts";
 import zodManifest from "../../features/hono/zod/manifest.ts";
 import apiGuardManifest from "../../features/hono/api-guard/manifest.ts";
 import swaggerOpenapiManifest from "../../features/hono/swagger-openapi/manifest.ts";
+import piniaManifest from "../../features/vue/pinia/manifest.ts";
+import routerManifest from "../../features/vue/router/manifest.ts";
 
-const FRAMEWORK_BLUEPRINTS: FrameworkBlueprint[] = [honoBlueprint];
+const FRAMEWORK_BLUEPRINTS: FrameworkBlueprint[] = [honoBlueprint, vueBlueprint];
 
 /** Implemented feature manifests, keyed by id at load time. */
 const FEATURE_MANIFESTS: FeatureManifest[] = [
   zodManifest,
   apiGuardManifest,
   swaggerOpenapiManifest,
+  piniaManifest,
+  routerManifest,
 ];
 
 export function findTemplatesRoot(
@@ -104,13 +108,17 @@ export function loadRegistry(
       framework: "hono",
       features: ["hono/api-guard", "hono/zod", "hono/swagger-openapi"],
     },
+    "vue-full": {
+      id: "vue-full",
+      framework: "vue",
+      features: ["vue/pinia", "vue/router"],
+    },
   };
 
   return {
     frameworks,
     features,
     presets,
-    featureCatalog: { ...V1_FEATURE_CATALOG },
     assets,
   };
 }

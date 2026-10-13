@@ -40,17 +40,9 @@ export interface Preset {
 
 export interface Registry {
   frameworks: Record<FrameworkId, RuntimeBlueprint>;
-  /** Implemented features (`hono/zod`, `hono/api-guard` in M1). */
+  /** Implemented features (all v1 features are real manifests now). */
   features: Record<FeatureId, FeatureManifest>;
   presets: Record<string, Preset>;
-  /**
-   * M0 scaffolding: known feature ids mapped to their owning framework. Lets
-   * non-interactive name resolution and framework-prefix validation behave
-   * correctly before any feature is implemented. Selecting a catalog-only
-   * feature is a domain error (`E-INVALID-VALUE`); entries are removed as the
-   * real manifests land in M1/M2/M3.
-   */
-  featureCatalog: Record<FeatureId, FrameworkId>;
   /**
    * Asset text keyed by `<prefix>/<relative path>`, where prefix is a framework
    * id (blueprint assets) or a feature id (feature assets). Populated by the
@@ -58,16 +50,6 @@ export interface Registry {
    */
   assets: Record<string, string>;
 }
-
-/**
- * Known, not-yet-implemented v1 feature ids -> owning framework (see
- * `featureCatalog`). `hono/zod`, `hono/api-guard` and `hono/swagger-openapi`
- * are real manifests now; the vue features land in M3.
- */
-export const V1_FEATURE_CATALOG: Record<FeatureId, FrameworkId> = {
-  "vue/pinia": "vue",
-  "vue/router": "vue",
-};
 
 /** Merge a manifest's `base` + `targets[framework]` into a single contribution. */
 export function contributionFor(

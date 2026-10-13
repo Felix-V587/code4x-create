@@ -116,6 +116,12 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     io.isTTY,
   );
 
+  // Notes/announcements must not pollute `--json` stdout (JSON only there).
+  const note = (line: string): void => {
+    if (json) io.err(line);
+    else io.out(line);
+  };
+
   // --template alias ({hono,vue} -> framework, preset id -> preset).
   let templateFramework: string | undefined;
   let templatePreset: string | undefined;
@@ -123,10 +129,10 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     const value = String(parsed.template);
     if (value === "hono" || value === "vue") {
       templateFramework = value;
-      io.out(`note: --template ${value} -> --framework ${value}`);
+      note(`note: --template ${value} -> --framework ${value}`);
     } else if (registry.presets[value]) {
       templatePreset = value;
-      io.out(`note: --template ${value} -> --preset ${value}`);
+      note(`note: --template ${value} -> --preset ${value}`);
     } else {
       throw usage("E-INVALID-VALUE", `invalid --template "${value}"`, {
         fix: "expected hono, vue, or a registered preset id",
@@ -171,7 +177,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     const inferred = inferFramework(features, registry);
     if (inferred) {
       framework = inferred;
-      io.out(`framework inferred: ${inferred} (from features)`);
+      note(`framework inferred: ${inferred} (from features)`);
     }
   }
 
@@ -274,7 +280,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
 
   if (answers.git) {
     const result = initGit(resolve(io.cwd, answers.targetDir));
-    if (result.skipped && result.note && !json) io.out(`note: ${result.note}`);
+    if (result.skipped && result.note) note(`note: ${result.note}`);
   }
 
   if (!json) printNextSteps(buildNextSteps(answers), io);
@@ -290,10 +296,10 @@ function inferFramework(features: string[], registry: Registry): string | undefi
       frameworks.add(token.split("/")[0]);
       continue;
     }
-    const match = Object.keys(registry.featureCatalog).find(
+    const match = Object.keys(registry.features).find(
       (id) => id === token || id.endsWith(`/${token}`),
     );
-    if (match) frameworks.add(registry.featureCatalog[match]);
+    if (match) frameworks.add(match.split("/")[0]);
   }
   return frameworks.size === 1 ? [...frameworks][0] : undefined;
 }

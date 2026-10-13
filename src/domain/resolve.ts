@@ -40,11 +40,11 @@ export function expandPreset(id: string, reg: Registry): Preset {
   return preset;
 }
 
-/** Every known feature id (implemented or catalog-only) -> owning framework. */
+/** Every implemented feature id -> owning framework (derived from its prefix). */
 function knownFrameworks(reg: Registry): Record<FeatureId, FrameworkId> {
-  const known: Record<FeatureId, FrameworkId> = { ...reg.featureCatalog };
+  const known: Record<FeatureId, FrameworkId> = {};
   for (const id of Object.keys(reg.features)) {
-    if (!(id in known)) known[id] = id.split("/")[0] ?? COMMON_PREFIX;
+    known[id] = id.split("/")[0] ?? COMMON_PREFIX;
   }
   return known;
 }

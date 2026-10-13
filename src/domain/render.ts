@@ -39,7 +39,9 @@ interface Hit {
   featureId: string;
 }
 
-const MARKER = /^([ \t]*)\/\/ @code4x:(begin|end) (\S+)[ \t]*$/;
+// Marker lines: `// @code4x:begin <anchor>` (code) or
+// `<!-- @code4x:begin <anchor> -->` (HTML/template). Must be a whole line.
+const MARKER = /^([ \t]*)(?:\/\/|<!--) @code4x:(begin|end) (\S+)(?: -->)?[ \t]*$/;
 
 export function render(
   plan: Plan,
