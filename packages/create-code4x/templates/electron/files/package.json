@@ -1,0 +1,31 @@
+{
+  "name": "{PROJECT}",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/index.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vp pack && vp build",
+    "start": "electron .",
+    "typecheck": "vue-tsc --noEmit",
+    "check": "vp check"
+  },
+  "dependencies": {
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@types/node": "^24.0.0",
+    "electron": "^44.0.0",
+    "typescript": "^5.9.0",
+    "vite-plus": "^1.1.0",
+    "vue-tsc": "^3.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "electron"
+    ]
+  }
+}

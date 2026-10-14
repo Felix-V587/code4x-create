@@ -20,6 +20,7 @@ import {
   type RuntimeAssembly,
   type RuntimeBlueprint,
 } from "../domain/registry.ts";
+import electronBlueprint from "../../templates/electron/blueprint.ts";
 import honoBlueprint from "../../templates/hono/blueprint.ts";
 import vueBlueprint from "../../templates/vue/blueprint.ts";
 import zodManifest from "../../features/hono/zod/manifest.ts";
@@ -28,7 +29,7 @@ import swaggerOpenapiManifest from "../../features/hono/swagger-openapi/manifest
 import piniaManifest from "../../features/vue/pinia/manifest.ts";
 import routerManifest from "../../features/vue/router/manifest.ts";
 
-const FRAMEWORK_BLUEPRINTS: FrameworkBlueprint[] = [honoBlueprint, vueBlueprint];
+const FRAMEWORK_BLUEPRINTS: FrameworkBlueprint[] = [electronBlueprint, honoBlueprint, vueBlueprint];
 
 /** Implemented feature manifests, keyed by id at load time. */
 const FEATURE_MANIFESTS: FeatureManifest[] = [

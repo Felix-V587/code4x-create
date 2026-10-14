@@ -1,0 +1,22 @@
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+#app {
+  padding: 2rem;
+}
+
+ul {
+  padding-left: 1.25rem;
+}
+
+button {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+}

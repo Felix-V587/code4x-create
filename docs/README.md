@@ -1,6 +1,6 @@
 # code4x-create 设计文档
 
-通用项目创建脚手架（对标 create-vite）：交互式 / 参数式创建多框架项目，按框架可选集成常用能力（Hono：zod / swagger / 中间件；Vue：pinia / vue-router / vueuse 等）。
+通用项目创建脚手架（对标 create-vite）：交互式 / 参数式创建多框架项目，按框架可选集成常用能力（Hono：zod / swagger / 中间件；Vue：pinia / vue-router / vueuse 等；Electron：Vue 3 渲染层 + vp pack 主/预加载进程）。
 
 ## 文档索引
 
@@ -21,14 +21,15 @@
 | M2 | ✅ 已完成 | `hono/swagger-openapi`（requires zod；`/openapi.json` + `/docs`） |
 | M3 | ✅ 已完成 | vue + pinia/router（双 assembly 文件 + 勾选顺序无关） |
 | M4 | ✅ 已完成 | 交互式流程（可注入 Prompter）+ 非 TTY 默认语义 + P0 嵌套 workspace 条件化 |
+| M5 | ✅ 已完成 | electron 框架：Vue 3 渲染层 + `vp pack` 主/预加载（CJS，`neverBundle: ['electron']`）+ 零依赖 dev 编排脚本；生成→install→build→typecheck→`vp check` 开箱通过，prod 启动（窗口创建）与 dev 编排实测通过 |
 | vp 集成 | ✅ harness 实测通过 | `fixtures/vp-harness/`（两 lane + 观察 lane + lane A build smoke）；hono 模板 vp 原生、vue 模板 vp check 开箱通过；发布后 dlx lane 待验证 |
 | M4+ | ⏳ 待做 | Tier-1/2 CI、presets、0.1.0 发布 |
 
 ## 环境约定
 
-- 本仓库已用 **Vite+** 初始化（`vp` 工具链：`vp install` / `vp check` / `vp test` / `vp pack`），详见根目录 AGENTS.md。
+- 本仓库已用 **Vite+** 初始化为 pnpm monorepo（workspace 根 + `packages/create-code4x/`）：根 `vite.config.ts` 只管 lint/fmt，`vp pack` 等面向包的命令用 `vp -C packages/create-code4x …` 或在包目录内执行；详见根目录 AGENTS.md。
 - 包管理器：pnpm 12；TypeScript ESM。
-- 包名为 `create-code4x`；`repository` 等元信息字段将于发布前补充。
+- 发布包名为 `create-code4x`（位于 `packages/create-code4x/`）；`repository` 等元信息字段将于发布前补充。
 
 ## 文档维护约定
 

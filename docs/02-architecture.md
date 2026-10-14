@@ -1,7 +1,7 @@
 # 02 · 架构与关键技术决策
 
 > 状态：定稿候选（OQ-1~7 未见异议，按倾向定案）。
-> v1 范围：Hono + Vue；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`（示例）、`vue/pinia`、`vue/router`。
+> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`（示例）、`vue/pinia`、`vue/router`。
 > 上游依据：[01-ecosystem-research.md](./01-ecosystem-research.md)；机制细节：[03-feature-wiring-spec.md](./03-feature-wiring-spec.md)。
 
 ## 1. 五层架构（核心两层必须是纯函数）
@@ -52,7 +52,7 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 | 模板托管 | v1 全部内置 npm 包；远端拉取（giget + CLI 版本推导 ref）留作未来选项 | create-vite 实证；离线与版本原子性；参考 create-hono ref 策略 |
 | 组合实现 | 声明式 manifest + 窄 hook；第三方插件 API v1 不承诺稳定 | 可静态校验 / 可快照测试 / 接口冻结成本 |
 | 包发布 | 单包 `create-code4x`（`pnpm create code4x` 自动映射）；changesets 发版，`latest`/`next` 双 tag | create-* 生态惯例；将来拆包是机械工作 |
-| 首发 scope | hono（zod / swagger-openapi / api-guard）+ vue（pinia / router）；react 随后 | 走齐矩阵管线比功能面广更重要 |
+| 首发 scope | hono（zod / swagger-openapi / api-guard）+ vue（pinia / router）+ electron（Vue 3 渲染层）；react 随后 | 走齐矩阵管线比功能面广更重要 |
 
 ## 4. 横切原则
 
@@ -71,15 +71,25 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 ## 6. 仓库布局与发布
 
 ```
-packages/cli/src/
-  domain/{types,registry,resolve,render,pkgjson}.ts   # 纯函数（本设计的核心落点）
-  io/{write,pm,git,prompts}.ts                        # 副作用，薄
-templates/{hono,vue}/…                                # 骨架 + 静态文件
-features/{hono,vue,common}/…                          # manifest + files
-presets/{hono-api,vue-full}.ts
-docs/                                                 # 设计文档（本目录）
+/                              # pnpm workspace 根（private：工具链 + 文档 + harness）
+  package.json                 # private 工作区根（scripts: vp check / vp run -r test …）
+  pnpm-workspace.yaml          # packages/* + catalog/overrides
+  vite.config.ts               # 根配置：仅 lint / fmt
+  packages/create-code4x/      # 发布包（name = create-code4x）
+    package.json               # bin / exports / files（发布形态）
+    vite.config.ts             # pack 块：entry / copy / dts / exports
+    tsconfig.json
+    src/
+      domain/{types,registry,resolve,render,pkgjson}.ts   # 纯函数（本设计的核心落点）
+      io/{write,pm,git,prompts}.ts                        # 副作用，薄
+    templates/{hono,vue,electron}/…     # 骨架 + 静态文件（随包发布）
+    features/{hono,vue}/…      # manifest + files（随包发布）
+    tests/                     # 单测与 CLI e2e（随包走）
+  docs/                        # 设计文档（本目录）
+  fixtures/                    # vp 集成 harness
 ```
 
+- 模板、feature 与测试资产现已随发布包 `packages/create-code4x/` 一起走；仓库根仅保留工作区工具链、文档与 harness。
 - 先单包组织（目录即拆包边界），未来拆分是机械工作。
 - changesets 管理版本；matrix 全绿才发。
 - 本仓库使用 Vite+（`vp`）工作流开发（见根目录 AGENTS.md）；包名为 `create-code4x`，`repository` 等元信息将于发布前补充。
@@ -89,7 +99,8 @@ docs/                                                 # 设计文档（本目录
 - ✅ **M0（walking skeleton）**：core 类型（Answers / Plan / FeatureManifest / AssemblySpec）+ hono base + **非交互**生成可运行项目（PM 探测、git init 开关）。
 - ✅ **M1**：`hono/zod` + `hono/api-guard`（package.json merge + entry wiring 的真实路径）。
 - ✅ **M2**：`hono/swagger-openapi`（requires zod；zod 路由 `when` 双变体 + 中间件式 `/openapi.json`、`/docs`）。
-- ⏳ **M3**：vue + pinia + router（验证框架可插拔 + vite.config 组装）。
+- ✅ **M3**：vue + pinia + router（验证框架可插拔 + vite.config 组装）。
+- ✅ **M5**：electron（Vue 3 渲染层 + `vp pack` 主/预加载 CJS + 零依赖 dev 编排脚本；组装锚点复用）。
 - ⏳ **M4**：Tier-1/2 CI、完整交互流程、presets → 发布 0.1.0。
 - **Defer**：react（低风险增量）、add-to-existing、远程模板、第三方插件、Bun/Deno 变体。
 

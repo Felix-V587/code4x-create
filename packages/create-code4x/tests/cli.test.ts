@@ -381,6 +381,69 @@ describe("cli e2e", () => {
     expect(rc.answers.features).toEqual(["pinia"]);
   });
 
+  test("-f electron -y generates a complete electron project", async () => {
+    const root = tempRoot();
+    const target = join(root, "electron-app");
+    const { code, stderr } = await invoke(["-f", "electron", "-y", "--no-git", target], root);
+    expect(stderr).toBe("");
+    expect(code).toBe(0);
+
+    for (const relative of [
+      "src/main/index.ts",
+      "src/preload/index.ts",
+      "src/renderer/index.html",
+      "src/renderer/src/main.ts",
+      "src/renderer/src/App.vue",
+      "scripts/dev.mjs",
+      "vite.config.ts",
+      "package.json",
+      "pnpm-workspace.yaml",
+      "tsconfig.json",
+      ".code4xrc.json",
+    ]) {
+      expect(existsSync(join(target, relative)), relative).toBe(true);
+    }
+
+    const pkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
+      name: string;
+      main: string;
+    };
+    expect(pkg.name).toBe("electron-app");
+    expect(pkg.main).toBe("dist/main/index.cjs");
+
+    const main = readFileSync(join(target, "src/main/index.ts"), "utf8");
+    expect(main).toContain("preload: join(__dirname, '../preload/index.cjs')");
+    expect(main).toContain("process.env.ELECTRON_RENDERER_URL");
+    expect(main).not.toContain("@code4x");
+
+    const vite = readFileSync(join(target, "vite.config.ts"), "utf8");
+    expect(vite).toContain("vue(),");
+    expect(vite).not.toContain("@code4x");
+
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { framework: string };
+      plan: { sources: Record<string, string> };
+    };
+    expect(rc.answers.framework).toBe("electron");
+    expect(rc.plan.sources["src/main/index.ts"]).toBe("assembly");
+    expect(rc.plan.sources["vite.config.ts"]).toBe("assembly");
+  });
+
+  test("--template electron -> --framework electron", async () => {
+    const root = tempRoot();
+    const target = join(root, "electron-template");
+    const { code, stdout } = await invoke(
+      ["--template", "electron", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(0);
+    expect(stdout).toContain("--template electron -> --framework electron");
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { framework: string };
+    };
+    expect(rc.answers.framework).toBe("electron");
+  });
+
   test("-p vue-full generates the full vue project", async () => {
     const root = tempRoot();
     const target = join(root, "vue-full");

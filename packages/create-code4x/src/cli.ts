@@ -147,12 +147,12 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     else io.out(line);
   };
 
-  // --template alias ({hono,vue} -> framework, preset id -> preset).
+  // --template alias ({electron,hono,vue} -> framework, preset id -> preset).
   let templateFramework: string | undefined;
   let templatePreset: string | undefined;
   if (parsed.template !== undefined) {
     const value = String(parsed.template);
-    if (value === "hono" || value === "vue") {
+    if (value === "electron" || value === "hono" || value === "vue") {
       templateFramework = value;
       note(`note: --template ${value} -> --framework ${value}`);
     } else if (registry.presets[value]) {
@@ -160,7 +160,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
       note(`note: --template ${value} -> --preset ${value}`);
     } else {
       throw usage("E-INVALID-VALUE", `invalid --template "${value}"`, {
-        fix: "expected hono, vue, or a registered preset id",
+        fix: "expected electron, hono, vue, or a registered preset id",
       });
     }
   }
