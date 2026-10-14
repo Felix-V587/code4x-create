@@ -11,6 +11,7 @@
 | [03-feature-wiring-spec.md](./03-feature-wiring-spec.md) | 核心机制规格：FeatureManifest 类型草案、组装点(wiring) 语义、错误码、目录结构、hono/vue 走查样例 | ✅ 定稿候选 |
 | [04-prompt-flow.md](./04-prompt-flow.md) | 交互问题流 + 参数映射：状态机、逐问呈现、flag/preset/config 优先级、取消语义、边界清单、候选拍板 OQ-A~E | ✅ 定稿候选 |
 | [05-vp-integration.md](./05-vp-integration.md) | vp create 集成笔记：机制核实（含源码行号）、正确调用方式、职责边界、子项目规则、验证路线 | ✅ 已核实 |
+| [06-template-ecosystem-plan.md](./06-template-ecosystem-plan.md) | 模板系统路线图：机制扩展（互斥/贡献面/锚点）、Hono/Vue/Electron feature 矩阵与版本基线、单仓库模式、里程碑与 OQ | ⏳ 待评审（2026-10-14） |
 
 ## 实施状态（2026-10-13）
 
