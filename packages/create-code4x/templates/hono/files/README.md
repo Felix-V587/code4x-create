@@ -31,8 +31,40 @@ change it:
 PORT=4000 pnpm build && PORT=4000 pnpm start
 ```
 
+The built server shuts down gracefully on `SIGINT`/`SIGTERM` (a 5s drain window is
+configured in `vite.config.ts`).
+
 Other scripts: `pnpm typecheck` (`tsc --noEmit`) and `pnpm check` (`vp check`:
 format + lint + type check).
+
+## Project layout
+
+```
+src/
+  index.ts          # app entry: request id -> logger -> routes -> error handlers
+  routes/health.ts  # liveness + readiness endpoints
+  schemas/          # request/response validation schemas (when `zod` is selected)
+```
+
+- **Request id** — `hono/request-id` runs first, so every request gets an
+  `X-Request-Id` (or an inbound one) and `c.get('requestId')` is available
+  downstream. It is echoed in error responses.
+
+- **Health endpoints**
+  - `GET /healthz` — liveness: always `200 { "status": "ok" }`.
+  - `GET /readyz` — readiness: probes dependencies and answers `503` when one
+    fails. The probe list is a no-op placeholder in `src/routes/health.ts`; add
+    real checks (database, cache, downstream APIs) before relying on it.
+
+- **Error envelope** — `app.onError` and `app.notFound` return a JSON envelope:
+
+  ```json
+  { "code": "NOT_FOUND", "message": "Not Found", "requestId": "…" }
+  ```
+
+  Handlers can throw `HTTPException` from `hono/http-exception`; its status and
+  message are reflected in the envelope. `details` is included when a handler
+  supplies one.
 
 ## `.code4xrc.json`
 

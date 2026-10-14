@@ -180,6 +180,7 @@ describe("cli e2e", () => {
     for (const relative of [
       "src/index.ts",
       "src/schemas/user.ts",
+      "src/http/validation.ts",
       "package.json",
       ".code4xrc.json",
     ]) {
@@ -192,7 +193,8 @@ describe("cli e2e", () => {
     expect(index).toContain("app.use(logger())");
     expect(index).toContain("app.use(cors())");
     expect(index).toContain("app.use(secureHeaders())");
-    expect(index).toContain("app.post('/auth/register'");
+    expect(index).toContain("'/auth/register'");
+    expect(index).toContain("zValidator('json', CreateUserSchema, validationHook)");
     expect(index).not.toContain("@code4x");
 
     const pkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {

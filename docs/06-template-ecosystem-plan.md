@@ -104,16 +104,18 @@
 
 | Feature | 版本（2026-10-14） | 锚点/依赖 | requires / conflicts | 优先级 |
 |---|---|---|---|---|
-| `hono/env` | zod ^4（或 `@t3-oss/env-core ^0.13`） | `imports` + `src/env.ts` | requires `hono/zod` | P1 |
-| `hono/errors` | 内置 | `error-handlers`（M3） | — | P1 |
-| `hono/testing` | 内置 `app.request()` + `hono/testing`；`vite-plus/test` | `vite.config.ts` test 块（M3） | — | P1 |
-| `hono/logging` | `pino 10.4` + `hono-pino 0.10.3` | `imports`+`middlewares` | **conflicts** 基座 `logger()`（需替换机制，M1 扩展为「替换基座块」） | P1 |
-| `hono/http-hardening` | 内置 `timeout`/`body-limit`/`compress`/`etag`/`csrf` | `middlewares` | — | P1 |
+| `hono/env` | zod ^4（手写 schema，无额外依赖） | `src/env.ts`（standalone，**不接入 entry**，避免未用 import） | requires `hono/zod` | ✅ M7 |
+| `hono/errors` | 内置 | `error-handlers`（M7 落地：`app.onError` + `app.notFound` 统一信封） | — | ✅ M7（并入基座） |
+| `hono/testing` | 内置 `app.request()`；`vite-plus/test` | `vite-config-extra` 锚点（vite.config `test` 块）+ `src/app.test.ts` | — | ✅ M7 |
+| `hono/logging` | `pino 10.4` + `hono-pino 0.10.3` | `imports`+`middlewares`；经 `when` 条件替换基座 `logger()`（M1） | **conflicts** 基座 `logger()`（已被替换机制覆盖） | ✅ M7 |
+| `hono/http-hardening` | 内置 `timeout`/`body-limit`/`compress` | `middlewares`，order `20/21/22`（预留表 `20-39`） | — | ✅ M7 |
 | `hono/rate-limit` | `hono-rate-limiter 0.5.4`（README 自述「开发中」）或内置 `ip-restriction` | `middlewares` | requires `hono/api-guard`；**与 hono v5 不兼容**（peer `^4.10.8`） | P2 |
 | `hono/auth-jwt` | 内置 `hono/jwt`；可选 `jose 6.2` | `imports`+`routes` | requires `hono/zod` | P2 |
 | `hono/db-drizzle` | `drizzle-orm 0.45.4` + `drizzle-kit` + `drizzle-zod` | `imports`+`src/db.ts`+`vite.config` external | requires `hono/zod`；conflicts 未来 `hono/db-prisma` | P2 |
 | `hono/observability` | `@hono/otel 1.2` / `@hono/prometheus 1.0.3` | `middlewares` | 两者互斥 | P3 |
 | `hono/swagger-openapi` | 现状 `hono-openapi ^1.3.5` + `@hono/swagger-ui` | 既有 | requires `hono/zod`；**与 `@hono/zod-openapi` 路线互斥**（OQ-7） | — |
+
+> **M7 落地说明**：`hono/env` 未接入 `imports`（standalone 文件）——若在 entry 注入未使用的 import，生成项目的 `vp check`（oxlint `no-unused-vars`）会失败；改由用户按需 `import { env } from './env'`。`hono/errors` 不单独建 feature，错误模型（`error-handlers` 锚点 + `{ code, message, details?, requestId }` 信封）并入基座，`details` 由抛出 `HTTPException` 的处理器自行补充。`hono/zod` 经 `src/http/validation.ts` 的 `validationHook`（`zValidator` 的 `defaultHook`）把校验失败归一化为同一信封（`code: "VALIDATION"`、HTTP 400、`details` = zod issues）；两条路由变体（普通 / swagger）都消费该 hook，无逐路由重复。`hono/testing` 的锚点为新加的 `vite-config-extra`（全局唯一，避免与 `vite-plugins` 语义混淆）。`hono/logging` 的 `app.use(logger)`（logger 本身即中间件）替换基座 `app.use(logger())`；`hono/http-hardening` 只做 `timeout`/`body-limit`/`compress`（`etag`/`csrf` 后移）。
 
 ### 3.3 版本与兼容（写入实施清单）
 
@@ -248,6 +250,7 @@
 - **2026-10-14 对抗性评审修订（oracle，13 条）**：修正 feature 计数（7→6）；验收口径改为「落点脚本化」并补砍量判据；M1 收敛为 `group` + 复用 `E-CONFLICT`，明确「基座块替换靠既有 `when` 条件（`render.ts:62-79`）」与「静态文件不可替换（`render.ts:526`）」；M2 明确 `allowBuilds` 为 map 形状 + 排序确定性 + 单一事实源；M3 拆为渲染器机制（3a MARKER 块注释 / 3b vite.config `imports` 锚点 / 3c 排序约定）并把三框架骨架改造下放 M7–M9；删除 `app-root` 包裹机制（v1）；M4-A 补宿主数据通路（ProjectContext + rc）；场景 B 压缩为方向；M11 只做 Tier-2/3。
 - **2026-10-14 用户定案**：Vue UI 默认 = naive-ui；删除 ant-design-vue；新增 shadcn-vue（需 Tailwind，依赖集 M8 核实）；其余 OQ 按推荐定案（见 §8）。
 - **2026-10-14 M6 落地**：机制扩展实现并验证——`group` 互斥（E-CONFLICT）、`package.json#fields`、`workspaceYaml.allowBuilds` 结构化发射（三框架模板迁移，嵌套 workspace 不落盘 + stderr 提示 + `rc.workspace.requiredAllowBuilds`）、CSS 块注释标记、三框架 `vite-imports` 锚点（hono vite.config 升 assembly）；Tier-1 组合矩阵落地为 `tests/matrix.test.ts`（registry 驱动、离线、幂等与互斥同源），随 `vp test` 运行。实测：191 测试全绿、三框架 `pnpm-workspace.yaml` 字节级一致、hono 生成 `vite.config.ts` oxfmt 通过。
+- **2026-10-14 M7 落地**：Hono 标准化。**基座**：`requestId()` 最先（order 0）→ 基线 logger（order 1，`hono/logging` 经 `when` 替换）、新骨架锚点 `error-handlers`（`app.onError` + `app.notFound`，信封 `{ code, message, details?, requestId }`，`requestId` 取自 `c.get('requestId')`，依赖零新增）、`routes/health.ts`（`/healthz` 存活、`/readyz` 探测失败 → 503，探针为带 TODO 的 no-op）、`vite-plugins` 启用 `shutdownTimeoutMs: 5000`（已核 `@hono/vite-build/node` 适配器选项）、`@hono/node-server` 升 `^2.1.0`（`@hono/vite-dev-server` 仍内嵌 v1，双实例共存无害）。**新 feature**：`hono/env`（standalone `src/env.ts`，requires zod）、`hono/testing`（新增 `vite-config-extra` 锚点 + `src/app.test.ts`，零新依赖）、`hono/logging`（pino + hono-pino，替换基线 logger）、`hono/http-hardening`（内置 timeout/body-limit/compress，order 20/21/22）。**预设**：新增 `hono-standard`（zod+api-guard+testing）与 `hono-full`（+swagger+logging+hardening），`hono-api` 不变。实测：`vp test` 212 全绿；`hono-standard` 生成项目 `pnpm install` → `pnpm build` → 启动 curl `/healthz` 200、`/readyz` 200、未知路由 404 JSON 信封（含 `requestId`）；生成项目 `pnpm run check` 开箱通过；`hono/logging` 变体确认基线 `hono/logger` 消失且输出 pino JSON 行。
 
 ## 附录：版本基线（2026-10-14，实施时复核）
 

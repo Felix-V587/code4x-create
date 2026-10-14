@@ -1,6 +1,6 @@
 # code4x-create 设计文档
 
-通用项目创建脚手架（对标 create-vite）：交互式 / 参数式创建多框架项目，按框架可选集成常用能力（Hono：zod / swagger / 中间件；Vue：pinia / vue-router / vueuse 等；Electron：Vue 3 渲染层 + vp pack 主/预加载进程 + electron-builder 打包）。
+通用项目创建脚手架（对标 create-vite）：交互式 / 参数式创建多框架项目，按框架可选集成常用能力（Hono：zod / swagger / env / testing / logging / http-hardening / 中间件；Vue：pinia / vue-router / vueuse 等；Electron：Vue 3 渲染层 + vp pack 主/预加载进程 + electron-builder 打包）。
 
 ## 文档索引
 
@@ -13,7 +13,7 @@
 | [05-vp-integration.md](./05-vp-integration.md) | vp create 集成笔记：机制核实（含源码行号）、正确调用方式、职责边界、子项目规则、验证路线 | ✅ 已核实 |
 | [06-template-ecosystem-plan.md](./06-template-ecosystem-plan.md) | 模板系统路线图：机制扩展（互斥/贡献面/锚点）、Hono/Vue/Electron feature 矩阵与版本基线、单仓库模式、里程碑与 OQ | ⏳ 待评审（2026-10-14） |
 
-## 实施状态（2026-10-13）
+## 实施状态（2026-10-14）
 
 | 里程碑 | 状态 | 说明 |
 |---|---|---|
@@ -24,8 +24,10 @@
 | M4 | ✅ 已完成 | 交互式流程（可注入 Prompter）+ 非 TTY 默认语义 + P0 嵌套 workspace 条件化 |
 | M5 | ✅ 已完成 | electron 框架：Vue 3 渲染层 + `vp pack` 主/预加载（CJS，`neverBundle: ['electron']`）+ 零依赖 dev 编排脚本；生成→install→build→typecheck→`vp check` 开箱通过，prod 启动（窗口创建）与 dev 编排实测通过 |
 | M5+ | ✅ 已完成 | `electron/builder`：electron-builder 打包（`electron-builder.yml` + `dist`/`dist:dir` 脚本；AppImage / dmg+zip / nsis，产物输出 `release/`，asar 默认开启） |
+| M6 | ✅ 已完成 | 机制扩展：`group` 互斥（复用 `E-CONFLICT`）、`package.json#fields`、`workspaceYaml.allowBuilds`（map 形状、排序确定性）、MARKER 块注释、三框架 `vite-imports` 锚点、Tier-1 组合矩阵（`tests/matrix.test.ts`，registry 驱动、离线、幂等/互斥同源） |
+| M7 | ✅ 已完成 | Hono 标准化：基座升级（`requestId` 最先、`error-handlers` 锚点 + `{code,message,requestId}` 信封、`routes/health.ts`、`shutdownTimeoutMs` 优雅停机、`@hono/node-server` ^2.1）+ 新 feature（`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`）+ 预设 `hono-standard` / `hono-full`；生成项目 install→build→start→curl 冒烟通过 |
 | vp 集成 | ✅ harness 实测通过 | `fixtures/vp-harness/`（两 lane + 观察 lane + lane A build smoke）；hono 模板 vp 原生、vue 模板 vp check 开箱通过；发布后 dlx lane 待验证 |
-| M4+ | ⏳ 待做 | Tier-1/2 CI、presets、0.1.0 发布 |
+| M8–M11 | ⏳ 待做 | Vue 全家桶、Electron 加固、工作区场景 A、Tier-2/3 CI、0.1.0 发布 |
 
 ## 环境约定
 

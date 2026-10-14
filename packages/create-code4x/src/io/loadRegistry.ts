@@ -26,6 +26,10 @@ import vueBlueprint from "../../templates/vue/blueprint.ts";
 import zodManifest from "../../features/hono/zod/manifest.ts";
 import apiGuardManifest from "../../features/hono/api-guard/manifest.ts";
 import swaggerOpenapiManifest from "../../features/hono/swagger-openapi/manifest.ts";
+import envManifest from "../../features/hono/env/manifest.ts";
+import testingManifest from "../../features/hono/testing/manifest.ts";
+import loggingManifest from "../../features/hono/logging/manifest.ts";
+import httpHardeningManifest from "../../features/hono/http-hardening/manifest.ts";
 import piniaManifest from "../../features/vue/pinia/manifest.ts";
 import routerManifest from "../../features/vue/router/manifest.ts";
 import builderManifest from "../../features/electron/builder/manifest.ts";
@@ -37,6 +41,10 @@ const FEATURE_MANIFESTS: FeatureManifest[] = [
   zodManifest,
   apiGuardManifest,
   swaggerOpenapiManifest,
+  envManifest,
+  testingManifest,
+  loggingManifest,
+  httpHardeningManifest,
   piniaManifest,
   routerManifest,
   builderManifest,
@@ -110,6 +118,23 @@ export function loadRegistry(
       id: "hono-api",
       framework: "hono",
       features: ["hono/api-guard", "hono/zod", "hono/swagger-openapi"],
+    },
+    "hono-standard": {
+      id: "hono-standard",
+      framework: "hono",
+      features: ["hono/api-guard", "hono/zod", "hono/testing"],
+    },
+    "hono-full": {
+      id: "hono-full",
+      framework: "hono",
+      features: [
+        "hono/api-guard",
+        "hono/zod",
+        "hono/testing",
+        "hono/swagger-openapi",
+        "hono/logging",
+        "hono/http-hardening",
+      ],
     },
     "vue-full": {
       id: "vue-full",

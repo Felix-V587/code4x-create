@@ -1,6 +1,11 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  test: {
+    // Only the package's own tests. Feature `files/` may ship `*.test.ts`
+    // templates (e.g. `hono/testing`) that must not run against the repo.
+    include: ["tests/**/*.test.ts"],
+  },
   pack: {
     entry: ["src/index.ts", "src/cli.ts"],
     deps: {

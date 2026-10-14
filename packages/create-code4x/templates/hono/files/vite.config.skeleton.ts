@@ -14,6 +14,10 @@ export default defineConfig({
   server: {
     port,
   },
+  // Extra top-level config contributed by features (e.g. the `test` block from
+  // `hono/testing`).
+  // @code4x:begin vite-config-extra
+  // @code4x:end vite-config-extra
   plugins: [
     // Vite plugins.
     // @code4x:begin vite-plugins

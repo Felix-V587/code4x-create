@@ -162,14 +162,33 @@ serve({ fetch: app.fetch, port }, (info) => {
 
 | 区间 | 用途 |
 |---|---|
-| `-10` | pre-*（必须先于基线插件的插件/中间件，如先于 `vue()` 的 `vue-router/vite`） |
+| `-10` | pre-*（必须先于基线插件的插件/中间件，如先于 `vue()` 的 `vue-router/vite`；亦用于「先于业务路由挂载」的基座健康路由） |
 | `0` | 基座（blueprint `static`；各框架默认值） |
 | `10-19` | 安全（CORS / secure-headers / CSRF） |
 | `20-39` | 限流 / 硬化（rate-limit / timeout / body-limit / compress） |
 | `40-49` | 错误处理（`error-handlers`） |
 | `50+` | 业务（路由、文档端点等） |
 
-现有实现与此表一致：swagger 用 `50/51`，api-guard 用 `10/11`。
+现有实现与此表一致：swagger 用 `50/51`，api-guard 用 `10/11`，hono 基座 `requestId`=0 / logger=1 / health=-10，`hono/http-hardening` 用 `20/21/22`。
+
+### 2.7 M7 锚点与 feature wiring 记录
+
+Hono blueprint（M7）新增/使用的锚点（全部全局唯一）：
+
+| 锚点 | 所属 assembly | kind | 贡献方 |
+|---|---|---|---|
+| `error-handlers` | `src/index.ts` | `list` | 基座 static（`app.onError` + `app.notFound`）；预留 `hono/errors` 类扩展 |
+| `vite-config-extra` | `vite.config.ts` | `list` | `hono/testing` 的 `test` 块 |
+| `routes` | `src/index.ts` | `list` | 基座 health（order -10）+ `hono/zod`（0）+ swagger（50/51） |
+
+feature wiring 摘要：
+
+- `hono/logging`：`imports` 注入 `./logger`，`middlewares` order 1 注入 `app.use(logger)`；基座 static 的 `hono/logger` import 与 `app.use(logger())` 均加 `when: (a) => !a.features.includes("hono/logging")` 以实现「替换基座块」（`render` 对 static wiring 求值 `when`，条件看到解析后闭包）。
+- `hono/http-hardening`：`imports` 注入内置 `hono/timeout`/`hono/body-limit`/`hono/compress`，`middlewares` order 20/21/22。
+- `hono/testing`：`vite-config-extra` order 0 注入 `test: { include: ['src/**/*.test.ts'] }`；文件 `src/app.test.ts` 走 `module` 内 `app.request()`（无运行时依赖，`vite-plus/test` 由 vp 工具链提供）。
+- `hono/env`：仅文件贡献 `src/env.ts`（standalone），**不接入** `imports`——避免向 entry 注入未使用 import（生成项目 `vp check` 的 `no-unused-vars` 会失败）。`requires: hono/zod`。
+- `hono/zod`：文件贡献 `src/http/validation.ts`（共享 `validationHook`），`imports` 注入 `./http/validation`；两条路由变体（普通 / swagger）均以 `defaultHook` 位置传入该 hook，使校验失败返回基座同款信封（`{ code: 'VALIDATION', message, details: issues, requestId }`，HTTP 400）。
+- 静态文件不可被 feature 替换（`E-FILE-WRITE`）：错误模型与健康路由因此作为 blueprint static（内容随基座走），而非可替换的 feature。
 
 ### 2.3 渲染确定性
 

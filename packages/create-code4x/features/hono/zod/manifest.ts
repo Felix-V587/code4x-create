@@ -8,6 +8,11 @@ import type { Answers, FeatureManifest } from "../../../src/domain/types.ts";
  *     `CreateUserSchema`) so the route appears in the generated OpenAPI spec;
  *   - otherwise: the plain `zValidator` route.
  *
+ * Both variants pass the shared `validationHook` (`src/http/validation.ts`) as
+ * zValidator's `defaultHook`, so a failed validation returns the same
+ * `{ code, message, details?, requestId }` envelope as the base error handlers
+ * (HTTP 400) instead of zValidator's default `{ success: false, error }` body.
+ *
  * Conditions observe the *resolved* selection (see `render`), so a bare
  * `--features swagger-openapi` still matches.
  */
@@ -21,12 +26,20 @@ const zodManifest: FeatureManifest = {
   requires: [{ kind: "framework", id: "hono" }],
   targets: {
     hono: {
-      files: [{ src: "files/src/schemas/user.ts", dest: "src/schemas/user.ts" }],
+      files: [
+        { src: "files/src/schemas/user.ts", dest: "src/schemas/user.ts" },
+        { src: "files/src/http/validation.ts", dest: "src/http/validation.ts" },
+      ],
       wiring: [
         {
           anchor: "imports",
           order: 0,
           block: { kind: "import", module: "@hono/zod-validator", named: ["zValidator"] },
+        },
+        {
+          anchor: "imports",
+          order: 0,
+          block: { kind: "import", module: "./http/validation", named: ["validationHook"] },
         },
         {
           anchor: "imports",

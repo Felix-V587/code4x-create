@@ -764,7 +764,11 @@ describe("vite config assemblies declare the imports + plugins anchors", () => {
         (assembly) => assembly.path === "vite.config.ts",
       );
       expect(spec, `${framework} vite.config.ts assembly`).toBeDefined();
-      expect(Object.keys(spec?.anchors ?? {}).sort()).toEqual(["vite-imports", "vite-plugins"]);
+      const expected =
+        framework === "hono"
+          ? ["vite-config-extra", "vite-imports", "vite-plugins"]
+          : ["vite-imports", "vite-plugins"];
+      expect(Object.keys(spec?.anchors ?? {}).sort()).toEqual(expected);
       expect(spec?.skeleton).toContain("@code4x:begin vite-imports");
       expect(spec?.skeleton).toContain("@code4x:begin vite-plugins");
     });

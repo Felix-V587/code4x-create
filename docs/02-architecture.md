@@ -1,7 +1,7 @@
 # 02 · 架构与关键技术决策
 
 > 状态：定稿候选（OQ-1~7 未见异议，按倾向定案）。
-> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`（示例）、`vue/pinia`、`vue/router`、`electron/builder`。
+> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`、`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`、`vue/pinia`、`vue/router`、`electron/builder`；presets：`hono-api`、`hono-standard`、`hono-full`、`vue-full`。
 > 上游依据：[01-ecosystem-research.md](./01-ecosystem-research.md)；机制细节：[03-feature-wiring-spec.md](./03-feature-wiring-spec.md)。
 
 ## 1. 五层架构（核心两层必须是纯函数）
@@ -94,14 +94,16 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 - changesets 管理版本；matrix 全绿才发。
 - 本仓库使用 Vite+（`vp`）工作流开发（见根目录 AGENTS.md）；包名为 `create-code4x`，`repository` 等元信息将于发布前补充。
 
-## 7. MVP 里程碑（状态更新：2026-10-13）
+## 7. MVP 里程碑（状态更新：2026-10-14）
 
 - ✅ **M0（walking skeleton）**：core 类型（Answers / Plan / FeatureManifest / AssemblySpec）+ hono base + **非交互**生成可运行项目（PM 探测、git init 开关）。
 - ✅ **M1**：`hono/zod` + `hono/api-guard`（package.json merge + entry wiring 的真实路径）。
 - ✅ **M2**：`hono/swagger-openapi`（requires zod；zod 路由 `when` 双变体 + 中间件式 `/openapi.json`、`/docs`）。
 - ✅ **M3**：vue + pinia + router（验证框架可插拔 + vite.config 组装）。
-- ✅ **M5**：electron（Vue 3 渲染层 + `vp pack` 主/预加载 CJS + 零依赖 dev 编排脚本；组装锚点复用）。
-- ⏳ **M4**：Tier-1/2 CI、完整交互流程、presets → 发布 0.1.0。
+- ✅ **M5**：electron（Vue 3 渲染层 + `vp pack` 主/预加载 CJS + 零依赖 dev 编排脚本；组装锚点复用）；`electron/builder` 打包。
+- ✅ **M6**：机制扩展（`group` 互斥、`package.json#fields`、`workspaceYaml.allowBuilds`、MARKER 块注释、`vite-imports` 锚点、排序约定、Tier-1 组合矩阵）。
+- ✅ **M7**：Hono 标准化——基座升级（`requestId` → logger 顺序、`error-handlers` 锚点 + 统一错误信封、`routes/health.ts`、`shutdownTimeoutMs` 优雅停机、`@hono/node-server` v2）+ `hono/env` / `hono/testing` / `hono/logging` / `hono/http-hardening` + 预设 `hono-standard` / `hono-full`。
+- ⏳ **M4 / M8–M11**：完整交互流程、Vue 全家桶、Electron 加固、工作区场景 A、Tier-2/3 CI、presets → 发布 0.1.0。
 - **Defer**：react（低风险增量）、add-to-existing、远程模板、第三方插件、Bun/Deno 变体。
 
 ## 8. 风险与缓解

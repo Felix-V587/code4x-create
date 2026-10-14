@@ -100,7 +100,7 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 | targetDir | 位置参数 | — | 相对/绝对路径 | `create-code4x my-api` |
 | framework | `--framework` | `-f` | `hono\|vue` | `-f vue` |
 | features | `--features` | — | 逗号列；裸名或全限定名；`none` 清空 | `--features zod,swagger-openapi` |
-| preset | `--preset` | `-p` | `hono-api\|vue-full` | `-p hono-api` |
+| preset | `--preset` | `-p` | `hono-api\|hono-standard\|hono-full\|vue-full` | `-p hono-standard` |
 | packageManager | `--pm` | — | `npm\|pnpm\|yarn\|bun` | `--pm pnpm` |
 | install | `--install/--no-install` | — | boolean | `--install` |
 | git | `--git/--no-git` | — | boolean | `--no-git` |
@@ -167,7 +167,7 @@ $ create-code4x my-api -f hono --features pinia
 - `--features a,b`：逗号/空格皆可；裸 id 合法但**必须唯一解析**（`zod` → `hono/zod`，v1 唯一）；含混（未来 `express/zod`）→ `E-AMBIGUOUS-LIST`。
 - 不带 `--framework` 时，若全部裸 id 同属一个框架 → **推断并绑定该框架**，打印 `framework inferred: hono (from features)`。这使 `--features zod -y` 也可复现。
 - `--features none` ≡ `--no-features`，显式空集。
-- preset 展开：`hono-api` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/swagger-openapi] }`；`vue-full` = `{ framework: vue, features: [vue/pinia, vue/router] }`。
+- preset 展开：`hono-api` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/swagger-openapi] }`；`hono-standard` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/testing] }`；`hono-full` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/testing, hono/swagger-openapi, hono/logging, hono/http-hardening] }`；`vue-full` = `{ framework: vue, features: [vue/pinia, vue/router] }`。
 - `--config` 与 Answers **同构**（同一 TS type 的 JSON 投影），额外允许 `preset` 字段；未知键 → `E-CONFIG-KEY`（防手误静默）。config 不能做 flag 做不到的事（否则 parity 集合被隐式扩大）。config 与 positional 同时给 `projectName` → `E-CONFLICT`（单一句柄原则）。
 
 ### 3.6 env 行为

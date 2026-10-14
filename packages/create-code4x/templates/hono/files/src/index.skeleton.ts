@@ -9,4 +9,7 @@ const app = new Hono()
 // @code4x:begin routes
 // @code4x:end routes
 
+// @code4x:begin error-handlers
+// @code4x:end error-handlers
+
 export default app

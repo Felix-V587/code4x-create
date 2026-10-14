@@ -11,6 +11,6 @@ app.post(
       },
     },
   }),
-  zValidator('json', CreateUserSchema),
+  zValidator('json', CreateUserSchema, validationHook),
   (c) => c.json({ ok: true }),
 )

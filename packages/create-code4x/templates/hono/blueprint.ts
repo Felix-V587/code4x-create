@@ -1,12 +1,18 @@
-import type { FrameworkBlueprint } from "../../src/domain/types.ts";
+import type { Answers, FrameworkBlueprint } from "../../src/domain/types.ts";
 
 /**
- * Hono framework blueprint (M0 walking skeleton).
+ * Hono framework blueprint (M0 walking skeleton, M7 base upgrade).
  *
  * Assembly anchors: the skeleton owns the semantic *order* (middlewares before
- * routes); `order` only decides within an anchor. The baseline contribution
- * wires the logger import + `app.use(logger())`.
+ * routes); `order` only decides within an anchor.
+ *
+ * Middleware order rationale: `requestId()` runs first (order 0) so that every
+ * later middleware, handler and the error envelope can read the same
+ * `c.get('requestId')`; the baseline request logger runs right after it
+ * (order 1) and is replaced by `hono/logging` (see the `when` guards).
  */
+const notLogging = (answers: Answers) => !answers.features.includes("hono/logging");
+
 const honoBlueprint: FrameworkBlueprint = {
   id: "hono",
   title: "Hono",
@@ -18,6 +24,7 @@ const honoBlueprint: FrameworkBlueprint = {
         imports: { kind: "imports" },
         middlewares: { kind: "list" },
         routes: { kind: "list" },
+        "error-handlers": { kind: "list" },
       },
     },
     {
@@ -28,6 +35,7 @@ const honoBlueprint: FrameworkBlueprint = {
         // cannot be named `imports` (already owned by the entry file).
         "vite-imports": { kind: "imports" },
         "vite-plugins": { kind: "list" },
+        "vite-config-extra": { kind: "list" },
       },
     },
   ],
@@ -37,6 +45,7 @@ const honoBlueprint: FrameworkBlueprint = {
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
       { src: "files/_gitignore", dest: ".gitignore" },
       { src: "files/README.md", dest: "README.md" },
+      { src: "files/src/routes/health.ts", dest: "src/routes/health.ts" },
     ],
     // Build policy is structural now (pnpm-workspace.yaml is emitted from this
     // union, not copied from `files/`).
@@ -45,12 +54,43 @@ const honoBlueprint: FrameworkBlueprint = {
       {
         anchor: "imports",
         order: 0,
+        block: { kind: "import", module: "hono/request-id", named: ["requestId"] },
+      },
+      {
+        anchor: "imports",
+        order: 0,
+        block: { kind: "import", module: "hono/http-exception", named: ["HTTPException"] },
+      },
+      {
+        anchor: "imports",
+        order: 0,
+        block: { kind: "import", module: "./routes/health", named: ["health"] },
+      },
+      // Baseline logger: replaced wholesale when `hono/logging` is selected
+      // (M1 "replace the baseline block" via a `when` condition on static
+      // wiring — both the import and the `app.use` line are suppressed).
+      {
+        anchor: "imports",
+        order: 0,
+        when: notLogging,
         block: { kind: "import", module: "hono/logger", named: ["logger"] },
       },
       {
         anchor: "middlewares",
         order: 0,
+        block: { kind: "call", callee: "app.use", expression: "requestId()" },
+      },
+      {
+        anchor: "middlewares",
+        order: 1,
+        when: notLogging,
         block: { kind: "call", callee: "app.use", expression: "logger()" },
+      },
+      // Health endpoints mount before business routes (`routes` order -10).
+      {
+        anchor: "routes",
+        order: -10,
+        block: { kind: "call", callee: "app.route", expression: "'/', health" },
       },
       {
         anchor: "vite-plugins",
@@ -60,7 +100,42 @@ const honoBlueprint: FrameworkBlueprint = {
       {
         anchor: "vite-plugins",
         order: 1,
-        block: { kind: "raw", code: "build({ entry: 'src/index.ts', port })," },
+        // `shutdownTimeoutMs` enables SIGINT/SIGTERM graceful shutdown in the
+        // built server (@hono/vite-build/node >= 1.8).
+        block: {
+          kind: "raw",
+          code: "build({ entry: 'src/index.ts', port, shutdownTimeoutMs: 5000 }),",
+        },
+      },
+      {
+        anchor: "error-handlers",
+        order: 0,
+        block: {
+          kind: "raw",
+          code: [
+            "app.onError((err, c) => {",
+            "  if (err instanceof HTTPException) {",
+            "    return c.json(",
+            "      { code: 'HTTP_EXCEPTION', message: err.message, requestId: c.get('requestId') },",
+            "      err.status,",
+            "    )",
+            "  }",
+            "  console.error(err)",
+            "  return c.json(",
+            "    {",
+            "      code: 'INTERNAL_SERVER_ERROR',",
+            "      message: 'Internal Server Error',",
+            "      requestId: c.get('requestId'),",
+            "    },",
+            "    500,",
+            "  )",
+            "})",
+            "",
+            "app.notFound((c) =>",
+            "  c.json({ code: 'NOT_FOUND', message: 'Not Found', requestId: c.get('requestId') }, 404),",
+            ")",
+          ].join("\n"),
+        },
       },
     ],
   },
