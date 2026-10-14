@@ -113,9 +113,9 @@ describe("render / electron base", () => {
     expect(preload).not.toContain("exposeInMainWorld('ipcRenderer'");
   });
 
-  test("ships a pnpm workspace allowBuilds for esbuild and electron", () => {
+  test("ships a pnpm workspace allowBuilds for esbuild, electron and electron-builder's transitive helper", () => {
     expect(file(generate(), "pnpm-workspace.yaml").contents).toBe(
-      "allowBuilds:\n  esbuild: true\n  electron: true\n",
+      "allowBuilds:\n  esbuild: true\n  electron: true\n  electron-winstaller: true\n",
     );
   });
 

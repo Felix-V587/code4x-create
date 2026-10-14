@@ -429,6 +429,52 @@ describe("cli e2e", () => {
     expect(rc.plan.sources["vite.config.ts"]).toBe("assembly");
   });
 
+  test("-f electron --features electron/builder -y generates packaging config", async () => {
+    const root = tempRoot();
+    const target = join(root, "electron-builder-app");
+    const { code, stderr } = await invoke(
+      ["-f", "electron", "--features", "electron/builder", "-y", "--no-git", target],
+      root,
+    );
+    expect(stderr).toBe("");
+    expect(code).toBe(0);
+
+    for (const relative of [
+      "src/main/index.ts",
+      "src/renderer/src/App.vue",
+      "electron-builder.yml",
+      "package.json",
+      ".code4xrc.json",
+    ]) {
+      expect(existsSync(join(target, relative)), relative).toBe(true);
+    }
+
+    const yml = readFileSync(join(target, "electron-builder.yml"), "utf8");
+    expect(yml).toContain("output: release");
+    expect(yml).toContain("dist/**");
+
+    const gitignore = readFileSync(join(target, ".gitignore"), "utf8");
+    expect(gitignore).toContain("release");
+
+    const pkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
+      scripts: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+    expect(pkg.scripts.dist).toBe("vp pack && vp build && electron-builder");
+    expect(pkg.scripts["dist:dir"]).toBe("vp pack && vp build && electron-builder --dir");
+    expect(pkg.devDependencies["electron-builder"]).toMatch(/^\^26\./);
+    expect(pkg.scripts.build).toBe("vp pack && vp build");
+
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { framework: string; features: string[] };
+      plan: { features: string[]; sources: Record<string, string> };
+    };
+    expect(rc.answers.framework).toBe("electron");
+    expect(rc.answers.features).toEqual(["electron/builder"]);
+    expect(rc.plan.features).toEqual(["electron/builder"]);
+    expect(rc.plan.sources["electron-builder.yml"]).toBe("electron/builder");
+  });
+
   test("--template electron -> --framework electron", async () => {
     const root = tempRoot();
     const target = join(root, "electron-template");

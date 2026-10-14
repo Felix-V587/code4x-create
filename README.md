@@ -1,6 +1,6 @@
 # create-code4x
 
-通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档；Vue：`pinia` / `vue-router`；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）。
+通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档；Vue：`pinia` / `vue-router`；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：`electron/builder`（经 electron-builder 打包安装包）。
 
 **实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 与发布在途。设计与决策文档见 [docs/](./docs/README.md)。
 
@@ -22,6 +22,7 @@ node packages/create-code4x/dist/cli.mjs my-api -f hono --features zod -y   # + 
 node packages/create-code4x/dist/cli.mjs my-api -p hono-api -y              # 预设：api-guard + zod + swagger-openapi
 node packages/create-code4x/dist/cli.mjs my-vue -p vue-full -y              # 预设：Vue + pinia + vue-router
 node packages/create-code4x/dist/cli.mjs my-app -f electron -y             # Electron（Vue 渲染层 + vp pack 主/预加载）
+node packages/create-code4x/dist/cli.mjs my-app -f electron --features electron/builder -y   # + electron-builder 打包（dist / dist:dir）
 ```
 
 发布后形态（尚未发布到 npm）：`pnpm create code4x my-api`。
@@ -55,7 +56,7 @@ packages/create-code4x/   发布包（name 仍为 create-code4x）
   src/domain/   纯函数层：types / errors / registry / resolve / render（锚点组装、确定性、幂等）
   src/io/       副作用薄层：staging 落盘、rc、PM 探测、git、install
   templates/    框架骨架与静态文件（hono/vue/electron）
-  features/     可选能力（hono/zod、hono/api-guard、hono/swagger-openapi、vue/pinia、vue/router）
+  features/     可选能力（hono/zod、hono/api-guard、hono/swagger-openapi、vue/pinia、vue/router、electron/builder）
   tests/        单测与 CLI e2e
 docs/           设计文档：生态调研 / 架构决策 / wiring 规格 / prompt 流
 fixtures/       vp 集成 harness（本地 `vp create code4x` 端到端验证）

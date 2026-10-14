@@ -1,0 +1,37 @@
+# electron-builder packaging configuration.
+# Docs: https://www.electron.build/configuration/configuration
+#
+# TODO(customize): set a reverse-DNS `appId` for your app before shipping, e.g.
+#   appId: com.example.myapp
+# electron-builder otherwise falls back to its own default app id. The product
+# name is derived from `package.json#name`.
+
+directories:
+  # Keep installers out of `dist/` (that is the Vite+ build output).
+  output: release
+
+# Bundle the compiled app only. `package.json` is always included; `dist/main`
+# is the entry pointed at by `package.json#main`, `dist/renderer` the UI.
+files:
+  - dist/**
+  - package.json
+
+# asar is enabled by default; uncomment to opt out.
+# asar: false
+
+linux:
+  target:
+    - AppImage
+  category: Utility
+  # TODO(customize): AppImage desktop metadata. Set `maintainer` (and a
+  # `description` in package.json) when packaging .deb/.rpm.
+
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.utilities
+
+win:
+  target:
+    - nsis

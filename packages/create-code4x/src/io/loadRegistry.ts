@@ -28,6 +28,7 @@ import apiGuardManifest from "../../features/hono/api-guard/manifest.ts";
 import swaggerOpenapiManifest from "../../features/hono/swagger-openapi/manifest.ts";
 import piniaManifest from "../../features/vue/pinia/manifest.ts";
 import routerManifest from "../../features/vue/router/manifest.ts";
+import builderManifest from "../../features/electron/builder/manifest.ts";
 
 const FRAMEWORK_BLUEPRINTS: FrameworkBlueprint[] = [electronBlueprint, honoBlueprint, vueBlueprint];
 
@@ -38,6 +39,7 @@ const FEATURE_MANIFESTS: FeatureManifest[] = [
   swaggerOpenapiManifest,
   piniaManifest,
   routerManifest,
+  builderManifest,
 ];
 
 export function findTemplatesRoot(
