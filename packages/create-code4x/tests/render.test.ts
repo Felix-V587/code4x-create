@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vite-plus/test";
 
-import { render } from "../src/domain/render.ts";
+import { render, renderWorkspaceYaml } from "../src/domain/render.ts";
 import { Code4xError } from "../src/domain/errors.ts";
+import { loadRegistry } from "../src/io/loadRegistry.ts";
 import type { Registry } from "../src/domain/registry.ts";
 import type {
   Answers,
@@ -490,6 +491,40 @@ describe("render / package.json merging", () => {
     const file = render(plan(["hono/a"]), registry).find((f) => f.path === "package.json");
     expect(file?.contents).not.toContain("{PROJECT}");
   });
+
+  test("fields merge shallowly across contributions (stable, deduped)", () => {
+    const registry = packageRegistry(
+      { name: "{PROJECT}" },
+      {
+        "hono/a": pkgFeature({
+          fields: { description: "from a", engines: { node: ">=20" } },
+        }),
+        "hono/b": pkgFeature({ fields: { description: "from a" } }),
+      },
+    );
+    const pkg = readPackage(registry, ["hono/a", "hono/b"]);
+    expect(pkg.description).toBe("from a");
+    expect(pkg.engines).toEqual({ node: ">=20" });
+  });
+
+  test("same field key with different values -> E-DEP-VERSION", () => {
+    const registry = packageRegistry(
+      { name: "{PROJECT}" },
+      {
+        "hono/a": pkgFeature({ fields: { description: "a" } }),
+        "hono/b": pkgFeature({ fields: { description: "b" } }),
+      },
+    );
+    expectCode4xError(() => render(plan(["hono/a", "hono/b"]), registry), "E-DEP-VERSION");
+  });
+
+  test("field conflicting with the base package.json -> E-DEP-VERSION", () => {
+    const registry = packageRegistry(
+      { name: "{PROJECT}", description: "base" },
+      { "hono/a": pkgFeature({ fields: { description: "override" } }) },
+    );
+    expectCode4xError(() => render(plan(["hono/a"]), registry), "E-DEP-VERSION");
+  });
 });
 
 describe("render / condition semantics", () => {
@@ -610,4 +645,128 @@ describe("render / HTML comment anchors", () => {
     });
     expectCode4xError(() => render(plan(), registry), "E-MARKER");
   });
+});
+
+describe("render / block-comment (CSS) anchors", () => {
+  const cssSkeleton =
+    "/* @code4x:begin css-imports */\n/* @code4x:end css-imports */\nbody {\n  margin: 0;\n}\n";
+
+  test("renders a /* */ region and strips the markers", () => {
+    const registry = registryWith({
+      skeleton: cssSkeleton,
+      anchors: { "css-imports": { kind: "list" } },
+      features: {
+        "hono/a": {
+          id: "hono/a",
+          title: "a",
+          description: "a",
+          base: {
+            wiring: [
+              {
+                anchor: "css-imports",
+                order: 0,
+                block: { kind: "raw", code: '@import "tailwindcss";' },
+              },
+            ],
+          },
+        },
+      },
+    });
+    const [file] = render(plan(["hono/a"]), registry);
+    expect(file.contents).toBe('@import "tailwindcss";\nbody {\n  margin: 0;\n}\n');
+    expect(file.contents).not.toContain("@code4x");
+  });
+
+  test("indented /* */ markers preserve indentation; empty region collapses", () => {
+    const registry = registryWith({
+      skeleton:
+        "body {\n  /* @code4x:begin css-imports */\n  /* @code4x:end css-imports */\n  margin: 0;\n}\n",
+      anchors: { "css-imports": { kind: "list" } },
+    });
+    const [file] = render(plan(), registry);
+    expect(file.contents).toBe("body {\n  margin: 0;\n}\n");
+  });
+
+  test("missing /* */ anchor -> E-MARKER", () => {
+    const registry = registryWith({
+      skeleton: "body {\n  margin: 0;\n}\n",
+      anchors: { "css-imports": { kind: "list" } },
+    });
+    expectCode4xError(() => render(plan(), registry), "E-MARKER");
+  });
+});
+
+describe("render / workspace yaml (allowBuilds)", () => {
+  const SKELETON = "// @code4x:begin imports\n// @code4x:end imports\n";
+
+  function findWorkspace(
+    files: ReturnType<typeof render>,
+  ): { contents: string; source: string } | undefined {
+    return files.find((file) => file.path === "pnpm-workspace.yaml");
+  }
+
+  test("emits the base allowBuilds map with the fixed shape", () => {
+    const registry = registryWith({
+      skeleton: SKELETON,
+      static: { workspaceYaml: { allowBuilds: { esbuild: true } } },
+    });
+    const file = findWorkspace(render(plan(), registry));
+    expect(file?.contents).toBe("allowBuilds:\n  esbuild: true\n");
+    expect(file?.source).toBe("base");
+  });
+
+  test("unions feature allowBuilds after the base, deduped and deterministic", () => {
+    const feature = (id: string, allow: Record<string, true>): FeatureManifest => ({
+      id,
+      title: id,
+      description: id,
+      base: { workspaceYaml: { allowBuilds: allow } },
+    });
+    const registry = registryWith({
+      skeleton: SKELETON,
+      static: { workspaceYaml: { allowBuilds: { esbuild: true } } },
+      features: {
+        "hono/a": feature("hono/a", { esbuild: true, electron: true }),
+        "hono/b": feature("hono/b", { "electron-winstaller": true }),
+      },
+    });
+    const file = findWorkspace(render(plan(["hono/a", "hono/b"]), registry));
+    expect(file?.contents).toBe(
+      "allowBuilds:\n  esbuild: true\n  electron: true\n  electron-winstaller: true\n",
+    );
+  });
+
+  test("nested workspace omits pnpm-workspace.yaml", () => {
+    const registry = registryWith({
+      skeleton: SKELETON,
+      static: { workspaceYaml: { allowBuilds: { esbuild: true } } },
+    });
+    const nested: Plan = { ...plan(), context: { nestedWorkspace: true, pmFrom: "default" } };
+    expect(findWorkspace(render(nested, registry))).toBeUndefined();
+  });
+
+  test("no allowBuilds contribution -> no file", () => {
+    const registry = registryWith({ skeleton: SKELETON });
+    expect(findWorkspace(render(plan(), registry))).toBeUndefined();
+  });
+
+  test("emitter is stable and independent of the object key order", () => {
+    expect(renderWorkspaceYaml(["esbuild"])).toBe("allowBuilds:\n  esbuild: true\n");
+    expect(renderWorkspaceYaml([])).toBe("allowBuilds:\n\n");
+  });
+});
+
+describe("vite config assemblies declare the imports + plugins anchors", () => {
+  const registry = loadRegistry();
+  for (const framework of ["hono", "vue", "electron"]) {
+    test(`${framework} exposes vite-imports + vite-plugins`, () => {
+      const spec = registry.frameworks[framework].assembly.find(
+        (assembly) => assembly.path === "vite.config.ts",
+      );
+      expect(spec, `${framework} vite.config.ts assembly`).toBeDefined();
+      expect(Object.keys(spec?.anchors ?? {}).sort()).toEqual(["vite-imports", "vite-plugins"]);
+      expect(spec?.skeleton).toContain("@code4x:begin vite-imports");
+      expect(spec?.skeleton).toContain("@code4x:begin vite-plugins");
+    });
+  }
 });

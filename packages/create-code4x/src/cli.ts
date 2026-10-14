@@ -20,7 +20,7 @@ import {
   parseFeatureTokens,
   resolve as resolvePlan,
 } from "./domain/resolve.ts";
-import { render } from "./domain/render.ts";
+import { render, collectAllowBuilds } from "./domain/render.ts";
 import {
   CancelledError,
   collectAnswers,
@@ -276,7 +276,25 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
 
   const plan = resolvePlan(answers, registry, context);
   const rendered = render(plan, registry, context);
-  const rc = buildRc(answers, plan, rendered, CLI_VERSION, context);
+
+  // Nested workspaces own the build policy: no `pnpm-workspace.yaml` is emitted
+  // (see render), so surface the required host-side entries on stderr — never on
+  // stdout, where `--json` owns the stream — and record them in the rc.
+  const requiredAllowBuilds = context.nestedWorkspace ? collectAllowBuilds(plan, registry) : [];
+  if (requiredAllowBuilds.length > 0) {
+    io.err("note: nested workspace detected; add to the host pnpm-workspace.yaml:");
+    io.err("  allowBuilds:");
+    for (const key of requiredAllowBuilds) io.err(`    ${key}: true`);
+  }
+
+  const rc = buildRc(
+    answers,
+    plan,
+    rendered,
+    CLI_VERSION,
+    context,
+    requiredAllowBuilds.length > 0 ? { requiredAllowBuilds } : undefined,
+  );
   const files: VirtualFile[] = [...rendered, rcVirtualFile(rc)];
 
   if (json) {

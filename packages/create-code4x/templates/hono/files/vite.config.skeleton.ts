@@ -1,3 +1,5 @@
+// @code4x:begin vite-imports
+// @code4x:end vite-imports
 import build from '@hono/vite-build/node'
 import devServer from '@hono/vite-dev-server'
 import { defineConfig } from 'vite-plus'
@@ -12,7 +14,11 @@ export default defineConfig({
   server: {
     port,
   },
-  plugins: [devServer({ entry: 'src/index.ts' }), build({ entry: 'src/index.ts', port })],
+  plugins: [
+    // Vite plugins.
+    // @code4x:begin vite-plugins
+    // @code4x:end vite-plugins
+  ],
   lint: {
     ignorePatterns: ['dist/**'],
     options: {

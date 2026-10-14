@@ -20,21 +20,27 @@ const honoBlueprint: FrameworkBlueprint = {
         routes: { kind: "list" },
       },
     },
+    {
+      path: "vite.config.ts",
+      skeleton: "files/vite.config.skeleton.ts",
+      anchors: {
+        // Anchor names are global across a blueprint's assemblies, so this
+        // cannot be named `imports` (already owned by the entry file).
+        "vite-imports": { kind: "imports" },
+        "vite-plugins": { kind: "list" },
+      },
+    },
   ],
   static: {
     files: [
       { src: "files/package.json", dest: "package.json" },
-      {
-        src: "files/pnpm-workspace.yaml",
-        dest: "pnpm-workspace.yaml",
-        // Nested monorepos own the build policy; don't shadow the parent root.
-        when: (_answers, context) => !context?.nestedWorkspace,
-      },
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
-      { src: "files/vite.config.ts", dest: "vite.config.ts" },
       { src: "files/_gitignore", dest: ".gitignore" },
       { src: "files/README.md", dest: "README.md" },
     ],
+    // Build policy is structural now (pnpm-workspace.yaml is emitted from this
+    // union, not copied from `files/`).
+    workspaceYaml: { allowBuilds: { esbuild: true } },
     wiring: [
       {
         anchor: "imports",
@@ -45,6 +51,16 @@ const honoBlueprint: FrameworkBlueprint = {
         anchor: "middlewares",
         order: 0,
         block: { kind: "call", callee: "app.use", expression: "logger()" },
+      },
+      {
+        anchor: "vite-plugins",
+        order: 0,
+        block: { kind: "raw", code: "devServer({ entry: 'src/index.ts' })," },
+      },
+      {
+        anchor: "vite-plugins",
+        order: 1,
+        block: { kind: "raw", code: "build({ entry: 'src/index.ts', port })," },
       },
     ],
   },

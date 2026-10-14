@@ -18,6 +18,12 @@ export interface RcFile {
     hashes: Record<string, string>;
   };
   context: ProjectContext;
+  /**
+   * Present only when the project was generated inside a host workspace and the
+   * generated app needs host-side `pnpm-workspace.yaml` entries (which are not
+   * emitted by design). Records the *requirement*, not the host's current state.
+   */
+  workspace?: { requiredAllowBuilds: string[] };
 }
 
 export function sha256(text: string): string {
@@ -31,6 +37,7 @@ export function buildRc(
   files: VirtualFile[],
   cliVersion: string,
   context: ProjectContext = { nestedWorkspace: false, pmFrom: "default" },
+  workspace?: { requiredAllowBuilds: string[] },
 ): RcFile {
   const sources: Record<string, string> = {};
   const hashes: Record<string, string> = {};
@@ -43,6 +50,7 @@ export function buildRc(
     answers,
     plan: { features: plan.features, sources, hashes },
     context,
+    ...(workspace ? { workspace } : {}),
   };
 }
 

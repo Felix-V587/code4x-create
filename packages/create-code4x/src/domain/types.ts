@@ -54,6 +54,14 @@ export type PackageJsonPatch = {
   dependencies?: Record<string, string>; // same name, different version → E-DEP-VERSION
   devDependencies?: Record<string, string>;
   scripts?: Record<string, ScriptEdit>;
+  /**
+   * Arbitrary top-level `package.json` fields (`description`, `engines`,
+   * custom keys, ...). Shallow-merged across contributions in a deterministic
+   * order; the same key requested with a different value is a hard error
+   * (`E-DEP-VERSION`, the existing "same key, conflicting scalar value during
+   * package.json merge" code).
+   */
+  fields?: Record<string, unknown>;
 };
 
 // ---------- assembly contributions ----------
@@ -81,6 +89,17 @@ export interface FeatureContribution {
   packageJson?: PackageJsonPatch;
   wiring?: WiringContribution[];
   hooks?: { afterMaterialize?: Hook; afterInstall?: Hook };
+  /**
+   * Structured `pnpm-workspace.yaml` policy. Only the fixed `allowBuilds` map
+   * shape is modelled (pnpm ≥11 reads `allowBuilds`; the renderer hand-rolls
+   * the emitter — see `renderWorkspaceYaml`). The union of every contribution
+   * is emitted as the generated project's `pnpm-workspace.yaml`.
+   */
+  workspaceYaml?: WorkspaceYamlContribution;
+}
+
+export interface WorkspaceYamlContribution {
+  allowBuilds?: Record<string, true>;
 }
 
 export interface FeatureManifest {
@@ -91,6 +110,11 @@ export interface FeatureManifest {
   requires?: Requirement[];
   /** Default-checked in the prompt flow. */
   defaults?: boolean;
+  /**
+   * Mutual-exclusion key, e.g. `vue/ui` or `vue/css`. At most one feature per
+   * non-empty group may be selected (resolve → `E-CONFLICT`, usage exit 2).
+   */
+  group?: string;
   exports?: Exports;
   /** Framework-agnostic contribution (e.g. pure deps). */
   base?: FeatureContribution;

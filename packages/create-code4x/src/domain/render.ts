@@ -39,9 +39,10 @@ interface Hit {
   featureId: string;
 }
 
-// Marker lines: `// @code4x:begin <anchor>` (code) or
-// `<!-- @code4x:begin <anchor> -->` (HTML/template). Must be a whole line.
-const MARKER = /^([ \t]*)(?:\/\/|<!--) @code4x:(begin|end) (\S+)(?: -->)?[ \t]*$/;
+// Marker lines: `// @code4x:begin <anchor>` (code), `/* @code4x:begin <anchor> */`
+// (CSS / block comments) or `<!-- @code4x:begin <anchor> -->` (HTML/template).
+// Must be a whole line.
+const MARKER = /^([ \t]*)(?:\/\/|<!--|\/\*) @code4x:(begin|end) (\S+?)(?: -->|\s*\*\/)?[ \t]*$/;
 
 export function render(
   plan: Plan,
@@ -116,9 +117,55 @@ export function render(
     addFile(outputs, assembly.path, contents, "assembly");
   }
 
+  // 3. structured workspace policy (`pnpm-workspace.yaml`). Emitted only for
+  //    standalone projects: a nested workspace owns the build policy.
+  const allowBuilds = collectAllowBuilds(plan, reg);
+  if (allowBuilds.length > 0 && !context?.nestedWorkspace) {
+    addFile(outputs, WORKSPACE_YAML_PATH, renderWorkspaceYaml(allowBuilds), "base");
+  }
+
   return [...outputs.values()]
     .map((entry) => entry.file)
     .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+}
+
+export const WORKSPACE_YAML_PATH = "pnpm-workspace.yaml";
+
+/**
+ * Union of every contribution's `workspaceYaml.allowBuilds`, in a deterministic
+ * order: the blueprint base first, then features in resolved plan order, keys
+ * first-seen (this pinned order — rather than lexicographic sorting — is a
+ * byte-compat contract with the templates).
+ */
+export function collectAllowBuilds(plan: Plan, reg: Registry): string[] {
+  const contributions: FeatureContribution[] = [
+    reg.frameworks[plan.framework]?.static ?? {},
+    ...plan.features.map((id) => contributionFor(reg.features[id], plan.framework)),
+  ];
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  for (const contribution of contributions) {
+    for (const key of Object.keys(contribution.workspaceYaml?.allowBuilds ?? {})) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      keys.push(key);
+    }
+  }
+  return keys;
+}
+
+/**
+ * Hand-rolled emitter for the single modelled `pnpm-workspace.yaml` shape:
+ *
+ *   allowBuilds:
+ *     <key>: true
+ *
+ * Two-space indent, `: true`, trailing newline — the exact bytes the three
+ * templates shipped as static files. No YAML dependency is added.
+ */
+export function renderWorkspaceYaml(allowBuilds: string[]): string {
+  const lines = allowBuilds.map((key) => `  ${key}: true`);
+  return `allowBuilds:\n${lines.join("\n")}\n`;
 }
 
 // --------------------------------------------------------------------------
@@ -418,6 +465,7 @@ function applyPackagePatches(baseText: string, patches: PackageJsonPatch[]): str
   for (const patch of patches) {
     mergeDeps(pkg, "dependencies", patch.dependencies);
     mergeDeps(pkg, "devDependencies", patch.devDependencies);
+    mergeFields(pkg, patch.fields);
     const scripts = (pkg.scripts as Record<string, string> | undefined) ?? {};
     pkg.scripts = scripts;
     for (const [key, edit] of Object.entries(patch.scripts ?? {})) {
@@ -426,6 +474,29 @@ function applyPackagePatches(baseText: string, patches: PackageJsonPatch[]): str
   }
 
   return `${JSON.stringify(pkg, null, 2)}\n`;
+}
+
+/**
+ * Shallow-merge `package.json#fields` across contributions. Keys are applied in
+ * sorted order within a contribution (contributions themselves are already in a
+ * deterministic order), so the output is stable regardless of a manifest's
+ * property declaration order. The same key with a different value reuses
+ * `E-DEP-VERSION` (the existing "same key, conflicting scalar during
+ * package.json merge" domain error, exit 1).
+ */
+function mergeFields(
+  pkg: Record<string, unknown>,
+  incoming: Record<string, unknown> | undefined,
+): void {
+  if (!incoming) return;
+  for (const key of Object.keys(incoming).sort()) {
+    const value = incoming[key];
+    const existing = pkg[key];
+    if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(value)) {
+      fail("E-DEP-VERSION", `package.json field "${key}" requested with conflicting values`);
+    }
+    pkg[key] = value;
+  }
 }
 
 function mergeDeps(

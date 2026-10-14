@@ -7,6 +7,7 @@ import {
   type FlowDeps,
 } from "../src/domain/flow.ts";
 import { loadRegistry } from "../src/io/loadRegistry.ts";
+import type { Registry } from "../src/domain/registry.ts";
 import { scriptedPrompter } from "./prompter.ts";
 
 const registry = loadRegistry();
@@ -182,5 +183,42 @@ describe("collectAnswers", () => {
     await expect(collectAnswers({}, prompter, registry, deps())).rejects.toBeInstanceOf(
       CancelledError,
     );
+  });
+
+  test("re-prompts when two features of the same group are selected", async () => {
+    // Synthetic registry: no shipped feature has a `group` yet, so the
+    // mutual-exclusion UX is exercised with manifests here.
+    const groupRegistry: Registry = {
+      frameworks: { vue: { id: "vue", title: "Vue", assembly: [], static: {} } },
+      features: {
+        "vue/naive-ui": {
+          id: "vue/naive-ui",
+          title: "Naive UI",
+          description: "a",
+          group: "vue/ui",
+        },
+        "vue/element-plus": {
+          id: "vue/element-plus",
+          title: "Element Plus",
+          description: "b",
+          group: "vue/ui",
+        },
+      },
+      presets: {},
+      assets: {},
+    };
+    const prompter = scriptedPrompter({
+      text: ["./app"],
+      select: ["vue", "npm"],
+      multiselect: [["vue/naive-ui", "vue/element-plus"], ["vue/naive-ui"]],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers({}, prompter, groupRegistry, deps());
+    expect(answers.features).toEqual(["vue/naive-ui"]);
+    expect(
+      prompter.log.some((line) => line.startsWith("note:group:") && line.includes("vue/ui")),
+    ).toBe(true);
+    // The initial multiselect plus one re-prompt.
+    expect(prompter.log.filter((line) => line.startsWith("multiselect:"))).toHaveLength(2);
   });
 });

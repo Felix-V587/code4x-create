@@ -10,7 +10,7 @@ import { basename, resolve } from "node:path";
 
 import type { Answers, PackageManager, PmSource } from "./types.ts";
 import type { Registry } from "./registry.ts";
-import { normalizePackageName } from "./resolve.ts";
+import { groupConflicts, normalizePackageName } from "./resolve.ts";
 
 export class CancelledError extends Error {
   constructor() {
@@ -123,14 +123,29 @@ export async function collectAnswers(
         hint: manifest.description,
       }))
       .sort((a, b) => (a.value < b.value ? -1 : 1));
-    features =
-      options.length === 0
-        ? []
-        : await prompter.multiselect({
-            message: `Optional integrations for ${framework}`,
-            options,
-            required: false,
-          });
+    if (options.length === 0) {
+      features = [];
+    } else {
+      const message = `Optional integrations for ${framework}`;
+      features = await prompter.multiselect({ message, options, required: false });
+      // A `group` means "pick at most one". Rather than build a distinct
+      // single-select UI, re-prompt the same multiselect with a clear message
+      // until the selection is conflict-free.
+      for (;;) {
+        const conflict = groupConflicts(features, registry)[0];
+        if (!conflict) break;
+        prompter.note(
+          `"${conflict.group}" allows only one of: ${conflict.members.join(", ")}`,
+          "group",
+        );
+        features = await prompter.multiselect({
+          message,
+          options,
+          initialValues: features,
+          required: false,
+        });
+      }
+    }
   }
 
   // N5 — package manager (default = detection).

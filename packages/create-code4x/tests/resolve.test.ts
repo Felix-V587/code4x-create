@@ -187,4 +187,37 @@ describe("resolve", () => {
     );
     expect(plan.features).toEqual(["vue/pinia", "vue/router"]);
   });
+
+  test("two features in the same group -> E-CONFLICT (usage, exit 2) naming members", () => {
+    const reg = registry({
+      "vue/a": { ...manifest("vue/a"), group: "vue/ui" },
+      "vue/b": { ...manifest("vue/b"), group: "vue/ui" },
+    });
+    const error = capture(() =>
+      resolve(answers({ framework: "vue", features: ["vue/a", "vue/b"] }), reg),
+    );
+    expect(error.code).toBe("E-CONFLICT");
+    expect(error.exitCode).toBe(2);
+    expect(error.message).toContain("vue/ui");
+    expect(error.fix).toContain("vue/a");
+    expect(error.fix).toContain("vue/b");
+  });
+
+  test("a single member of a group resolves", () => {
+    const reg = registry({
+      "vue/a": { ...manifest("vue/a"), group: "vue/ui" },
+      "vue/b": { ...manifest("vue/b"), group: "vue/ui" },
+    });
+    const plan = resolve(answers({ framework: "vue", features: ["vue/a"] }), reg);
+    expect(plan.features).toEqual(["vue/a"]);
+  });
+
+  test("a group conflict pulled in through the closure is still rejected", () => {
+    const reg = registry({
+      "vue/a": { ...manifest("vue/a"), group: "vue/ui" },
+      "vue/b": { ...manifest("vue/b", [{ kind: "feature", id: "vue/a" }]), group: "vue/ui" },
+    });
+    const error = capture(() => resolve(answers({ framework: "vue", features: ["vue/b"] }), reg));
+    expect(error.code).toBe("E-CONFLICT");
+  });
 });

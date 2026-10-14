@@ -23,6 +23,8 @@ const vueBlueprint: FrameworkBlueprint = {
       path: "vite.config.ts",
       skeleton: "files/vite.config.skeleton.ts",
       anchors: {
+        // Global anchor namespace: the entry file already owns `imports`.
+        "vite-imports": { kind: "imports" },
         "vite-plugins": { kind: "list" },
       },
     },
@@ -37,12 +39,6 @@ const vueBlueprint: FrameworkBlueprint = {
   static: {
     files: [
       { src: "files/package.json", dest: "package.json" },
-      {
-        src: "files/pnpm-workspace.yaml",
-        dest: "pnpm-workspace.yaml",
-        // Nested monorepos own the build policy; don't shadow the parent root.
-        when: (_answers, context) => !context?.nestedWorkspace,
-      },
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
       { src: "files/index.html", dest: "index.html" },
       { src: "files/src/env.d.ts", dest: "src/env.d.ts" },
@@ -50,6 +46,7 @@ const vueBlueprint: FrameworkBlueprint = {
       { src: "files/_gitignore", dest: ".gitignore" },
       { src: "files/README.md", dest: "README.md" },
     ],
+    workspaceYaml: { allowBuilds: { esbuild: true } },
     wiring: [
       {
         anchor: "vite-plugins",

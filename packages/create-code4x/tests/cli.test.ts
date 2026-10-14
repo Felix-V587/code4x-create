@@ -316,6 +316,23 @@ describe("cli e2e", () => {
     expect(rc.context).toEqual({ nestedWorkspace: true, pmFrom: "default" });
   });
 
+  test("nested workspace hints the host allowBuilds on stderr and records them in the rc", async () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages: []\n");
+    const target = join(root, "apps", "web");
+    const { code, stdout, stderr } = await invoke(["-f", "vue", "-y", "--no-git", target], root);
+    expect(code).toBe(0);
+    // Never on stdout (where `--json` owns the stream).
+    expect(stdout).not.toContain("allowBuilds");
+    expect(stderr).toContain("allowBuilds:");
+    expect(stderr).toContain("esbuild: true");
+    expect(existsSync(join(target, "pnpm-workspace.yaml"))).toBe(false);
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      workspace?: { requiredAllowBuilds: string[] };
+    };
+    expect(rc.workspace?.requiredAllowBuilds).toContain("esbuild");
+  });
+
   test("-f vue --features pinia,router generates a complete vue project", async () => {
     const root = tempRoot();
     const target = join(root, "vue-app");

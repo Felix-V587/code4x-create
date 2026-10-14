@@ -62,6 +62,7 @@ export function contributionFor(
     files: [...(base.files ?? []), ...(target.files ?? [])],
     wiring: [...(base.wiring ?? []), ...(target.wiring ?? [])],
     packageJson: mergePackageJsonPatch(base.packageJson, target.packageJson),
+    workspaceYaml: mergeWorkspaceYaml(base.workspaceYaml, target.workspaceYaml),
     hooks: { ...base.hooks, ...target.hooks },
   };
 }
@@ -76,5 +77,15 @@ function mergePackageJsonPatch(
     dependencies: { ...a.dependencies, ...b.dependencies },
     devDependencies: { ...a.devDependencies, ...b.devDependencies },
     scripts: { ...a.scripts, ...b.scripts },
+    fields: { ...a.fields, ...b.fields },
   };
+}
+
+function mergeWorkspaceYaml(
+  a: FeatureContribution["workspaceYaml"],
+  b: FeatureContribution["workspaceYaml"],
+): FeatureContribution["workspaceYaml"] {
+  if (!a) return b;
+  if (!b) return a;
+  return { allowBuilds: { ...a.allowBuilds, ...b.allowBuilds } };
 }

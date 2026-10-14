@@ -81,6 +81,33 @@ export function parseFeatureTokens(raw: string | string[] | undefined): string[]
   return tokens;
 }
 
+export interface GroupConflict {
+  /** The shared `group` key (e.g. `vue/ui`). */
+  group: string;
+  /** Selected members of the group, id-sorted. */
+  members: FeatureId[];
+}
+
+/**
+ * Members of any non-empty `group` selected more than once. Groups keep
+ * first-seen order; members are id-sorted for deterministic diagnostics.
+ */
+export function groupConflicts(ids: FeatureId[], reg: Registry): GroupConflict[] {
+  const byGroup = new Map<string, FeatureId[]>();
+  for (const id of ids) {
+    const group = reg.features[id]?.group;
+    if (!group) continue;
+    const members = byGroup.get(group);
+    if (members) members.push(id);
+    else byGroup.set(group, [id]);
+  }
+  const conflicts: GroupConflict[] = [];
+  for (const [group, members] of byGroup) {
+    if (members.length > 1) conflicts.push({ group, members: [...members].sort() });
+  }
+  return conflicts;
+}
+
 export function resolve(answers: Answers, reg: Registry, context?: ProjectContext): Plan {
   if (!reg.frameworks[answers.framework]) {
     fail("E-INVALID-VALUE", `unknown framework "${answers.framework}"`, {
@@ -162,6 +189,16 @@ export function resolve(answers: Answers, reg: Registry, context?: ProjectContex
   }
 
   const features = topoSort(closure, reg);
+
+  // 5. mutual exclusion: at most one member of any non-empty `group`.
+  const conflict = groupConflicts(features, reg)[0];
+  if (conflict) {
+    fail(
+      "E-CONFLICT",
+      `features in group "${conflict.group}" are mutually exclusive: ${conflict.members.join(", ")}`,
+      { fix: `choose exactly one of: ${conflict.members.join(", ")}` },
+    );
+  }
 
   return {
     answers,

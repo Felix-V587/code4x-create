@@ -46,10 +46,13 @@ export type PackageJsonPatch = {
   dependencies?:    Record<string, string>  // 同包名不同 version → E-DEP-VERSION
   devDependencies?: Record<string, string>
   scripts?:         Record<string, ScriptEdit>
+  fields?:          Record<string, unknown> // 顶层任意字段(description/engines/…)
 }
 export type ScriptEdit = { set: string } | { prepend: string } | { append: string }
 // 唯一 key 被两个 feature set → E-SCRIPT-KEY; set 与任意 edit 同键 → 错误;
 // append/prepend 按应用顺序(拓扑序+id tiebreak)与基线用 " && " 连接。
+// fields: 跨贡献浅合并、确定性输出; 同名键不同值 → 硬错误, 复用 E-DEP-VERSION
+// (既有「package.json 合并期同名键冲突标量」域名错误, exit 1)。
 
 // ---- 组装贡献 ----
 export type WiringBlock =
@@ -74,6 +77,8 @@ export interface FeatureContribution {
   packageJson?: PackageJsonPatch
   wiring?: WiringContribution[]
   hooks?: { afterMaterialize?: Hook; afterInstall?: Hook }  // 仅留两个窄钩
+  // 结构化 pnpm-workspace 策略: 目前只建模 allowBuilds(map 形状, pnpm ≥11)
+  workspaceYaml?: { allowBuilds?: Record<string, true> }
 }
 
 export interface FeatureManifest {
@@ -81,6 +86,7 @@ export interface FeatureManifest {
   title: string; description: string
   requires?: Requirement[]
   defaults?: boolean              // prompt 里默认勾选
+  group?: string                  // 互斥组(如 "vue/ui"); 同组多选 → E-CONFLICT
   exports?: Exports
   base?: FeatureContribution      // 框架无关(如纯 deps)
   targets?: Partial<Record<FrameworkId, FeatureContribution>>   // 分框架特化
@@ -141,13 +147,29 @@ serve({ fetch: app.fetch, port }, (info) => {
 
 `single` 锚点用例：若某集成需要把 `new Hono()` 换成 class 包装（如 `@hono/zod-openapi`），装配不是加一行而是换基准块——`single` 锚点 + 蓝图提供 `default` 块，feature 贡献整段替换。**[LOD]** 该机制是否实际启用取决于 swagger 生态选型（见 §5 OQ-7）。
 
-标记支持两种语法：JS 行注释 `// @code4x:begin <anchor>` 与 HTML 注释 `<!-- @code4x:begin <anchor> -->`（均为完整独占行，共享同一校验语义）；HTML 形式用于 `.vue` / `.html` 骨架。
+标记支持三种语法（均为完整独占行，共享同一校验语义）：JS 行注释 `// @code4x:begin <anchor>`、块注释 `/* @code4x:begin <anchor> */`（用于 `.css` 等只支持块注释的骨架）与 HTML 注释 `<!-- @code4x:begin <anchor> -->`（用于 `.vue` / `.html` 骨架）。`parseSkeleton`（`render.ts:44`）的 `MARKER` 正则识别这三种前缀/后缀，整行独占是硬约束。
+
+> 锚点命名作用域提示：锚点名在整个 blueprint 内全局唯一（`collectHits` 按名字跨贡献收集，不区分 assembly）。因此同名锚点不能出现在两个 assembly 中——如 `src/main.ts` 已占用 `imports`，`vite.config.ts` 的顶层 import 锚点须用 `vite-imports`（本次实现即如此）。
 
 ### 2.2 block 排序与 tie-break
 
 - 锚点内排序键 = `(block.order, featureTopoRank, feature.id 字典序)`，全稳定（无时钟、与对象 key 顺序无关）。
 - 跨 feature 的顺序诉求一律上提到 **feature 级 `requires`** 消化为 topoRank，不给 block 级依赖直通车。
 - 同锚点渲染结果中重复语句 → `E-STMT-DUP`；`imports` 锚点则必须去重聚合（正常形态）。
+- blueprint `static` 的 `rank = -1`，同 `order` 下先于所有 feature 渲染（`render.ts` 排序键第二项）。
+
+**全局 `order` 预留表（约定，非代码强制）**：`order` 只在锚点内部裁决；跨锚点语义顺序仍由骨架洞位表达。为避免各 feature 手挑魔数，采用下列数值区间：
+
+| 区间 | 用途 |
+|---|---|
+| `-10` | pre-*（必须先于基线插件的插件/中间件，如先于 `vue()` 的 `vue-router/vite`） |
+| `0` | 基座（blueprint `static`；各框架默认值） |
+| `10-19` | 安全（CORS / secure-headers / CSRF） |
+| `20-39` | 限流 / 硬化（rate-limit / timeout / body-limit / compress） |
+| `40-49` | 错误处理（`error-handlers`） |
+| `50+` | 业务（路由、文档端点等） |
+
+现有实现与此表一致：swagger 用 `50/51`，api-guard 用 `10/11`。
 
 ### 2.3 渲染确定性
 
@@ -165,8 +187,9 @@ serve({ fetch: app.fetch, port }, (info) => {
 | `E-UNK-ANCHOR` | wiring.anchor 未在蓝图 assembly 里声明 |
 | `E-MARKER` | 骨架缺标记 / 重复标记 / 未声明标记 |
 | `E-FILE-WRITE` | 两个内容不同的贡献写同一 dest；或写到骨架/蓝图专属路径（`identical-ok` 例外） |
-| `E-DEP-VERSION` | 同 package 不同 version 串（仅相同字符串静默） |
+| `E-DEP-VERSION` | 同 package 不同 version 串（仅相同字符串静默）；亦用于 `package.json#fields` 同名键不同值 |
 | `E-SCRIPT-KEY` | scripts 相同键非 `append` 型写两次 |
+| `E-CONFLICT` | 同一非空 `group` 选中多个成员（usage 错误，exit 2；`fix:` 列出候选） |
 | `E-IMPORT-CONFLICT` / `E-STMT-DUP` | 见 §2.3/§2.2 |
 | `E-SINGLE-SLOT` | `single` 锚点命中 >1 块 |
 | `E-PLUGIN-WRITE` | hooks 尝试写自身 feature 沙盒范围外的路径 |
@@ -176,6 +199,22 @@ serve({ fetch: app.fetch, port }, (info) => {
 ### 2.5 幂等性
 
 `render = f(plan, registry)` 纯函数 ⇒ "同输入双渲染字节等价"零成本获得，直接写成 property-based 测试。增量题（add-to-existing）另需：生成文件 sha256 存入 `.code4xrc.json`，v1.5 重放时先做 drift 检查。**v1 不做重放写入，但 sha 表现在就写。**
+
+### 2.6 Tier-1 组合矩阵
+
+离线、无需 `pnpm install` 的组合验收层（`docs/06` §0 验收 #1 / §M6），落在 `packages/create-code4x/tests/matrix.test.ts`。它**从运行时注册表 `loadRegistry()` 现场枚举**组合——没有手写清单、没有注册表快照——所以新增 feature / `group` 会被自动纳入覆盖。
+
+覆盖范围：
+
+- 每个框架的**零 feature 基座** + **全部单 feature 选择**（单 feature 即「某 group 恰好选一个」的形态）。
+- 每个非空 `group`：单成员是合法选择；另取两个成员作为**互斥探针**，断言 `E-CONFLICT`（usage 退出码 2，`fix:` 列出成员）。
+- **成对组合**（pairwise）：跳过会冲突的 pair；每条 pair 断言 `resolve()`+`render()` 成功。互斥判定直接复用 `resolve()` 消费的 `groupConflicts()`，输入取自各 manifest 的 `group` 字段——**互斥规则与矩阵同源生成**（`docs/06` 验收 #1）。
+- 每个组合断言：`resolve()`+`render()` 成功、输出无 `@code4x` 标记、每个路径只写一次、同一组合二次渲染**字节级一致**（幂等）。
+- 成对组合按框架限量（`MAX_PAIRWISE_PER_FRAMEWORK = 64`，确定性等距取子集），保证总渲染量在低数百、数秒内完成；基座 / 单 feature / 互斥探针不受此上限影响。
+
+运行方式：在 `packages/create-code4x` 下 `vp test` 跑全量；按文件过滤用 `vp test tests/matrix.test.ts`。
+
+**明确非目标**：不装依赖、不联网、不 spawn CLI（安装 / 构建 / 冒烟属 Tier-2/3）；`.code4xrc.json` 的来源与哈希属 I/O 层，不在本矩阵断言范围。
 
 ## 3. 目录结构与 `.code4xrc.json`
 

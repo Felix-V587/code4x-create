@@ -82,6 +82,47 @@ describe("hono base golden", () => {
     expect(vite?.contents).toContain("ignorePatterns: ['dist/**']");
   });
 
+  test("vite.config.ts is assembled (byte-stable after the skeleton conversion)", () => {
+    const vite = files.find((file) => file.path === "vite.config.ts");
+    expect(vite?.source).toBe("assembly");
+    expect(vite?.contents).toBe(`import build from '@hono/vite-build/node'
+import devServer from '@hono/vite-dev-server'
+import { defineConfig } from 'vite-plus'
+
+// \`PORT\` is read when this config loads:
+//   - \`vp dev\` uses it as the live dev-server port (runtime);
+//   - \`@hono/vite-build/node\` bakes it into the built server at BUILD time
+//     (set \`PORT\` when running \`vp build\` to change the built port).
+const port = Number(process.env.PORT ?? 3000)
+
+export default defineConfig({
+  server: {
+    port,
+  },
+  plugins: [
+    // Vite plugins.
+    devServer({ entry: 'src/index.ts' }),
+    build({ entry: 'src/index.ts', port }),
+  ],
+  lint: {
+    ignorePatterns: ['dist/**'],
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+  },
+  fmt: {
+    // Match the generated source style (single quotes, no semicolons) so a
+    // fresh \`vp check\` passes without reformatting.
+    singleQuote: true,
+    semi: false,
+    sortPackageJson: false,
+    ignorePatterns: ['dist/**', '.code4xrc.json'],
+  },
+})
+`);
+  });
+
   test("tsconfig typechecks src + vite.config.ts", () => {
     const tsconfig = files.find((file) => file.path === "tsconfig.json");
     expect(JSON.parse(tsconfig?.contents ?? "{}")).toMatchObject({

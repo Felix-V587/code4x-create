@@ -25,6 +25,8 @@ const electronBlueprint: FrameworkBlueprint = {
       path: "vite.config.ts",
       skeleton: "files/vite.config.skeleton.ts",
       anchors: {
+        // Global anchor namespace: `src/main/index.ts` already owns `imports`.
+        "vite-imports": { kind: "imports" },
         "vite-plugins": { kind: "list" },
       },
     },
@@ -32,12 +34,6 @@ const electronBlueprint: FrameworkBlueprint = {
   static: {
     files: [
       { src: "files/package.json", dest: "package.json" },
-      {
-        src: "files/pnpm-workspace.yaml",
-        dest: "pnpm-workspace.yaml",
-        // Nested monorepos own the build policy; don't shadow the parent root.
-        when: (_answers, context) => !context?.nestedWorkspace,
-      },
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
       { src: "files/scripts/dev.mjs", dest: "scripts/dev.mjs" },
       { src: "files/src/preload/index.ts", dest: "src/preload/index.ts" },
@@ -49,6 +45,11 @@ const electronBlueprint: FrameworkBlueprint = {
       { src: "files/_gitignore", dest: ".gitignore" },
       { src: "files/README.md", dest: "README.md" },
     ],
+    // electron-builder's transitive `electron-winstaller` build was previously
+    // baked into the static workspace file; now it is part of the policy union.
+    workspaceYaml: {
+      allowBuilds: { esbuild: true, electron: true, "electron-winstaller": true },
+    },
     wiring: [
       {
         anchor: "vite-plugins",

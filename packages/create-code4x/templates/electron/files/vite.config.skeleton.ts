@@ -1,3 +1,5 @@
+// @code4x:begin vite-imports
+// @code4x:end vite-imports
 import { defineConfig } from 'vite-plus'
 import vue from '@vitejs/plugin-vue'
 
