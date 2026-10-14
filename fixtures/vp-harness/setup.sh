@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # vp-harness setup: create a scratch Vite+ monorepo that registers a local
-# `code4x` template whose bin is a shim onto this repo's built `dist/cli.mjs`.
+# `code4x` template whose bin is a shim onto this repo's built package CLI
+# (`packages/create-code4x/dist/cli.mjs`).
 #
 # Usage: bash fixtures/vp-harness/setup.sh [TARGET_DIR]
 #        (default TARGET_DIR: /tmp/opencode/vp-harness)
@@ -10,14 +11,14 @@ set -euo pipefail
 TARGET="${1:-/tmp/opencode/vp-harness}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-CLI_ABS="$REPO_ROOT/dist/cli.mjs"
+CLI_ABS="$REPO_ROOT/packages/create-code4x/dist/cli.mjs"
 
 echo "== vp-harness setup =="
 echo "  repo:   $REPO_ROOT"
 echo "  target: $TARGET"
 
 # Ensure the repo CLI is built (the shim imports it by absolute path).
-( cd "$REPO_ROOT" && vp pack >/dev/null )
+( cd "$REPO_ROOT/packages/create-code4x" && vp pack >/dev/null )
 if [ ! -f "$CLI_ABS" ]; then
   echo "error: missing built CLI at $CLI_ABS" >&2
   exit 1

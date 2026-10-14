@@ -44,7 +44,7 @@ CI 注意：**不能**依赖 `vp create --no-interactive` 透传；把参数放�
 
 ## 5. 集成验证（harness 已落地，2026-10-13 实测）
 
-`fixtures/vp-harness/`（`pnpm run harness:vp`）：scratch monorepo + `create.templates` 本地条目 + shim 指向本仓库 `dist/cli.mjs`；两条 lane + 一条观察 lane 实测通过：
+`fixtures/vp-harness/`（`pnpm run harness:vp`）：scratch monorepo + `create.templates` 本地条目 + shim 指向本仓库 `packages/create-code4x/dist/cli.mjs`；两条 lane + 一条观察 lane 实测通过：
 
 | lane | 透传参数（`--` 后） | 生成位置 | 结果 |
 |---|---|---|---|

@@ -27,20 +27,20 @@ Nothing here is part of the published package (`vite.config.ts` ignores
   create: { templates: [{ name: "code4x", description: "...", template: "./pkgs/create-code4x" }] }
   ```
 - `pkgs/create-code4x/package.json` with `bin.create-code4x` and an
-  `index.mjs` shim whose **absolute** path to this repo's `dist/cli.mjs` is
-  baked in at generation time.
+  `index.mjs` shim whose **absolute** path to this repo's
+  `packages/create-code4x/dist/cli.mjs` is baked in at generation time.
 
 The shim must **explicitly** `import { run }` and call it:
 
 ```js
-import { run } from "/abs/path/to/dist/cli.mjs";
+import { run } from "/abs/path/to/packages/create-code4x/dist/cli.mjs";
 process.exit(await run(process.argv.slice(2)));
 ```
 
 The repo CLI guards its entrypoint with `isMain()` (compares `process.argv[1]`
 against its own module URL), so merely importing it has no side effect — the
-shim has to invoke `run` itself. `setup.sh` runs `vp pack` first so
-`dist/cli.mjs` exists.
+shim has to invoke `run` itself. `setup.sh` runs `vp pack` inside
+`packages/create-code4x/` first so the package's `dist/cli.mjs` exists.
 
 `run.sh` runs, from the scratch monorepo root:
 
@@ -57,7 +57,7 @@ non-interactive.
 ## Run
 
 ```bash
-vp pack                        # or let setup.sh do it
+vp -C packages/create-code4x pack   # or let setup.sh do it
 bash fixtures/vp-harness/run.sh                 # default target
 bash fixtures/vp-harness/run.sh /tmp/my-target  # custom target
 ```
