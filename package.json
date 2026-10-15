@@ -10,9 +10,13 @@
     "harness:vp": "bash fixtures/vp-harness/run.sh",
     "ci:tier2": "node scripts/tier2-matrix.mjs",
     "ci:tier2:all": "node scripts/tier2-matrix.mjs --all",
-    "ci:tier3": "bash scripts/tier3-smoke.sh"
+    "ci:tier3": "bash scripts/tier3-smoke.sh",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "vite-plus": "catalog:"
   },
   "devEngines": {

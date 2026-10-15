@@ -89,6 +89,21 @@ pnpm run ci:tier3                              # Tier-3 冒烟
 
 CI：`.github/workflows/ci.yml`（`push`/`pull_request`：Tier-1 + Tier-2 子集）、`.github/workflows/nightly.yml`（`schedule`/`workflow_dispatch`：Tier-2 全量 + Tier-3 冒烟）。
 
+## 发布
+
+发布包为 `packages/create-code4x`（包名 `create-code4x`）。版本与发布流程以 **changesets** 为单一入口：
+
+```bash
+pnpm changeset           # 记录一条变更（选包 + bump 级别 + 摘要）
+pnpm changeset:version   # 汇总 changesets → 改版本号 / CHANGELOG（不提交）
+pnpm changeset:publish   # 构建并发布到 npm（public）
+```
+
+- 包内 `prepublishOnly` 已配置 `vp run build`（`vp pack`），发布前自动重建 `dist/`；发布 tarball 含 `package.json` / `README.md` / `LICENSE` / `dist/**`（模板与 features 资产随 `dist/` 一起打包）。
+- 使用形态：`pnpm create code4x <dir>`（等价 `npm create code4x@latest`）；发布到 npm 后亦可 `vp create code4x`（交互）或 `vp create code4x -- <args>`（参数化，CI 同此写法）。
+- 尚未配置 npm 凭据与 git remote：`repository` 字段待补（补 remote 后写入，不编造 URL）；changesets 的 `baseBranch` 已按 `main` 配置。
+- 包内 `bumpp` 仍保留于 devDependencies，但**发布流程以 changesets 为准**（决策见 [docs/06](./docs/06-template-ecosystem-plan.md) 修订记录）。
+
 ## 仓库结构
 
 ```

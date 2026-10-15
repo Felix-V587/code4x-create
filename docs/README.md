@@ -31,7 +31,7 @@
 | M9 | ✅ 已完成 | Electron 加固：`src/shared/ipc.ts` 类型化 IPC（三端共享 zod 表 + 派生类型 + 仅 `message` 的错误信封）+ preload 表驱动窄桥（不暴露 `ipcRenderer`）+ main 双向校验 + `protocol.handle('app', …)` 生产加载（SPA 回退 + traversal guard）+ `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`（沙箱 preload 零外部 require、Electron 45 预适配）；生成物 install→build→check（无 `--fix`）→`dist:dir`→**打包态运行**窗口命中且无协议错误，dev 编排回归通过 |
 | vp 集成 | ✅ harness 实测通过 | `fixtures/vp-harness/`（两 lane + 观察 lane + lane A build smoke）；hono 模板 vp 原生、vue 模板 vp check 开箱通过；发布后 dlx lane 待验证 |
 | M11 | ✅ 已完成 | CI 收口：Tier-2 blessed 轮换（`scripts/tier2-matrix.mjs` + `scripts/tier2-combos.json`，subset/all + registry 防漂移 `tests/tier2-combos.test.ts`）与 Tier-3 冒烟（`scripts/tier3-smoke.sh`：hono `/healthz`+优雅停机、vue preview 200、electron 解包启动）纳入 GitHub Actions（`.github/workflows/ci.yml` / `nightly.yml`）；根脚本 `ci:tier2` / `ci:tier2:all` / `ci:tier3` |
-| 0.1.0 发布 | ⏳ 待做 | 发布前收口（仓库尚未发布到 npm） |
+| 0.1.0 发布 | 🟡 流程就绪 | 包级 `README.md` / `LICENSE`、changesets（`.changeset/config.json` + 根脚本 `changeset` / `changeset:version` / `changeset:publish`）就绪；发布演练（`npm pack` 清单核对 + 本地 tarball 安装/`pnpm dlx` 生成 + `npm publish --dry-run`）通过；**待 npm 凭据与 git remote**（`repository` 待补），尚未真正发布 |
 
 ## 环境约定
 
