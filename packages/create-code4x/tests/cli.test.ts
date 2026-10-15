@@ -313,9 +313,13 @@ describe("cli e2e", () => {
     expect(existsSync(join(target, "pnpm-workspace.yaml"))).toBe(false);
     expect(existsSync(join(target, "package.json"))).toBe(true);
     const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
-      context: { nestedWorkspace: boolean; pmFrom: string };
+      context: { nestedWorkspace: boolean; pmFrom: string; host?: unknown };
     };
-    expect(rc.context).toEqual({ nestedWorkspace: true, pmFrom: "default" });
+    expect(rc.context).toEqual({
+      nestedWorkspace: true,
+      pmFrom: "default",
+      host: { catalog: {}, allowBuilds: [] },
+    });
   });
 
   test("nested workspace hints the host allowBuilds on stderr and records them in the rc", async () => {
@@ -333,6 +337,70 @@ describe("cli e2e", () => {
       workspace?: { requiredAllowBuilds: string[] };
     };
     expect(rc.workspace?.requiredAllowBuilds).toContain("esbuild");
+  });
+
+  test("nested host with catalog + partial allowBuilds: catalog rewrites, only missing hints", async () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "pnpm-workspace.yaml"),
+      [
+        "packages:",
+        "  - apps/*",
+        "catalog:",
+        "  vue: ^3.5.0",
+        "  vite: ^8.0.0",
+        "allowBuilds:",
+        "  esbuild: true",
+        "",
+      ].join("\n"),
+    );
+    const target = join(root, "apps", "web");
+    const { code, stdout, stderr } = await invoke(
+      ["-f", "vue", "-p", "vue-full", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(0);
+    expect(stdout).not.toContain("allowBuilds");
+
+    // Only the *missing* allowBuilds entry is listed; the satisfied `esbuild`
+    // one is not repeated as an instruction.
+    expect(stderr).toContain("allowBuilds:");
+    expect(stderr).toContain("vue-demi: true");
+    expect(stderr).not.toMatch(/^\s+esbuild: true$/m);
+
+    const pkgJson = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+    expect(pkgJson.dependencies.vue).toBe("catalog:");
+    expect(pkgJson.devDependencies.vite).toBe("catalog:");
+    expect(pkgJson.devDependencies["@vitejs/plugin-vue"]).toBe("^6.0.0");
+
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      workspace?: {
+        requiredAllowBuilds: string[];
+        missingAllowBuilds: string[];
+        catalogRewrites: string[];
+      };
+    };
+    expect(rc.workspace?.catalogRewrites).toEqual(["vite", "vue"]);
+    expect(rc.workspace?.missingAllowBuilds).toContain("vue-demi");
+    expect(rc.workspace?.missingAllowBuilds).not.toContain("esbuild");
+  });
+
+  test("standalone vue preset -> caret versions and no hint", async () => {
+    const root = tempRoot();
+    const target = join(root, "web");
+    const { code, stderr } = await invoke(
+      ["-f", "vue", "-p", "vue-naive-tw", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(0);
+    expect(stderr).toBe("");
+    const pkgJson = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    expect(pkgJson.dependencies.vue).toBe("^3.5.0");
   });
 
   test("-f vue --features pinia,router generates a complete vue project", async () => {

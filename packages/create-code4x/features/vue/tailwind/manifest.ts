@@ -1,4 +1,9 @@
-import type { FeatureManifest } from "../../../src/domain/types.ts";
+import type {
+  Answers,
+  Condition,
+  FeatureManifest,
+  ProjectContext,
+} from "../../../src/domain/types.ts";
 
 /**
  * `vue/tailwind` — Tailwind CSS v4.
@@ -14,7 +19,19 @@ import type { FeatureManifest } from "../../../src/domain/types.ts";
  * `index.html`; with `vue/element-plus`, keep the UI stylesheet ordered after
  * Tailwind (import order resolves by the resolver-injected per-component CSS).
  * Only one CSS engine is selectable (`vue/css` group).
+ *
+ * Scanning scope (docs/06 §6.1): Tailwind v4 auto-detects sources by walking up
+ * from the CSS file. Inside a host workspace that would reach sibling apps and
+ * host-root files, leaking classes into the generated CSS. When
+ * `context.nestedWorkspace` we pin the source base to the app package root via
+ * `source('../')` (the CSS file lives in `src/`); standalone the unscoped form
+ * is kept byte-for-byte.
  */
+const unscoped: Condition = (_answers: Answers, context?: ProjectContext) =>
+  context?.nestedWorkspace !== true;
+const scopedToApp: Condition = (_answers: Answers, context?: ProjectContext) =>
+  context?.nestedWorkspace === true;
+
 const tailwindManifest: FeatureManifest = {
   id: "vue/tailwind",
   title: "Tailwind CSS",
@@ -44,7 +61,14 @@ const tailwindManifest: FeatureManifest = {
         {
           anchor: "css-imports",
           order: 0,
+          when: unscoped,
           block: { kind: "raw", code: "@import 'tailwindcss';" },
+        },
+        {
+          anchor: "css-imports",
+          order: 0,
+          when: scopedToApp,
+          block: { kind: "raw", code: "@import 'tailwindcss' source('../');" },
         },
       ],
     },

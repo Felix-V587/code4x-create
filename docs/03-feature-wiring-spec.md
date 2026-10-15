@@ -117,6 +117,27 @@ export function render(plan: Plan,   reg: Registry): VirtualFile[]   // 纯内�
 
 要点：`render` 只吃 `Plan`（含原始 answers + 依赖闭包 + 锚点命中检查），不吃 fs / 网络；**同一 Plan 二次渲染字节级一致**是实现约束，不靠自觉。
 
+### 1.1 项目上下文（`ProjectContext`，M4/M10）
+
+环境事实以**纯数据**注入 `resolve`/`render`（`Plan.context` / 第三个参数），纯函数层不触碰 fs：
+
+```ts
+export type PmSource = "env" | "parent" | "default"
+export interface HostWorkspace {
+  catalog: Record<string, string>   // 宿主 pnpm-workspace.yaml 的默认 catalog: 映射
+  allowBuilds: string[]             // allowBuilds map 的键（兼容 onlyBuiltDependencies 列表）
+}
+export interface ProjectContext {
+  nestedWorkspace: boolean          // 目标位于既有 workspace 根之下
+  pmFrom: PmSource
+  host?: HostWorkspace              // 仅嵌套场景注入
+}
+```
+
+- `host` 由 CLI 的 I/O 层（`src/io/workspace.ts`）读取宿主 `pnpm-workspace.yaml` 注入；解析用运行时依赖 **`yaml` ^2**（用户手写文件，不做手写匹配）。无法解析时降级为空宿主。
+- **catalog-aware 版本（OQ-14）**：`render` 的 `package.json` 合并层在 `host.catalog` 命中**依赖名**时，把版本改写为 `"catalog:"`（`dependencies`/`devDependencies` 同等；仅按名，无别名）。
+- **扫描范围**：`vue/tailwind` 依据 `context.nestedWorkspace` 选择 `@import 'tailwindcss' source('../')`（嵌套，钉在应用包根）或 `@import 'tailwindcss';`（standalone）。
+
 ## 2. 组装点（wiring）精确规格
 
 ### 2.1 锚点声明（框架侧）
@@ -322,11 +343,18 @@ presets/{hono-api,vue-full}.ts
     "features": ["hono/zod", "hono/swagger-openapi"],
     "sources": { "src/index.ts": "assembly", "src/schemas/user.ts": "hono/zod" },
     "hashes": { "src/index.ts": "c8f...e91", "package.json": "1bd...44a" }
+  },
+  "context": { "nestedWorkspace": true, "pmFrom": "env",
+    "host": { "catalog": { "vue": "^3.5.0" }, "allowBuilds": ["esbuild"] } },
+  "workspace": {
+    "requiredAllowBuilds": ["esbuild", "vue-demi"],
+    "missingAllowBuilds": ["vue-demi"],
+    "catalogRewrites": ["vue"]
   }
 }
 ```
 
-`plan.features` 是「解析后闭包」（显式勾选 + 被依赖带入）；复刻重现用它。
+`plan.features` 是「解析后闭包」（显式勾选 + 被依赖带入）；复刻重现用它。`context.host` 与 `workspace` 仅在**嵌套场景**出现：`host` 是注入渲染的宿主数据（复现用），`workspace` 是 diff 结果（`requiredAllowBuilds` 为全部必需项；`missingAllowBuilds` 为宿主缺失项，即 stderr 提示与后续补全的依据；`catalogRewrites` 为被改写为 `"catalog:"` 的依赖名）。
 
 ## 4. 端到端走查（渲染期目标产物）
 

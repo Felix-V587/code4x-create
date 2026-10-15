@@ -21,9 +21,23 @@ export interface RcFile {
   /**
    * Present only when the project was generated inside a host workspace and the
    * generated app needs host-side `pnpm-workspace.yaml` entries (which are not
-   * emitted by design). Records the *requirement*, not the host's current state.
+   * emitted by design). Records the *requirement* and the outcome of the diff
+   * against the host file, so a later run can replay/verify.
    */
-  workspace?: { requiredAllowBuilds: string[] };
+  workspace?: {
+    /** Every allowed-build key the generated project needs. */
+    requiredAllowBuilds: string[];
+    /** Required keys absent from the host `allowBuilds` (the actionable diff). */
+    missingAllowBuilds: string[];
+    /** Dependency names emitted as `"catalog:"` because the host catalogs them. */
+    catalogRewrites: string[];
+  };
+}
+
+export interface RcWorkspace {
+  requiredAllowBuilds: string[];
+  missingAllowBuilds: string[];
+  catalogRewrites: string[];
 }
 
 export function sha256(text: string): string {
@@ -37,7 +51,7 @@ export function buildRc(
   files: VirtualFile[],
   cliVersion: string,
   context: ProjectContext = { nestedWorkspace: false, pmFrom: "default" },
-  workspace?: { requiredAllowBuilds: string[] },
+  workspace?: RcWorkspace,
 ): RcFile {
   const sources: Record<string, string> = {};
   const hashes: Record<string, string> = {};

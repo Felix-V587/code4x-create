@@ -97,8 +97,13 @@ export function render(
       }
       let contents = raw;
       if (isBlueprint) contents = contents.replaceAll("{PROJECT}", plan.answers.projectName);
-      if (isBlueprint && spec.dest === "package.json" && packagePatches.length > 0) {
-        contents = applyPackagePatches(contents, packagePatches);
+      const catalog = context?.host?.catalog;
+      if (
+        isBlueprint &&
+        spec.dest === "package.json" &&
+        (packagePatches.length > 0 || catalog !== undefined)
+      ) {
+        contents = applyPackagePatches(contents, packagePatches, catalog);
       }
       addFile(outputs, spec.dest, contents, c.source, spec.onCollision);
     }
@@ -461,7 +466,11 @@ function isRelative(module: string): boolean {
 // package.json merging
 // --------------------------------------------------------------------------
 
-function applyPackagePatches(baseText: string, patches: PackageJsonPatch[]): string {
+function applyPackagePatches(
+  baseText: string,
+  patches: PackageJsonPatch[],
+  catalog?: Record<string, string>,
+): string {
   let pkg: Record<string, unknown>;
   try {
     pkg = JSON.parse(baseText) as Record<string, unknown>;
@@ -483,7 +492,64 @@ function applyPackagePatches(baseText: string, patches: PackageJsonPatch[]): str
     }
   }
 
+  // Host-catalog-aware versions (M10 / OQ-14): any dependency whose *name*
+  // appears in the host `catalog:` map is emitted as the `"catalog:"` protocol,
+  // regardless of the caret range the template/manifest declared. Matching is
+  // by name only — no fuzzy aliasing.
+  if (catalog) applyCatalogVersions(pkg, catalog);
+
   return `${JSON.stringify(pkg, null, 2)}\n`;
+}
+
+function applyCatalogVersions(pkg: Record<string, unknown>, catalog: Record<string, string>): void {
+  for (const field of ["dependencies", "devDependencies"] as const) {
+    const deps = pkg[field] as Record<string, string> | undefined;
+    if (!deps) continue;
+    for (const name of Object.keys(deps)) {
+      if (Object.prototype.hasOwnProperty.call(catalog, name)) deps[name] = "catalog:";
+    }
+  }
+}
+
+/** Dependency names emitted with the `"catalog:"` protocol, id-sorted. */
+export function catalogRewriteNames(packageJsonContents: string): string[] {
+  const pkg = parsePackageJson(packageJsonContents);
+  const names = new Set<string>();
+  for (const field of ["dependencies", "devDependencies"] as const) {
+    const deps = (pkg[field] as Record<string, string> | undefined) ?? {};
+    for (const [name, version] of Object.entries(deps)) {
+      if (version === "catalog:") names.add(name);
+    }
+  }
+  return [...names].sort();
+}
+
+/**
+ * Dependencies still pinned to an explicit range (candidates for the host
+ * `catalog:`, i.e. the "could be cataloged for reuse" suggestions), keyed by
+ * name with the emitted version. Id-sorted for deterministic output.
+ */
+export function catalogCandidates(packageJsonContents: string): Record<string, string> {
+  const pkg = parsePackageJson(packageJsonContents);
+  const candidates: Record<string, string> = {};
+  const seen = new Set<string>();
+  for (const field of ["dependencies", "devDependencies"] as const) {
+    const deps = (pkg[field] as Record<string, string> | undefined) ?? {};
+    for (const [name, version] of Object.entries(deps)) {
+      if (version === "catalog:" || seen.has(name)) continue;
+      seen.add(name);
+      candidates[name] = version;
+    }
+  }
+  return Object.fromEntries(Object.entries(candidates).sort(([a], [b]) => (a < b ? -1 : 1)));
+}
+
+function parsePackageJson(contents: string): Record<string, unknown> {
+  try {
+    return JSON.parse(contents) as Record<string, unknown>;
+  } catch {
+    fail("E-FILE-WRITE", "generated package.json is not valid JSON");
+  }
 }
 
 /**

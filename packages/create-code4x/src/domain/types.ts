@@ -162,11 +162,31 @@ export interface Plan {
 /** Where the package-manager *default* came from. */
 export type PmSource = "env" | "parent" | "default";
 
+/**
+ * Data read from the host workspace (`pnpm-workspace.yaml`) when the target is
+ * nested inside an existing workspace. Pure data: the I/O layer parses the host
+ * file and injects it here; `resolve`/`render` never touch the filesystem.
+ */
+export interface HostWorkspace {
+  /**
+   * The host's default `catalog:` map (package name -> declared range). A
+   * generated dependency whose name appears here is emitted as `"catalog:"`.
+   */
+  catalog: Record<string, string>;
+  /**
+   * Build scripts the host already allows (`allowBuilds` map keys, plus legacy
+   * `onlyBuiltDependencies` list entries). Used to diff the required set.
+   */
+  allowBuilds: string[];
+}
+
 export interface ProjectContext {
   /** True when the target lives under an existing workspace root. */
   nestedWorkspace: boolean;
   /** Source of the PM default value (independent of any explicit `--pm`). */
   pmFrom: PmSource;
+  /** Host workspace data, injected only when one was found (nested scenario). */
+  host?: HostWorkspace;
 }
 
 // ---------- materialization ----------

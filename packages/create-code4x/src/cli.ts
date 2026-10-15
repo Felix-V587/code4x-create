@@ -20,7 +20,12 @@ import {
   parseFeatureTokens,
   resolve as resolvePlan,
 } from "./domain/resolve.ts";
-import { render, collectAllowBuilds } from "./domain/render.ts";
+import {
+  render,
+  collectAllowBuilds,
+  catalogRewriteNames,
+  catalogCandidates,
+} from "./domain/render.ts";
 import {
   CancelledError,
   collectAnswers,
@@ -30,7 +35,7 @@ import {
 import { sha256, buildRc, rcVirtualFile, RC_FILENAME, type RcFile } from "./io/rc.ts";
 import { loadRegistry } from "./io/loadRegistry.ts";
 import { detectPackageManagerWithSource } from "./io/pm.ts";
-import { detectNestedWorkspace } from "./io/workspace.ts";
+import { detectNestedWorkspace, readHostWorkspace } from "./io/workspace.ts";
 import { findRepoRoot, initGit } from "./io/git.ts";
 import { createClackPrompter } from "./io/prompts.ts";
 import { runInstall } from "./io/install.ts";
@@ -266,9 +271,14 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   }
 
   const detection = detectPackageManagerWithSource(io.env, resolve(io.cwd, answers.targetDir));
+  const nestedWorkspace = detectNestedWorkspace(answers.targetDir, io.cwd);
+  // Host data is read by the I/O layer and injected as pure data (M10); the
+  // pure `resolve`/`render` never touch the host filesystem.
+  const host = nestedWorkspace ? readHostWorkspace(answers.targetDir, io.cwd) : undefined;
   const context: ProjectContext = {
-    nestedWorkspace: detectNestedWorkspace(answers.targetDir, io.cwd),
+    nestedWorkspace,
     pmFrom: detection.source,
+    ...(host ? { host: { catalog: host.catalog, allowBuilds: host.allowBuilds } } : {}),
   };
 
   // Print the fully-expanded manifest before doing anything (docs/04 §3.2).
@@ -279,12 +289,30 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
 
   // Nested workspaces own the build policy: no `pnpm-workspace.yaml` is emitted
   // (see render), so surface the required host-side entries on stderr — never on
-  // stdout, where `--json` owns the stream — and record them in the rc.
-  const requiredAllowBuilds = context.nestedWorkspace ? collectAllowBuilds(plan, registry) : [];
-  if (requiredAllowBuilds.length > 0) {
+  // stdout, where `--json` owns the stream — and record them in the rc. Only the
+  // *missing* entries are listed; satisfiable catalog reuse is a soft suggestion.
+  const requiredAllowBuilds = nestedWorkspace ? collectAllowBuilds(plan, registry) : [];
+  const hostAllow = new Set(host?.allowBuilds ?? []);
+  const missingAllowBuilds = requiredAllowBuilds.filter((key) => !hostAllow.has(key));
+
+  const packageJson = rendered.find((file) => file.path === "package.json");
+  const catalogRewrites =
+    nestedWorkspace && packageJson ? catalogRewriteNames(packageJson.contents) : [];
+  const catalogSuggest =
+    nestedWorkspace && packageJson
+      ? Object.entries(catalogCandidates(packageJson.contents)).filter(
+          ([name]) => !host || !Object.prototype.hasOwnProperty.call(host.catalog, name),
+        )
+      : [];
+
+  if (missingAllowBuilds.length > 0) {
     io.err("note: nested workspace detected; add to the host pnpm-workspace.yaml:");
     io.err("  allowBuilds:");
-    for (const key of requiredAllowBuilds) io.err(`    ${key}: true`);
+    for (const key of missingAllowBuilds) io.err(`    ${key}: true`);
+  }
+  if (catalogSuggest.length > 0) {
+    io.err("note: optional — add to the host catalog for version reuse:");
+    for (const [name, version] of catalogSuggest) io.err(`  ${name}: ${version}`);
   }
 
   const rc = buildRc(
@@ -293,7 +321,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     rendered,
     CLI_VERSION,
     context,
-    requiredAllowBuilds.length > 0 ? { requiredAllowBuilds } : undefined,
+    nestedWorkspace ? { requiredAllowBuilds, missingAllowBuilds, catalogRewrites } : undefined,
   );
   const files: VirtualFile[] = [...rendered, rcVirtualFile(rc)];
 

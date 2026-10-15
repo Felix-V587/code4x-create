@@ -34,6 +34,20 @@ node packages/create-code4x/dist/cli.mjs my-app -f electron --features electron/
 
 发布后形态（尚未发布到 npm）：`pnpm create code4x my-api`。
 
+### 在既有 workspace 内生成（嵌套场景）
+
+把目标目录放在已有 pnpm workspace 内（如 `apps/web`）即可，无需额外参数：
+
+```bash
+cd my-workspace
+node ../code4x-create/packages/create-code4x/dist/cli.mjs apps/web -p vue-naive-tw -y
+```
+
+- 生成物**不写** `pnpm-workspace.yaml`（宿主负责），并在 stderr 提示宿主需补的 `allowBuilds`（**仅列缺失项**）与可选的 `catalog:` 复用建议（不污染 `--json` stdout）。
+- 若宿主 `pnpm-workspace.yaml` 的 `catalog:` 已有同名依赖，生成的 `package.json` 该依赖版本自动写为 `"catalog:"`，否则保留显式 caret。
+- `vue/tailwind` 在嵌套场景把内容扫描范围钉在应用包内（`@import 'tailwindcss' source('../')`），避免宿主/兄弟应用的文件混入生成的 CSS。
+- 这些事实记录在生成物的 `.code4xrc.json`（`context.host` + `workspace`）中以便复现。
+
 通过 Vite+ 统一入口（发布后）：`vp create code4x`（交互式）或 `vp create code4x -- my-api -f hono --features zod -y`（参数化；CI 同此写法——vp 不透传 `--no-interactive`，参数放 `--` 后）。本地未发布期的集成验证走 `create.templates` harness，见 [docs/05](./docs/05-vp-integration.md)。
 
 ## 参数与行为
