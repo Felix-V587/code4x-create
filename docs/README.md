@@ -11,7 +11,7 @@
 | [03-feature-wiring-spec.md](./03-feature-wiring-spec.md) | 核心机制规格：FeatureManifest 类型草案、组装点(wiring) 语义、错误码、目录结构、hono/vue 走查样例 | ✅ 定稿候选 |
 | [04-prompt-flow.md](./04-prompt-flow.md) | 交互问题流 + 参数映射：状态机、逐问呈现、flag/preset/config 优先级、取消语义、边界清单、候选拍板 OQ-A~E | ✅ 定稿候选 |
 | [05-vp-integration.md](./05-vp-integration.md) | vp create 集成笔记：机制核实（含源码行号）、正确调用方式、职责边界、子项目规则、验证路线 | ✅ 已核实 |
-| [06-template-ecosystem-plan.md](./06-template-ecosystem-plan.md) | 模板系统路线图：机制扩展（互斥/贡献面/锚点）、Hono/Vue/Electron feature 矩阵与版本基线、单仓库模式、里程碑与 OQ | ✅ M6/M7/M8a/M8b 已落地（§4 Vue 已 ✅） |
+| [06-template-ecosystem-plan.md](./06-template-ecosystem-plan.md) | 模板系统路线图：机制扩展（互斥/贡献面/锚点）、Hono/Vue/Electron feature 矩阵与版本基线、单仓库模式、里程碑与 OQ | ✅ M6/M7/M8a/M8b/M9 已落地（§4 Vue、§5 Electron 已 ✅） |
 
 ## 实施状态（2026-10-15）
 
@@ -28,8 +28,9 @@
 | M7 | ✅ 已完成 | Hono 标准化：基座升级（`requestId` 最先、`error-handlers` 锚点 + `{code,message,requestId}` 信封、`routes/health.ts`、`shutdownTimeoutMs` 优雅停机、`@hono/node-server` ^2.1）+ 新 feature（`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`）+ 预设 `hono-standard` / `hono-full`；生成项目 install→build→start→curl 冒烟通过 |
 | M8a | ✅ 已完成 | Vue 全家桶核心 + CSS 引擎 + UI 套件：基座升级（`@/` 别名、`src/style.css` 组装 + `css-imports` 锚点、`@types/node`）+ `vue/vueuse` / `vue/vueuse-router` / `vue/i18n` / `vue/query` ⟂ `vue/colada` / `vue/testing` + `vue/tailwind` ⟂ `vue/unocss` + `vue/naive-ui`（默认）⟂ `vue/element-plus` + 预设 `vue-standard` / `vue-naive-tw` / `vue-element-tw` / `vue-unocss-min` / 扩展 `vue-full`；三个 UI/引擎预设 install→build→check（含 vue-tsc）→preview 200 开箱通过，互斥 `E-CONFLICT` 实测 |
 | M8b | ✅ 已完成 | Vue shadcn-vue：`vue/shadcn-vue`（`group: vue/ui`，requires `vue/tailwind`）——vendored copy-paste 基线（`components.json` + `cn()` + `ui/button`/`ui/card`/`ui/input` + theme 块经 `css-imports` order 10），无 `shadcn-vue` npm 依赖 / 无生成期 CLI；新锚点 `app-script`；预设 `vue-shadcn-tw`；生成物 install（退出 0）→build（vue-tsc）→check（无 `--fix`）→preview 200；`shadcn + unocss` 互斥 `E-CONFLICT`、`shadcn` 单独拉 `tailwind` 实测 |
+| M9 | ✅ 已完成 | Electron 加固：`src/shared/ipc.ts` 类型化 IPC（三端共享 zod 表 + 派生类型 + 仅 `message` 的错误信封）+ preload 表驱动窄桥（不暴露 `ipcRenderer`）+ main 双向校验 + `protocol.handle('app', …)` 生产加载（SPA 回退 + traversal guard）+ `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`（沙箱 preload 零外部 require、Electron 45 预适配）；生成物 install→build→check（无 `--fix`）→`dist:dir`→**打包态运行**窗口命中且无协议错误，dev 编排回归通过 |
 | vp 集成 | ✅ harness 实测通过 | `fixtures/vp-harness/`（两 lane + 观察 lane + lane A build smoke）；hono 模板 vp 原生、vue 模板 vp check 开箱通过；发布后 dlx lane 待验证 |
-| M4 / M9–M11 | ⏳ 待做 | 交互流程收口、Electron 加固、工作区场景 A、Tier-2/3 CI、0.1.0 发布 |
+| M4 / M10–M11 | ⏳ 待做 | 交互流程收口、工作区场景 A、Tier-2/3 CI、0.1.0 发布 |
 
 ## 环境约定
 

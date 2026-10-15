@@ -15,6 +15,14 @@ declare module '*.css' {
   export default css
 }
 
+// The renderer's view of `window.code4x` is derived from the shared channel
+// table (`src/shared/ipc.ts`), so argument/result types cannot drift from the
+// preload bridge. This file must stay a script (no top-level import/export) so
+// the wildcard module declarations above remain ambient.
+type IpcChannel = import('../../shared/ipc').IpcChannel
+type IpcArgs<C extends IpcChannel> = import('../../shared/ipc').IpcArgs<C>
+type IpcResult<C extends IpcChannel> = import('../../shared/ipc').IpcResult<C>
+
 interface Code4xApi {
   platform: string
   versions: {
@@ -22,7 +30,8 @@ interface Code4xApi {
     node: string
     chrome: string
   }
-  ping: () => Promise<string>
+  ping: () => Promise<IpcResult<'app:ping'>>
+  echo: (...args: IpcArgs<'app:echo'>) => Promise<IpcResult<'app:echo'>>
 }
 
 interface Window {

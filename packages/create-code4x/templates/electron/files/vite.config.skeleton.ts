@@ -39,6 +39,10 @@ export default defineConfig({
     deps: {
       // `electron` is provided by the runtime, never bundled.
       neverBundle: ['electron'],
+      // `zod` is a runtime `dependencies` entry, so tsdown externalizes it by
+      // default. The sandboxed preload cannot `require()` external modules, so
+      // force it into the bundle: `dist/preload/index.cjs` stays self-contained.
+      alwaysBundle: ['zod'],
     },
   },
   lint: {

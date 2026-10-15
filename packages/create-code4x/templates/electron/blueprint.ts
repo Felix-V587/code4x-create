@@ -37,6 +37,7 @@ const electronBlueprint: FrameworkBlueprint = {
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
       { src: "files/scripts/dev.mjs", dest: "scripts/dev.mjs" },
       { src: "files/src/preload/index.ts", dest: "src/preload/index.ts" },
+      { src: "files/src/shared/ipc.ts", dest: "src/shared/ipc.ts" },
       { src: "files/src/renderer/index.html", dest: "src/renderer/index.html" },
       { src: "files/src/renderer/src/main.ts", dest: "src/renderer/src/main.ts" },
       { src: "files/src/renderer/src/App.vue", dest: "src/renderer/src/App.vue" },

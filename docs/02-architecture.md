@@ -105,7 +105,8 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 - ✅ **M7**：Hono 标准化——基座升级（`requestId` → logger 顺序、`error-handlers` 锚点 + 统一错误信封、`routes/health.ts`、`shutdownTimeoutMs` 优雅停机、`@hono/node-server` v2）+ `hono/env` / `hono/testing` / `hono/logging` / `hono/http-hardening` + 预设 `hono-standard` / `hono-full`。
 - ✅ **M8a**：Vue 全家桶核心 + CSS 引擎 + UI 套件——基座升级（`tsconfig` `@/` 别名（`paths` 无 `baseUrl`，TS7 已移除）、`vite.config` `resolve.alias` + `@types/node`、`src/style.css` 升 assembly + `css-imports` 锚点）+ `vue/vueuse` / `vue/vueuse-router` / `vue/i18n` / `vue/query` ⟂ `vue/colada` / `vue/testing` + CSS 组 `vue/tailwind` ⟂ `vue/unocss` + UI 组 `vue/naive-ui`（默认）⟂ `vue/element-plus` + 预设 `vue-standard` / `vue-naive-tw` / `vue-element-tw` / `vue-unocss-min` / 扩展 `vue-full`（semantics: standard + query + testing）。
 - ✅ **M8b**：Vue shadcn-vue——`vue/shadcn-vue`（`group: vue/ui`、requires `vue/tailwind`；vendored `components.json` + `cn()` + `ui/button`/`ui/card`/`ui/input` + theme 块经 `css-imports` order 10；无 `shadcn-vue` npm 依赖、无生成期 CLI）+ 新锚点 `app-script`（`src/App.vue` `<script setup>` 的显式 import）+ 预设 `vue-shadcn-tw`。生成物 install→build→check（vue-tsc）→preview 200 开箱通过。
-- ⏳ **M4 / M9–M11**：完整交互流程、Electron 加固、工作区场景 A、Tier-2/3 CI、presets → 发布 0.1.0。
+- ✅ **M9**：Electron 加固——基座（非新 feature）：`src/shared/ipc.ts` 单一 zod channel 表 + 三端派生类型（`IpcArgs`/`IpcResult`/错误信封 `IpcEnvelope`）；preload 由表驱动窄桥（每通道一函数，永不暴露 `ipcRenderer`/通用 `invoke`）；main 从表注册 + `safeParse` 双向校验 + 「仅 `message` 跨 IPC」信封；生产改 `protocol.registerSchemesAsPrivileged` + `protocol.handle('app', …)`（SPA 回退 + traversal guard）加载 `app://./index.html`，dev 分支加 `!app.isPackaged` 门闩；`zod` 进 `dependencies` 并以 `deps.alwaysBundle: ['zod']` 内联进 bundle（沙箱 preload 零外部 require、零 `node:*`，Electron 45 预适配）。
+- ⏳ **M4 / M10–M11**：完整交互流程、工作区场景 A、Tier-2/3 CI、presets → 发布 0.1.0。
 - **Defer**：react（低风险增量）、add-to-existing、远程模板、第三方插件、Bun/Deno 变体。
 
 ## 8. 风险与缓解

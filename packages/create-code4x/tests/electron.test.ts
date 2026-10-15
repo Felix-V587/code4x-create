@@ -42,6 +42,7 @@ describe("render / electron base", () => {
       "src/renderer/src/env.d.ts",
       "src/renderer/src/main.ts",
       "src/renderer/src/style.css",
+      "src/shared/ipc.ts",
       "tsconfig.json",
       "vite.config.ts",
     ]);
@@ -67,7 +68,7 @@ describe("render / electron base", () => {
       typecheck: "vue-tsc --noEmit",
       check: "vp check",
     });
-    expect(pkg.dependencies).toEqual({ vue: "^3.5.0" });
+    expect(pkg.dependencies).toEqual({ vue: "^3.5.0", zod: "^4.6.6" });
     expect(pkg.devDependencies).toMatchObject({
       "@vitejs/plugin-vue": "^6.0.0",
       "@types/node": "^24.0.0",
@@ -91,7 +92,16 @@ describe("render / electron base", () => {
     expect(vite).toContain("'preload/index': 'src/preload/index.ts'");
     expect(vite).toContain("format: ['cjs']");
     expect(vite).toContain("neverBundle: ['electron']");
+    // `zod` must be inlined: the sandboxed preload cannot require it.
+    expect(vite).toContain("alwaysBundle: ['zod']");
     expect(vite).not.toContain("@code4x");
+  });
+
+  test("ships the shared zod IPC table", () => {
+    const table = file(generate(), "src/shared/ipc.ts").contents;
+    expect(table).toContain("import { z } from 'zod'");
+    expect(table).toContain("export const ipc = {");
+    expect(table).toContain("'app:ping': { args: z.tuple([]), result: z.literal('pong') }");
   });
 
   test("main process uses a sandboxed preload and the dev URL env var", () => {
@@ -101,15 +111,17 @@ describe("render / electron base", () => {
     expect(main).toContain("sandbox: true");
     expect(main).toContain("nodeIntegration: false");
     expect(main).toContain("process.env.ELECTRON_RENDERER_URL");
-    expect(main).toContain("import { app, BrowserWindow, ipcMain, shell } from 'electron'");
-    expect(main).toContain("ipcMain.handle('app:ping'");
+    expect(main).toContain(
+      "import { app, BrowserWindow, ipcMain, net, protocol, shell } from 'electron'",
+    );
+    expect(main).toContain("register('app:ping'");
     expect(main).not.toContain("@code4x");
   });
 
   test("preload exposes a narrow contextBridge API, never raw ipcRenderer", () => {
     const preload = file(generate(), "src/preload/index.ts").contents;
     expect(preload).toContain("contextBridge.exposeInMainWorld('code4x'");
-    expect(preload).toContain("ipcRenderer.invoke('app:ping')");
+    expect(preload).toContain("ipcRenderer.invoke(channel, args)");
     expect(preload).not.toContain("exposeInMainWorld('ipcRenderer'");
   });
 

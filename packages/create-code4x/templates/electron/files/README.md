@@ -28,22 +28,74 @@ pnpm start   # electron .
 ## Project layout
 
 ```
-src/main/index.ts       Electron main process (window + app lifecycle)
+src/main/index.ts       Electron main process (window, protocol, lifecycle)
 src/preload/index.ts    contextBridge surface exposed as window.code4x
+src/shared/ipc.ts       typed IPC channel table shared by all three processes
 src/renderer/           Vue 3 renderer (index.html + src/)
 scripts/dev.mjs         zero-dependency dev orchestrator
 vite.config.ts          renderer (Vite) + main/preload (vp pack) config
 ```
 
+## Renderer loading (dev vs production)
+
+- **Dev** (`pnpm dev`, `!app.isPackaged`): the main process loads
+  `process.env.ELECTRON_RENDERER_URL` — Vite's dev server with HMR. The
+  `!app.isPackaged` gate keeps a stray env var from hijacking a production run.
+- **Production** (`pnpm start` / packaged): the main process registers a
+  privileged `app://` scheme (`protocol.registerSchemesAsPrivileged`, before the
+  app is ready) and serves `dist/renderer` through `protocol.handle('app', …)`,
+  then loads `app://./index.html`. `file://` is discouraged by Electron's
+  security checklist, and `protocol.register*Protocol` is deprecated since
+  Electron 25 — `protocol.handle` is the current API.
+  - The handler has a path-traversal guard and **SPA fallback**: any path that
+    contains no real file resolves to `index.html`.
+  - `base: './'` in `vite.config.ts` keeps asset URLs relative, so they resolve
+    under `app://` exactly as they would under `file://`.
+
+## Router
+
+- **Default: hash history** (`createWebHashHistory`). The hash never reaches the
+  protocol handler, so the app works with the `app://` handler _and_ if you
+  switch back to `loadFile` (`file://`).
+- **History mode** (`createWebHistory`) requires the custom `app://` protocol
+  plus the SPA fallback above — every client route must resolve to
+  `index.html`. Do not use history mode together with `loadFile`.
+
 ## Process model & IPC
 
 - `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false` — the
   renderer only sees what the preload exposes via `contextBridge`.
-- The preload exposes a narrow `window.code4x` API; never expose `ipcRenderer`.
-- To add a channel: register `ipcMain.handle('my:channel', ...)` in
-  `src/main/index.ts` and wrap `ipcRenderer.invoke('my:channel', ...)` in
-  `src/preload/index.ts`, then add it to the `window.code4x` type in
-  `src/renderer/src/env.d.ts`.
+- **One table, three processes.** `src/shared/ipc.ts` declares every channel
+  with zod `args`/`result` schemas. The main process registers a handler per
+  channel and validates **both directions**; the preload exposes exactly one
+  narrow function per channel. Adding a channel means three edits: an entry in
+  `src/shared/ipc.ts`, a `register(...)` call in `src/main/index.ts`, and a
+  function in `src/preload/index.ts`. The renderer types are derived from the
+  table (`src/renderer/src/env.d.ts`), so they cannot drift.
+- **Never expose `ipcRenderer` or a generic `invoke`.** The preload's generic
+  `invoke` is module-private; only the narrow functions reach
+  `window.code4x`.
+- **Default to `invoke`/`handle`.** Use `webContents.send` for
+  main→renderer progress and a `MessageChannelMain` port (passed only through
+  `postMessage`) for large/streaming payloads.
+- **Errors carry only `message`.** `ipcRenderer.invoke` rejects with a plain
+  `Error` that drops custom properties, so the main process returns a
+  `{ ok: false, error: { message } }` envelope instead of throwing; the preload
+  rethrows it as an `Error`. Do not rely on error `code`/`details` crossing the
+  boundary.
+
+## Electron 45 pre-adaptation
+
+Sandboxed preloads lose the Node.js shims in Electron 45. Keep the preload
+bundle **self-contained and Node-builtin-free**:
+
+- No `node:*` imports in `src/preload/index.ts` (or anything it imports).
+  `src/shared/ipc.ts` is bundled, not loaded from `node_modules`.
+- Any package the preload imports must be bundled. This template lists `zod` in
+  `dependencies` (tsdown externalizes `dependencies` by default) and opts it
+  back in with `deps.alwaysBundle: ['zod']` in `vite.config.ts`, so
+  `dist/preload/index.cjs` has no runtime `require()` of `zod`. If you add
+  another dependency to the preload, add it to `alwaysBundle` too.
 
 ## `.code4xrc.json`
 
