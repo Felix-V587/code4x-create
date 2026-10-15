@@ -42,6 +42,7 @@ import tailwindManifest from "../../features/vue/tailwind/manifest.ts";
 import unocssManifest from "../../features/vue/unocss/manifest.ts";
 import naiveUiManifest from "../../features/vue/naive-ui/manifest.ts";
 import elementPlusManifest from "../../features/vue/element-plus/manifest.ts";
+import shadcnVueManifest from "../../features/vue/shadcn-vue/manifest.ts";
 import builderManifest from "../../features/electron/builder/manifest.ts";
 
 const FRAMEWORK_BLUEPRINTS: FrameworkBlueprint[] = [electronBlueprint, honoBlueprint, vueBlueprint];
@@ -67,6 +68,7 @@ const FEATURE_MANIFESTS: FeatureManifest[] = [
   unocssManifest,
   naiveUiManifest,
   elementPlusManifest,
+  shadcnVueManifest,
   builderManifest,
 ];
 
@@ -188,6 +190,18 @@ export function loadRegistry(
         "vue/i18n",
         "vue/element-plus",
         "vue/tailwind",
+      ],
+    },
+    "vue-shadcn-tw": {
+      id: "vue-shadcn-tw",
+      framework: "vue",
+      features: [
+        "vue/router",
+        "vue/pinia",
+        "vue/vueuse",
+        "vue/i18n",
+        "vue/tailwind",
+        "vue/shadcn-vue",
       ],
     },
     "vue-unocss-min": {

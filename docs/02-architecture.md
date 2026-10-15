@@ -1,7 +1,7 @@
 # 02 · 架构与关键技术决策
 
 > 状态：定稿候选（OQ-1~7 未见异议，按倾向定案）。
-> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`、`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`、`vue/pinia`、`vue/router`、`vue/vueuse`、`vue/vueuse-router`、`vue/i18n`、`vue/query`、`vue/colada`、`vue/testing`、`vue/tailwind`、`vue/unocss`、`vue/naive-ui`、`vue/element-plus`、`electron/builder`；presets：`hono-api`、`hono-standard`、`hono-full`、`vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-unocss-min`、`vue-full`。
+> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`、`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`、`vue/pinia`、`vue/router`、`vue/vueuse`、`vue/vueuse-router`、`vue/i18n`、`vue/query`、`vue/colada`、`vue/testing`、`vue/tailwind`、`vue/unocss`、`vue/naive-ui`、`vue/element-plus`、`vue/shadcn-vue`、`electron/builder`；presets：`hono-api`、`hono-standard`、`hono-full`、`vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-unocss-min`、`vue-shadcn-tw`、`vue-full`。
 > 上游依据：[01-ecosystem-research.md](./01-ecosystem-research.md)；机制细节：[03-feature-wiring-spec.md](./03-feature-wiring-spec.md)。
 
 ## 1. 五层架构（核心两层必须是纯函数）
@@ -103,8 +103,9 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 - ✅ **M5**：electron（Vue 3 渲染层 + `vp pack` 主/预加载 CJS + 零依赖 dev 编排脚本；组装锚点复用）；`electron/builder` 打包。
 - ✅ **M6**：机制扩展（`group` 互斥、`package.json#fields`、`workspaceYaml.allowBuilds`、MARKER 块注释、`vite-imports` 锚点、排序约定、Tier-1 组合矩阵）。
 - ✅ **M7**：Hono 标准化——基座升级（`requestId` → logger 顺序、`error-handlers` 锚点 + 统一错误信封、`routes/health.ts`、`shutdownTimeoutMs` 优雅停机、`@hono/node-server` v2）+ `hono/env` / `hono/testing` / `hono/logging` / `hono/http-hardening` + 预设 `hono-standard` / `hono-full`。
-- ✅ **M8a**：Vue 全家桶核心 + CSS 引擎 + UI 套件——基座升级（`tsconfig` `@/` 别名（`paths` 无 `baseUrl`，TS7 已移除）、`vite.config` `resolve.alias` + `@types/node`、`src/style.css` 升 assembly + `css-imports` 锚点）+ `vue/vueuse` / `vue/vueuse-router` / `vue/i18n` / `vue/query` ⟂ `vue/colada` / `vue/testing` + CSS 组 `vue/tailwind` ⟂ `vue/unocss` + UI 组 `vue/naive-ui`（默认）⟂ `vue/element-plus` + 预设 `vue-standard` / `vue-naive-tw` / `vue-element-tw` / `vue-unocss-min` / 扩展 `vue-full`（semantics: standard + query + testing）。**shadcn-vue 属 M8b，未实现。**
-- ⏳ **M4 / M8b–M11**：完整交互流程、Vue shadcn-vue、Electron 加固、工作区场景 A、Tier-2/3 CI、presets → 发布 0.1.0。
+- ✅ **M8a**：Vue 全家桶核心 + CSS 引擎 + UI 套件——基座升级（`tsconfig` `@/` 别名（`paths` 无 `baseUrl`，TS7 已移除）、`vite.config` `resolve.alias` + `@types/node`、`src/style.css` 升 assembly + `css-imports` 锚点）+ `vue/vueuse` / `vue/vueuse-router` / `vue/i18n` / `vue/query` ⟂ `vue/colada` / `vue/testing` + CSS 组 `vue/tailwind` ⟂ `vue/unocss` + UI 组 `vue/naive-ui`（默认）⟂ `vue/element-plus` + 预设 `vue-standard` / `vue-naive-tw` / `vue-element-tw` / `vue-unocss-min` / 扩展 `vue-full`（semantics: standard + query + testing）。
+- ✅ **M8b**：Vue shadcn-vue——`vue/shadcn-vue`（`group: vue/ui`、requires `vue/tailwind`；vendored `components.json` + `cn()` + `ui/button`/`ui/card`/`ui/input` + theme 块经 `css-imports` order 10；无 `shadcn-vue` npm 依赖、无生成期 CLI）+ 新锚点 `app-script`（`src/App.vue` `<script setup>` 的显式 import）+ 预设 `vue-shadcn-tw`。生成物 install→build→check（vue-tsc）→preview 200 开箱通过。
+- ⏳ **M4 / M9–M11**：完整交互流程、Electron 加固、工作区场景 A、Tier-2/3 CI、presets → 发布 0.1.0。
 - **Defer**：react（低风险增量）、add-to-existing、远程模板、第三方插件、Bun/Deno 变体。
 
 ## 8. 风险与缓解

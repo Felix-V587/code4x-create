@@ -214,6 +214,30 @@ Vue blueprint（M8a）锚点（全部全局唯一）：
 - **`vue/testing`**：devDeps `vitest` + `@vue/test-utils` + `happy-dom` + `test: "vp test"` + `src/App.test.ts` 模板资产。模板测试经**文件级** `// @vitest-environment happy-dom` 注解选择 DOM（无需新增 vite-config `test` 锚点/区域），并 `mount` 一个**内联组件**（仅依赖 `vue`），因此无论 preset 是否装了 router/i18n/UI 套件都开箱可跑。
 - **`vue/query` 的 install 放行**：`@tanstack/vue-query` 传递依赖 `vue-demi`（带 postinstall），经 `workspaceYaml.allowBuilds: { "vue-demi": true }` 写入生成 `pnpm-workspace.yaml`，避免 `ERR_PNPM_IGNORED_BUILDS`。
 
+### 2.9 M8b 锚点与 feature wiring 记录（shadcn-vue）
+
+Vue blueprint（M8b）在 M8a 基础上新增一个锚点（全局唯一）：
+
+| 锚点 | 所属 assembly | kind | 贡献方 |
+|---|---|---|---|
+| `app-script` | `src/App.vue`（`<script setup>`） | `imports` | `vue/shadcn-vue` |
+
+`css-imports`（`src/style.css`）新增一个贡献方：`vue/shadcn-vue` 的 theme 块（order `10`，紧接 `vue/tailwind` 的 order `0`）。
+
+feature wiring 摘要：
+
+- `vue/shadcn-vue`：`requires [{framework vue}, {feature vue/tailwind}]`；`group: vue/ui`。
+  - `css-imports` order 10 → 片段文件 `fragments/theme.css`（shadcn-vue manual-install 原文：`@import 'tw-animate-css';` + `@custom-variant dark (&:is(.dark *));` + `:root`/`.dark` oklch 变量 + `@theme inline {}` + `@layer base {}`）。order 10 > tailwind 的 0，保证所有 CSS `@import` 位于文件最前；CSS 组互斥保证 `css-imports` 不会同时出现两个引擎。
+  - `app-script`（`imports`）→ `Button`（`@/components/ui/button`）、`Card`/`CardContent`/`CardDescription`/`CardHeader`/`CardTitle`（`@/components/ui/card`）、`Input`（`@/components/ui/input`）。
+  - `app-template`（order 0）→ `<Card>` 演示（含 `<CardHeader>`/`<CardTitle>`/`<CardDescription>`/`<CardContent>`/`<Input>`/`<Button>`）。
+  - 文件贡献：`components.json`、`src/lib/utils.ts`、`src/components/ui/{button,card,input}/**`（registry `new-york` 源码，仅归一化引号）。
+  - 依赖：`reka-ui ^2.11.0`、`class-variance-authority ^0.7.1`、`clsx ^2.1.1`、`tailwind-merge ^3.7.0`、`lucide-vue-next ^1.0.0`、`@vueuse/core ^15.0.0`（与 `vue/vueuse` 同串），dev `tw-animate-css ^1.4.0`。
+
+- **`app-script` 锚点动因**：`vue/naive-ui` / `vue/element-plus` 组件由 `unplugin-vue-components` resolver 自动注册（模板内直接写标签即可）；shadcn-vue 是 copy-paste + 显式 import，`App.vue` 演示组件必须在 `<script setup>` 内 import。新增 `imports` kind 锚点承载这些 import；空集时零输出，基座 `App.vue` 字节不变（`vue.test.ts` golden 未被破坏）。
+- **互斥归属**：`vue/shadcn-vue` 归 `vue/ui`（与 naive-ui/element-plus 互斥），理由是三者争同一「主组件体系」槽位；与其它 UI 栈混用会叠加两套 preflight / 样式 / 装配模型（显式 import vs resolver 自动导入），非合理默认。
+- **requires 的双重作用**：`requires vue/tailwind` 既满足 shadcn 的 Tailwind 原生依赖，也使「shadcn + unocss」经闭包同时命中 `vue/css` 两个成员 → `E-CONFLICT`（同组互斥的合理结果）。
+- **静态文件不可替换**：`components.json` 与组件源码由 feature 独占贡献（无 blueprint 同路径文件）；主题走 assembly（`css-imports`），不直接写 `src/style.css`。
+
 ### 2.3 渲染确定性
 
 - imports 聚合：同模块多次贡献 → named 集排序合并；`defaultAs` 冲突 → `E-IMPORT-CONFLICT`；type 与 value 并存输出两行，行内命名排序。

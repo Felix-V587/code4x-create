@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+// @code4x:begin app-script
+// @code4x:end app-script
 
 const message = ref('Hello, Vue + Vite!')
 </script>

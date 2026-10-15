@@ -1,6 +1,6 @@
 # 06 · vp 生态模板系统：最佳实践路线与实施方案
 
-> 状态：M6/M7/M8a 已落地（2026-10-15）；M8b 起待做。版本核实日期 2026-10-14。
+> 状态：M6/M7/M8a/M8b 已落地（2026-10-15）；M9 起待做。版本核实日期 2026-10-14（M8b shadcn-vue 依赖集 2026-10-15 核实）。
 > 上游依据：[02 架构与决策](./02-architecture.md)、[03 wiring 规格](./03-feature-wiring-spec.md)；本轮 Hono / Vue / Electron 三份外部调研 memo（结论内联在本文，关键来源附链接）。
 
 ## 0. 目标与验收口径
@@ -127,7 +127,7 @@
 
 ## 4. Vue 路线图（全家桶 + UI 生态）—— ✅ M8a 已落地（2026-10-15）
 
-> M8a 完成核心栈 + CSS 引擎组 + UI 套件组（naive-ui 默认 / element-plus 备选 + presets）。**shadcn-vue 属 M8b，未实现**（§4.2 P1 行保留为待办）。落地偏差见文末修订记录。
+> M8a 完成核心栈 + CSS 引擎组 + UI 套件组（naive-ui 默认 / element-plus 备选 + presets）；M8b 完成 shadcn-vue（copy-paste 组件栈 vendored + `vue-shadcn-tw`）。落地偏差见文末修订记录。
 
 ### 4.1 核心栈
 
@@ -147,7 +147,7 @@
 |---|---|---|---|
 | `vue/naive-ui` | 2.45.3（活跃） | resolver + AutoImport（`useMessage` 等）；暗色 `<n-config-provider>`+`<n-global-style/>` 经 `app-template` + `when` 桥接 feature 表达（v1 不做 `app-root` 包裹机制）；官方提供 Tailwind preflight 规避选项（`preflight-style-disabled` + `<meta name="naive-ui-style">`） | **默认（用户定案）** |
 | `vue/element-plus` | 2.14.7（活跃） | `unplugin-vue-components` + `unplugin-auto-import` 双 resolver；`importStyle:'css'` 零额外依赖；暗色 = `theme-chalk/dark/css-vars.css` + `html.dark` | 备选 |
-| `vue/shadcn-vue` | `reka-ui 2.11` 组件栈（copy-paste，非运行时包） | 脚手架提供基线（`components.json` + `cn()` 工具 + 少量组件），不依赖交互式 CLI；**requires `vue/tailwind`**；依赖集（reka-ui / class-variance-authority / tailwind-merge / clsx / lucide-vue-next）实施时核实 | **M8b（未实现）**，P1 |
+| `vue/shadcn-vue` | `reka-ui 2.11` 组件栈（copy-paste，非运行时包） | 脚手架提供基线（`components.json` + `cn()` 工具 + `button`/`card`/`input` 组件 + theme 块），不依赖交互式 CLI；**requires `vue/tailwind`**；`group: vue/ui`（与 naive-ui/element-plus 互斥）；依赖集（reka-ui / class-variance-authority / tailwind-merge / clsx / lucide-vue-next / @vueuse/core，dev tw-animate-css）已核实 | **✅ M8b（已落地，2026-10-15）** |
 | `vue/primevue` | 5.0.2（预留） | 无前缀组件名 → 真实命名冲突风险 | P3 预留 |
 
 > `ant-design-vue` 已按定案**删除**（上游 2024-11 起停滞；不保留 legacy 入口）。
@@ -167,6 +167,20 @@
 - **`.vue` 检查边界**：`vp check`（TS-Go/tsgolint）不覆盖 `.vue`，且 oxlint 尚不解析 SFC script 块 → `build`/`typecheck` 脚本**必须保留 `vue-tsc --noEmit`**（已在基座 package.json）；UI 套件的 auto-import `dts` 纳入 tsconfig include、`.gitignore` 与 vite.config 的 lint/fmt ignore。
 - **`@/` 别名**：`tsconfig` 的 `paths` **不可带 `baseUrl`**（TS7/tsgolint 已移除该选项，会让生成项目 `vp check` 失败）；`paths` 相对 tsconfig 解析即可，`vite.config` 侧用 `resolve.alias` 对齐。
 - 预设：`vue-standard`（router+pinia+vueuse+i18n）、`vue-naive-tw`（默认推荐）、`vue-element-tw`、`vue-unocss-min`（router+pinia+unocss）、`vue-full`（已扩为 standard + query + testing，语义变化见修订记录）。
+
+### 4.5 shadcn-vue 实现注意（M8b 落地结论）
+
+- **无运行时包、无 CLI**：组件以源码 vendored（`ui/button` 2 文件、`ui/card` 7 文件、`ui/input` 2 文件），不依赖 `shadcn-vue` npm 包、生成期不执行交互式 CLI。增量组件走 `npx shadcn-vue add <component>`（`components.json` 已就位，CLI 会写入 `@/components/ui`）。
+- **`components.json`**：`style: "new-york"`（锁默认风格保证确定性）、`tailwind.css: "src/style.css"`（我们的组装输出；CLI 后续据此改主题）、`baseColor: neutral`、`cssVariables: true`、`iconLibrary: "lucide"`、aliases 对齐 `@/`。
+- **图标库选 `lucide-vue-next`**：registry 源码 import 自 `lucide-vue-next`（`iconLibrary: "lucide"` 在 shadcn-vue 映射到此包），故 vendored 基线与之对齐；更新更活跃的 `@lucide/vue`（1.57.0）会与 `shadcn-vue add` 的产出漂移，暂不采用。
+- **theme 块**：经 `css-imports` 锚点、order `10`（`vue/tailwind` 的 `@import 'tailwindcss'` 为 order 0）注入，保证 `@import` 全在 CSS 顶部；块内容为 shadcn-vue manual-install 原文（`@import 'tw-animate-css'` + `@custom-variant dark` + `:root`/`.dark` oklch + `@theme inline` + `@layer base`）。
+- **新增 `app-script` 锚点**：`src/App.vue` 的 `<script setup>` 增加 `imports` 锚点——shadcn 是显式 import（无 resolver 自动导入），演示组件需在 script 中 import；空集时零输出（基座 App.vue 字节不变）。
+- **互斥归属 `vue/ui`**：shadcn 与 naive-ui/element-plus 争的是「主组件体系」这一个槽位；混用会叠加两套 preflight / 样式 / 装配模型（显式 import vs resolver 自动导入），非合理默认，故与其它套件互斥。
+- **`requires vue/tailwind`**：shadcn 是 Tailwind 原生（`@theme`/`@apply`/`@custom-variant`）。经闭包引入 tailwind 后，「shadcn + unocss」解析为 `vue/css` 组两个成员 → `E-CONFLICT`（Tailwind-only 套件的合理结果）。
+- **`@vueuse/core` 版本一致**：shadcn 的 input 组件依赖 `@vueuse/core`，声明串与 `vue/vueuse` 完全一致（`^15.0.0`），避免 `E-DEP-VERSION`。
+- **暗色模式**：`.dark` 类方式——在 `<html>` 上切换 `dark` 类即生效（theme 变量与 `@custom-variant dark (&:is(.dark *))`）。可用 `@vueuse/core` 的 `useColorMode`（默认即写 `<html>` 的 class）；无需额外组件。
+- **vendored 版本与升级**：基线依赖锁定在核实版本（reka-ui 2.11.0 / cva 0.7.1 / clsx 2.1.1 / tailwind-merge 3.7.0 / lucide-vue-next 1.0.0 / tw-animate-css 1.4.0）；组件源码为 registry `new-york` 快照（仅按生成物 formatter 归一化引号/分号），不被 CLI 自动更新——升级路径为按需 `npx shadcn-vue add --overwrite <component>` 或对照 registry 手动同步。
+- **安装放行**：本套件未引入额外 `allowBuilds`（依赖均无 postinstall；`esbuild` 已在基座），实测 `pnpm install` 退出 0、无 `ERR_PNPM_IGNORED_BUILDS`。
 
 ## 5. Electron 路线图
 
@@ -227,7 +241,7 @@
 | **M6 机制扩展**（✅ 已完成，2026-10-14） | `group` 互斥（复用 E-CONFLICT）、`package.json#fields`、`workspaceYaml.allowBuilds`（map 形状）、MARKER 块注释语法、三个 vite.config `vite-imports` 锚点、排序约定（3c）、**Tier-1 矩阵脚本**（`tests/matrix.test.ts`：全组合 render + 互斥用例 + 同 combo 幂等） | — | 5–7 人日 |
 | **M7 Hono 标准化** | 骨架改造（vite.config 升 assembly、`error-handlers` 锚点）+ 基座升级（§3.1）+ env/errors/testing/logging/hardening；preset `hono-standard`；hono 冒烟脚本 | M6 | 3–4 人日 |
 | **M8a Vue 全家桶核心**（✅ 已完成，2026-10-15） | 骨架改造（style.css 升 assembly + `css-imports`、`@/` 别名；**未引入 `vite-plugins-pre`**——保留经典 router）+ vueuse/vueuse-router/i18n/query/colada/testing + UI 组（**naive-ui 默认**、element-plus 备选）+ CSS 组（tailwind、unocss）+ presets；三个 preset 生成物 install→build→check（vue-tsc）→preview 200 | M6 | 已完成 |
-| **M8b Vue shadcn-vue** | `vue/shadcn-vue` 组件栈基线（requires tailwind）+ `vue-shadcn-tw` preset | M8a | P1 待做 |
+| **M8b Vue shadcn-vue**（✅ 已完成，2026-10-15） | `vue/shadcn-vue` 组件栈基线（requires tailwind、`group: vue/ui`、vendored button/card/input + theme + `components.json`）+ `vue-shadcn-tw` preset；生成物 install→build→check（vue-tsc）→preview 200 | M8a | 已完成 |
 | **M9 Electron 加固** | `src/shared/ipc.ts` 类型化 IPC + `protocol.handle` 加载 + `!app.isPackaged` 门闩（Electron 45 预适配）；复用既有 electron 冒烟 | M6 | 3–4 人日 |
 | **M10 工作区场景 A** | ProjectContext 宿主信息 + catalog-aware 版本 + stderr 提示 + 扫描范围 | M6 | 2–3 人日 |
 | **M11 CI 收口** | Tier-2 blessed 轮换 + Tier-3 冒烟纳入 CI + 互斥规则与矩阵同源生成 | M7–M10 | 3–4 人日 |
@@ -247,7 +261,7 @@
 | OQ-13 | Vue UI 默认套件 | **naive-ui**（element-plus 备选；shadcn-vue 新增） |
 | OQ-14 | catalog-aware 版本策略边界 | 仅当宿主 catalog 已有该包时用 `catalog:` |
 | OQ-15 | `pnpm.onlyBuiltDependencies` 去留 | 保留为旧 pnpm 兼容层，注释标注 |
-| OQ-16 | shadcn-vue 依赖集与组件基线 | M8 实施时核实（本轮已启动专项调研） |
+| OQ-16 | shadcn-vue 依赖集与组件基线 | **定案（M8b）**：`reka-ui ^2.11.0` / `class-variance-authority ^0.7.1` / `clsx ^2.1.1` / `tailwind-merge ^3.7.0` / `lucide-vue-next ^1.0.0` / `@vueuse/core ^15.0.0`（与 vue/vueuse 同串），dev `tw-animate-css ^1.4.0`；vendored `ui/button`+`ui/card`+`ui/input`；`group: vue/ui` |
 
 ## 修订记录
 
@@ -257,7 +271,8 @@
 - **2026-10-14 M7 落地**：Hono 标准化。**基座**：`requestId()` 最先（order 0）→ 基线 logger（order 1，`hono/logging` 经 `when` 替换）、新骨架锚点 `error-handlers`（`app.onError` + `app.notFound`，信封 `{ code, message, details?, requestId }`，`requestId` 取自 `c.get('requestId')`，依赖零新增）、`routes/health.ts`（`/healthz` 存活、`/readyz` 探测失败 → 503，探针为带 TODO 的 no-op）、`vite-plugins` 启用 `shutdownTimeoutMs: 5000`（已核 `@hono/vite-build/node` 适配器选项）、`@hono/node-server` 升 `^2.1.0`（`@hono/vite-dev-server` 仍内嵌 v1，双实例共存无害）。**新 feature**：`hono/env`（standalone `src/env.ts`，requires zod）、`hono/testing`（新增 `vite-config-extra` 锚点 + `src/app.test.ts`，零新依赖）、`hono/logging`（pino + hono-pino，替换基线 logger）、`hono/http-hardening`（内置 timeout/body-limit/compress，order 20/21/22）。**预设**：新增 `hono-standard`（zod+api-guard+testing）与 `hono-full`（+swagger+logging+hardening），`hono-api` 不变。实测：`vp test` 212 全绿；`hono-standard` 生成项目 `pnpm install` → `pnpm build` → 启动 curl `/healthz` 200、`/readyz` 200、未知路由 404 JSON 信封（含 `requestId`）；生成项目 `pnpm run check` 开箱通过；`hono/logging` 变体确认基线 `hono/logger` 消失且输出 pino JSON 行。
 - **2026-10-15 M8a 落地**：Vue 全家桶核心 + CSS 引擎 + UI 套件。**基座**：`src/style.css` 升 assembly（`files/src/style.skeleton.css` + `css-imports` `list` 锚点，零 CSS 引擎时与升级前字节一致）；`@/` 别名（`tsconfig` `paths`，**无 `baseUrl`**——TS7/tsgolint 已移除，会让生成项目 `vp check` 失败；`vite.config` `resolve.alias` + `@types/node`）；**未新增 `vite-plugins-pre`**（保留经典 `createRouter`，无插件需先于 `vue()`）。**新 feature**：`vue/vueuse`（依赖型）、`vue/vueuse-router`（requires vueuse+router；独立 composable，不注入未用 import）、`vue/i18n`（vue-i18n `legacy:false`+`globalInjection` + `@intlify/unplugin-vue-i18n`，`imports`/`app-use`/`app-template`/`vite-imports`/`vite-plugins`）、`vue/query` ⟂ `vue/colada`（`group: vue/data`；colada requires pinia 且安装顺序 pinia 在前）、`vue/testing`（vitest+@vue/test-utils+`vp test`+`src/App.test.ts`）、`vue/tailwind` ⟂ `vue/unocss`（`group: vue/css`；unocss 经入口 JS `import 'virtual:uno.css'`，rolldown-Vite 8 不支持 CSS 侧解析）、`vue/naive-ui`（默认）⟂ `vue/element-plus`（`group: vue/ui`；双 resolver，element `importStyle:'css'`；auto-import dts 纳入 tsconfig include/`.gitignore`/lint&fmt ignore）。**预设**：`vue-standard`、`vue-naive-tw`（默认推荐）、`vue-element-tw`、`vue-unocss-min`；`vue-full` 扩为 standard + query + testing（**语义变化**）。**机制微调**：`E-STMT-DUP` 收敛为「不同贡献块之间」判重（同一多行块内重复行合法，element-plus 双 resolver 需要）；`qualifyFeature` 增框架优先解析（裸 token 跨框架共用时优先 `--framework`，如 `testing`）。**未实现**：shadcn-vue（M8b）、ant-design-vue（已删除）。实测：`vp test` 242 全绿；`vp check` 绿；`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min` 生成项目 `pnpm install` → `pnpm build` → `pnpm run check`（含 vue-tsc）→ `vite preview` curl 200 开箱通过；`vue-standard`/`vue-full` 额外 install→build→check 通过；`--features vue/tailwind,vue/unocss` 与 `vue/naive-ui,vue/element-plus` 均以 `E-CONFLICT`（exit 2）退出。
 - **2026-10-15 M8a 修补（`vue/testing` 开箱可跑 + install 摩擦）**：`vue/testing` devDeps 增 `happy-dom ^21.0.0`；模板 `src/App.test.ts` 用文件级 `// @vitest-environment happy-dom` 注解（无需新增 vite-config `test` 锚点）并 `mount` 一个仅依赖 `vue` 的内联组件（不再 `mount(App)`，避免依赖 preset 才装的 router/i18n/UI 插件）。同时修 `vue/query` 触发的 `ERR_PNPM_IGNORED_BUILDS`：`@tanstack/vue-query` 传递依赖 `vue-demi`（postinstall），经 `workspaceYaml.allowBuilds` 放行（生成 `pnpm-workspace.yaml` 加 `vue-demi: true`）。实测：`vue-full` 生成项目 `pnpm install`（退出 0）→ `pnpm run test` 全绿 → `build` → `check` → `preview` 200。
+- **2026-10-15 M8b 落地（shadcn-vue）**：**新 feature `vue/shadcn-vue`**（`group: vue/ui`，requires `vue/tailwind`）——vendored copy-paste 基线（**无 `shadcn-vue` npm 依赖、无 CLI 执行**）：`components.json`（`style: "new-york"` 锁定、`tailwind.css: src/style.css`、`iconLibrary: "lucide"`、aliases 对齐 `@/`）、`src/lib/utils.ts`（`cn()`）、theme 块（经 `css-imports` 锚点 order `10`，紧随 tailwind 的 order 0；含 `@import 'tw-animate-css'` + `@custom-variant dark` + `:root`/`.dark` oklch + `@theme inline` + `@layer base`）、starter 组件 `ui/button`（2 文件）/`ui/card`（7 文件）/`ui/input`（2 文件，registry `new-york` 源码，仅归一化引号）。**依赖**：`reka-ui ^2.11.0` / `class-variance-authority ^0.7.1` / `clsx ^2.1.1` / `tailwind-merge ^3.7.0` / `lucide-vue-next ^1.0.0`（registry 源码 import 名，而非更新的 `@lucide/vue`）/ `@vueuse/core ^15.0.0`（与 `vue/vueuse` 同串，避免 `E-DEP-VERSION`），dev `tw-animate-css ^1.4.0`。**新增 `app-script` 锚点**（`src/App.vue` 的 `<script setup>`，`imports` kind）——shadcn 为显式 import（无 resolver），演示组件需 script import；空集零输出（基座 App.vue 字节不变，`vue.test.ts` golden 仍过）。**预设** `vue-shadcn-tw`（= `vue-standard` 闭包 + `vue/tailwind` + `vue/shadcn-vue`）。**互斥决策**：归入 `vue/ui`（与 naive-ui/element-plus 互斥）——三者争同一「主组件体系」槽位，混用会叠加两套 preflight/样式/装配模型，非合理默认。实测：`vp check` 绿、`vp test` 255 全绿（新增 `tests/vue-shadcn.test.ts` 13 项）；`vue-shadcn-tw` 生成项目 `pnpm install`（退出 0，无 `ERR_PNPM_IGNORED_BUILDS`；未引入额外 `allowBuilds`）→ `pnpm run build`（vue-tsc + vite，产物 CSS 15.98 kB 含 64 处 oklch）→ `pnpm run check` 开箱通过（无 `--fix`）→ `vite preview` curl 200；`--features vue/shadcn-vue,vue/unocss` 以 `E-CONFLICT`（exit 2，`vue/css`）退出，`-f vue --features vue/shadcn-vue` 经闭包拉入 `vue/tailwind`。
 
 ## 附录：版本基线（2026-10-14，实施时复核）
 
-hono 4.13.13 · @hono/node-server **2.1.5（待升级）** · zod 4.6.7 · hono-openapi 1.3.5 · @hono/swagger-ui 0.6.1 · pino 10.4 · hono-pino 0.10.3 · drizzle-orm 0.45.4 · vue 3.5.44 · vue-router 5.4.0 · pinia 4.0.3 · @vueuse/core 15.0.0 · vue-i18n 11.4.14 · @tanstack/vue-query 5.104.2 · @pinia/colada 1.4.8 · naive-ui 2.45.3 · element-plus 2.14.7 · shadcn-vue 组件栈（reka-ui 2.11.0，依赖集待 M8 核实） · tailwindcss 4.3.3 · unocss 66.11.0 · electron 44.7.2 · electron-builder 26.15.3 · electron-updater 6.8.9 · electron-store 12.0.0 · vite 8.3.4（Rolldown）
+hono 4.13.13 · @hono/node-server **2.1.5（待升级）** · zod 4.6.7 · hono-openapi 1.3.5 · @hono/swagger-ui 0.6.1 · pino 10.4 · hono-pino 0.10.3 · drizzle-orm 0.45.4 · vue 3.5.44 · vue-router 5.4.0 · pinia 4.0.3 · @vueuse/core 15.0.0 · vue-i18n 11.4.14 · @tanstack/vue-query 5.104.2 · @pinia/colada 1.4.8 · naive-ui 2.45.3 · element-plus 2.14.7 · shadcn-vue 组件栈（reka-ui 2.11.0 · class-variance-authority 0.7.1 · clsx 2.1.1 · tailwind-merge 3.7.0 · lucide-vue-next 1.0.0 · tw-animate-css 1.4.0，2026-10-15 核实） · tailwindcss 4.3.3 · unocss 66.11.0 · electron 44.7.2 · electron-builder 26.15.3 · electron-updater 6.8.9 · electron-store 12.0.0 · vite 8.3.4（Rolldown）

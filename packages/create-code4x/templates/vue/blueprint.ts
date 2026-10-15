@@ -5,9 +5,10 @@ import type { FrameworkBlueprint } from "../../src/domain/types.ts";
  *
  * Three assembled files exercise multi-file assembly: `src/main.ts`
  * (`imports` + `app-use`), `vite.config.ts` (`vite-imports` + `vite-plugins`)
- * and `src/style.css` (`css-imports`). The baseline contributes the `vue()`
- * plugin; features add imports, `app.use(...)` calls, template fragments and
- * CSS `@import` lines.
+ * and `src/App.vue` (`app-script` + `app-template`). `src/style.css`
+ * (`css-imports`) is the fourth. The baseline contributes the `vue()` plugin;
+ * features add imports, `app.use(...)` calls, template fragments and CSS
+ * `@import` lines.
  *
  * There is intentionally **no** `vite-plugins-pre` anchor: the baseline keeps
  * classic `createRouter` (not `vue-router/vite` file-based routing), so no
@@ -38,6 +39,10 @@ const vueBlueprint: FrameworkBlueprint = {
       path: "src/App.vue",
       skeleton: "files/src/App.skeleton.vue",
       anchors: {
+        // Script-block imports for component-based kits (shadcn-vue needs
+        // explicit `import { Button } from '@/components/ui/button'`, unlike the
+        // resolver auto-import of naive-ui / element-plus).
+        "app-script": { kind: "imports" },
         "app-template": { kind: "list" },
       },
     },
