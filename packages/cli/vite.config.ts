@@ -17,7 +17,12 @@ export default defineConfig({
     dts: {
       generator: "tsgo",
     },
-    exports: true,
+    exports: {
+      // The command name keeps the `create-*` convention (`create-code4x`),
+      // independent of the scoped package name `@code4x/cli` (whose unscoped
+      // segment would otherwise become the auto-detected bin name).
+      bin: { "create-code4x": "src/cli.ts" },
+    },
     // Ship the runtime templates + features inside dist so the built CLI can
     // read them. `flatten: false` preserves the directory tree.
     copy: [

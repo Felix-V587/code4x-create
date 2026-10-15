@@ -48,7 +48,7 @@ import type { Registry } from "./domain/registry.ts";
  * shapes agree:
  *   - vitest running source (`src/cli.ts` -> repo-root `package.json`);
  *   - the `vp pack` output (`dist/cli.mjs` -> repo-root `package.json`);
- *   - an installed tarball (`…/node_modules/create-code4x/dist/cli.mjs` ->
+ *   - an installed tarball (`…/node_modules/@code4x/cli/dist/cli.mjs` ->
  *     the package's own `package.json`, which npm always ships).
  */
 function readCliVersion(): string {
@@ -60,7 +60,7 @@ function readCliVersion(): string {
         name?: unknown;
         version?: unknown;
       };
-      if (pkg.name === "create-code4x" && typeof pkg.version === "string") return pkg.version;
+      if (pkg.name === "@code4x/cli" && typeof pkg.version === "string") return pkg.version;
     } catch {
       // try the next candidate
     }

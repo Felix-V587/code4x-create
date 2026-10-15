@@ -3,7 +3,7 @@
  * Tier-2 blessed combination matrix (`docs/06` §7 M11, §0 acceptance #2).
  *
  * For each blessed combo this script generates a project with the *packed* CLI
- * (`packages/create-code4x/dist/cli.mjs`), then runs `pnpm install` →
+ * (`packages/cli/dist/cli.mjs`), then runs `pnpm install` →
  * `pnpm run build` → `pnpm run check` inside it. A per-combo PASS/FAIL summary
  * is printed (with the failing step's output tail) and the process exits
  * non-zero if any combo fails.
@@ -35,7 +35,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
-const pkgRoot = join(repoRoot, "packages", "create-code4x");
+const pkgRoot = join(repoRoot, "packages", "cli");
 const distCli = join(pkgRoot, "dist", "cli.mjs");
 const distIndex = join(pkgRoot, "dist", "index.mjs");
 
@@ -181,8 +181,7 @@ async function main() {
 
   if (!existsSync(distCli)) {
     process.stderr.write(
-      `error: packed CLI not found at ${distCli}\n` +
-        "run: pnpm exec vp -C packages/create-code4x pack\n",
+      `error: packed CLI not found at ${distCli}\n` + "run: pnpm exec vp -C packages/cli pack\n",
     );
     return 1;
   }

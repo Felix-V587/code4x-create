@@ -5,7 +5,7 @@
 
 ## 1. 机制要点（已核实）
 
-- **名称展开**：`vp create code4x` → 包名 `create-code4x`（未知名自动加 `create-` 前缀；已带 `create-` 的原样；`@org` → `@org/create`；`vite:*` / GitHub / `./` 路径不展开）。⚠️ `code4x-create` 会展开成 `create-code4x-create`（错）。
+- **名称展开**：`vp create <name>` 按 npm create 惯例展开——未知名自动加 `create-` 前缀（`code4x` → `create-code4x`）、已带 `create-` 的原样、`@org` → `@org/create`、`@scope/name` → `@scope/create-name`；`vite:*` / GitHub / `./` 路径不展开。⚠️ `code4x-create` 会展开成 `create-code4x-create`（错）。**本包已改名 `@code4x/cli`（`code4x` scope），没有任何简写会展开成它**：`vp create code4x` → `create-code4x`（已不存在）、`vp create @code4x` → `@code4x/create`。正确接入是在 `create.templates` 里以**全名** `@code4x/cli` 作为 `template` 注册条目（`template` 支持完整 npm 包名，run as-is、不做简写展开，见本地 `docs/config/create.md`）。
 - **调用方式**：dlx 运行器（pnpm→`pnpm dlx`、npm→`npx`、yarn→`yarn dlx`、bun→`bun x`），stdio 继承（TTY 可用，@clack/prompts 正常）。
 - **参数透传**：`vp create <tpl> -- <args>`，`--` 后**原样**传给模板。vp 只对名单内模板（create-vite、@tanstack/cli、sv、nuxt）追加参数；我们不在名单 → 行为完全自主。
 - **vp 自身选项不作用于外部模板**：`--directory` 对外部模板直接报错（仅 builtin / bundled @org）；`--no-interactive` **不透传**；外部模板无 vp 环境信号（`VP_CREATE_INTERACTIVE` 仅注入本地 Bingo 模板）。
@@ -17,11 +17,15 @@
 
 ## 2. 正确调用方式（发布后）
 
+本包为 `@code4x/cli`，vp 的简写展开不会命中它。接入方式：在 `vite.config.ts` 的 `create.templates` 注册一条以**全名** `@code4x/cli` 为 `template` 的条目（示例名 `code4x`），随后：
+
 ```bash
 vp create code4x                                          # 交互式（框架 → features → …）
 vp create code4x -- my-api -f hono --features zod -y      # 参数化；CI 同此写法
 vp create code4x -- api -f hono --features zod            # monorepo 内建子项目（裸名：vp 以推断父目录为 cwd，见 §1）
 ```
+
+> 这里的 `code4x` 是 `create.templates` 条目名，不是 npm 简写；直接 `vp create code4x`（无注册条目）会去找 npm 包 `create-code4x`，已不再映射本包。
 
 CI 注意：**不能**依赖 `vp create --no-interactive` 透传；把参数放在 `--` 之后。
 
@@ -44,7 +48,7 @@ CI 注意：**不能**依赖 `vp create --no-interactive` 透传；把参数放�
 
 ## 5. 集成验证（harness 已落地，2026-10-13 实测）
 
-`fixtures/vp-harness/`（`pnpm run harness:vp`）：scratch monorepo + `create.templates` 本地条目 + shim 指向本仓库 `packages/create-code4x/dist/cli.mjs`；两条 lane + 一条观察 lane 实测通过：
+`fixtures/vp-harness/`（`pnpm run harness:vp`）：scratch monorepo + `create.templates` 本地条目 + shim 指向本仓库 `packages/cli/dist/cli.mjs`；两条 lane + 一条观察 lane 实测通过：
 
 | lane | 透传参数（`--` 后） | 生成位置 | 结果 |
 |---|---|---|---|
@@ -60,7 +64,7 @@ CI 注意：**不能**依赖 `vp create --no-interactive` 透传；把参数放�
 
 - 可向 vp 提 issue：外部模板透传 `--no-interactive` 或提供 env 信号（当前 CI 只能用 `--` 显式参数）。
 - vp 版本漂移：harness 锁定最低 vp 版本做回归；`createConfig` schema 错误是硬错。
-- 包名 `create-code4x` 已核实未被占用（npm 404）。
+- 包名 `@code4x/cli`（发布在 `code4x` npm scope 下）。
 
 ## 7. hono 模板 vp 原生化（2026-10-13）
 

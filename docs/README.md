@@ -35,9 +35,9 @@
 
 ## 环境约定
 
-- 本仓库已用 **Vite+** 初始化为 pnpm monorepo（workspace 根 + `packages/create-code4x/`）：根 `vite.config.ts` 只管 lint/fmt，`vp pack` 等面向包的命令用 `vp -C packages/create-code4x …` 或在包目录内执行；详见根目录 AGENTS.md。
+- 本仓库已用 **Vite+** 初始化为 pnpm monorepo（workspace 根 + `packages/cli/`）：根 `vite.config.ts` 只管 lint/fmt，`vp pack` 等面向包的命令用 `vp -C packages/cli …` 或在包目录内执行；详见根目录 AGENTS.md。
 - 包管理器：pnpm 12；TypeScript ESM。
-- 发布包名为 `create-code4x`（位于 `packages/create-code4x/`）；`repository` 等元信息字段将于发布前补充。
+- 发布包名为 `@code4x/cli`（位于 `packages/cli/`，发布在 `code4x` npm scope 下）；`repository` 等元信息字段将于发布前补充。
 
 ## 文档维护约定
 

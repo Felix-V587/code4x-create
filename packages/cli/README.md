@@ -1,4 +1,4 @@
-# create-code4x
+# @code4x/cli
 
 > 一句话：用参数或交互式提问创建 **Hono / Vue / Electron** 项目，并按框架可选集成常用能力（校验、文档、日志、UI 套件、CSS 引擎、类型化 IPC、打包等），开箱即用、确定性生成。
 
@@ -8,22 +8,32 @@
 
 ```bash
 # pnpm（推荐）
-pnpm create code4x my-api -f hono --features zod -y
+pnpm dlx @code4x/cli my-api -f hono --features zod -y
 
 # npm / yarn / bun 等价形态
-npm create code4x@latest my-api -f hono --features zod -y
-yarn create code4x my-api -f hono --features zod -y
-bun create code4x my-api -f hono --features zod -y
+npx @code4x/cli@latest my-api -f hono --features zod -y
+yarn dlx @code4x/cli my-api -f hono --features zod -y
+bun x @code4x/cli my-api -f hono --features zod -y
 ```
 
-发布到 npm 后，也可经 Vite+ 统一入口：
+> 命令名（bin）保持 `create-*` 惯例，仍为 `create-code4x`：tarball 安装后可直接 `create-code4x <dir>`；`pnpm dlx @code4x/cli` / `npx @code4x/cli` 只是运行该 bin 的等价入口。
+
+也可经 Vite+ 统一入口。在 `vite.config.ts` 的 `create.templates` 中以**全名** `@code4x/cli` 注册条目（全名 run as-is，不做 `create-` 简写展开），随后 `vp create <name>` 即运行本包：
+
+```ts
+export default defineConfig({
+  create: {
+    templates: [{ name: "code4x", description: "...", template: "@code4x/cli" }],
+  },
+});
+```
 
 ```bash
 vp create code4x                                        # 交互式（框架 → features → …）
 vp create code4x -- my-api -f hono --features zod -y    # 参数化（CI 同此写法）
 ```
 
-> Vite+ 不透传 `--no-interactive`；CI 请把参数放在 `--` 之后，或直接使用上面的 `pnpm create code4x`。
+> 旧的 `pnpm create code4x` / `vp create code4x` 简写会展开成 npm 包 `create-code4x`，**已不再映射本包**（本包名为 `@code4x/cli`，Vite+ 简写不会展开成它）。Vite+ 不透传 `--no-interactive`；CI 请把参数放在 `--` 之后。
 
 不传位置参数且处于交互式终端时，会逐项提问（目录 → 框架 → features → 包管理器 → 是否安装 → 是否 `git init`）；在 CI / 非 TTY 下缺失字段取内置默认（`targetDir` 缺失则报 `E-DIR-REQUIRED`）。
 

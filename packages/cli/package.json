@@ -1,5 +1,5 @@
 {
-  "name": "create-code4x",
+  "name": "@code4x/cli",
   "version": "0.1.0",
   "description": "Scaffold multi-framework projects with optional integrations.",
   "license": "MIT",

@@ -54,7 +54,7 @@ jobs:
         run: pnpm exec vp install
 
       - name: Build the CLI (packed, ships templates/features)
-        run: pnpm exec vp -C packages/create-code4x pack
+        run: pnpm exec vp -C packages/cli pack
 
       - name: Run Tier-2 blessed subset
         run: node scripts/tier2-matrix.mjs

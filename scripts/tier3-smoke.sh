@@ -24,7 +24,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLI="$REPO_ROOT/packages/create-code4x/dist/cli.mjs"
+CLI="$REPO_ROOT/packages/cli/dist/cli.mjs"
 BASE_DIR="${TIER3_DIR:-/tmp/opencode/tier3}"
 LOG_DIR="${TIER3_LOG_DIR:-/tmp/opencode}"
 STORE="${TIER3_STORE:-$(pnpm store path 2>/dev/null || echo "$BASE_DIR/store")}"
@@ -206,7 +206,7 @@ smoke_electron() {
 
 # --- driver ---------------------------------------------------------------
 
-[ -f "$CLI" ] || { log "error: packed CLI not found at $CLI"; log "run: pnpm exec vp -C packages/create-code4x pack"; exit 1; }
+[ -f "$CLI" ] || { log "error: packed CLI not found at $CLI"; log "run: pnpm exec vp -C packages/cli pack"; exit 1; }
 command -v curl >/dev/null 2>&1 || { log "error: curl is required"; exit 1; }
 
 log "Tier-3 smoke: scratch=$BASE_DIR store=$STORE"

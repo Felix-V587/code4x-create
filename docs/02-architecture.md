@@ -51,7 +51,7 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 | Prompt 库 | `@clack/prompts`（备选 `@inquirer/*`）；`prompts` 已停更勿用 | 生态先例（已核实）；架构下限：prompts 只是 Answers 的 UI，可整体替换 |
 | 模板托管 | v1 全部内置 npm 包；远端拉取（giget + CLI 版本推导 ref）留作未来选项 | create-vite 实证；离线与版本原子性；参考 create-hono ref 策略 |
 | 组合实现 | 声明式 manifest + 窄 hook；第三方插件 API v1 不承诺稳定 | 可静态校验 / 可快照测试 / 接口冻结成本 |
-| 包发布 | 单包 `create-code4x`（`pnpm create code4x` 自动映射）；changesets 发版，`latest`/`next` 双 tag | create-* 生态惯例；将来拆包是机械工作 |
+| 包发布 | 单包 `@code4x/cli`（`code4x` scope；`pnpm dlx @code4x/cli` 调用，bin 名 `create-code4x`）；changesets 发版，`latest`/`next` 双 tag | 作用域包 + `@code4x` 组织命名；将来拆包是机械工作 |
 | 首发 scope | hono（zod / swagger-openapi / api-guard）+ vue（pinia / router）+ electron（Vue 3 渲染层）；react 随后 | 走齐矩阵管线比功能面广更重要 |
 
 ## 4. 横切原则
@@ -75,7 +75,7 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
   package.json                 # private 工作区根（scripts: vp check / vp run -r test …）
   pnpm-workspace.yaml          # packages/* + catalog/overrides
   vite.config.ts               # 根配置：仅 lint / fmt
-  packages/create-code4x/      # 发布包（name = create-code4x）
+  packages/cli/      # 发布包（name = @code4x/cli）
     package.json               # bin / exports / files（发布形态）
     vite.config.ts             # pack 块：entry / copy / dts / exports
     tsconfig.json
@@ -89,10 +89,10 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
   fixtures/                    # vp 集成 harness
 ```
 
-- 模板、feature 与测试资产现已随发布包 `packages/create-code4x/` 一起走；仓库根仅保留工作区工具链、文档与 harness。
+- 模板、feature 与测试资产现已随发布包 `packages/cli/` 一起走；仓库根仅保留工作区工具链、文档与 harness。
 - 先单包组织（目录即拆包边界），未来拆分是机械工作。
 - changesets 管理版本；matrix 全绿才发。
-- 本仓库使用 Vite+（`vp`）工作流开发（见根目录 AGENTS.md）；包名为 `create-code4x`，`repository` 等元信息将于发布前补充。
+- 本仓库使用 Vite+（`vp`）工作流开发（见根目录 AGENTS.md）；包名为 `@code4x/cli`，`repository` 等元信息将于发布前补充。
 
 ## 7. MVP 里程碑（状态更新：2026-10-14）
 

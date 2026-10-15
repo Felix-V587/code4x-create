@@ -7,7 +7,7 @@ import type { FeatureManifest } from "../../../src/domain/types.ts";
  * `vp test` script and a self-contained component test asset. The asset is a
  * template file under `files/`, so the scaffold repository's own test run never
  * executes it (the root `vp test` include is scoped to
- * `packages/create-code4x/tests/**`).
+ * `packages/cli/tests/**`).
  *
  * The shipped `src/App.test.ts` selects its DOM via a per-file
  * `// @vitest-environment happy-dom` annotation and mounts an inline component,

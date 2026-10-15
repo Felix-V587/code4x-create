@@ -290,7 +290,7 @@ feature wiring 摘要：
 
 ### 2.6 Tier-1 组合矩阵
 
-离线、无需 `pnpm install` 的组合验收层（`docs/06` §0 验收 #1 / §M6），落在 `packages/create-code4x/tests/matrix.test.ts`。它**从运行时注册表 `loadRegistry()` 现场枚举**组合——没有手写清单、没有注册表快照——所以新增 feature / `group` 会被自动纳入覆盖。
+离线、无需 `pnpm install` 的组合验收层（`docs/06` §0 验收 #1 / §M6），落在 `packages/cli/tests/matrix.test.ts`。它**从运行时注册表 `loadRegistry()` 现场枚举**组合——没有手写清单、没有注册表快照——所以新增 feature / `group` 会被自动纳入覆盖。
 
 覆盖范围：
 
@@ -300,7 +300,7 @@ feature wiring 摘要：
 - 每个组合断言：`resolve()`+`render()` 成功、输出无 `@code4x` 标记、每个路径只写一次、同一组合二次渲染**字节级一致**（幂等）。
 - 成对组合按框架限量（`MAX_PAIRWISE_PER_FRAMEWORK = 64`，确定性等距取子集），保证总渲染量在低数百、数秒内完成；基座 / 单 feature / 互斥探针不受此上限影响。
 
-运行方式：在 `packages/create-code4x` 下 `vp test` 跑全量；按文件过滤用 `vp test tests/matrix.test.ts`。
+运行方式：在 `packages/cli` 下 `vp test` 跑全量；按文件过滤用 `vp test tests/matrix.test.ts`。
 
 **明确非目标**：不装依赖、不联网、不 spawn CLI（安装 / 构建 / 冒烟属 Tier-2/3）；`.code4xrc.json` 的来源与哈希属 I/O 层，不在本矩阵断言范围。
 
