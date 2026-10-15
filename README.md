@@ -70,6 +70,25 @@ vp -C packages/create-code4x pack   # 构建 CLI 与模板资产到 packages/cre
 
 Vite+ 工具链说明见 [AGENTS.md](./AGENTS.md)。
 
+## 验证 / CI
+
+三级验证（验收口径见 [docs/06](./docs/06-template-ecosystem-plan.md) §0）：
+
+- **Tier-1（每 PR，离线、秒级）**：离线枚举全组合，`resolve`+`render` 不报错、同组多选报 `E-CONFLICT`、同 combo 二次渲染字节一致（互斥规则与矩阵同源生成）。落点 `packages/create-code4x/tests/matrix.test.ts`，随 `vp test` 运行。
+- **Tier-2（PR 子集 / nightly 全量）**：blessed 组合用**打包后的 CLI** 生成 → `pnpm install` → `pnpm run build` → `pnpm run check`。落点 `scripts/tier2-matrix.mjs`；组合清单 `scripts/tier2-combos.json` 与 registry 由 `packages/create-code4x/tests/tier2-combos.test.ts` 防漂移。
+- **Tier-3（nightly / 发布前）**：冒烟——hono 起服务 curl `/healthz` 200 + 优雅 `SIGTERM`；vue `build` + `vite preview` 200；electron `electron-builder --dir` 后启动解包应用（无 `DISPLAY` 时自动 `xvfb-run -a`）。落点 `scripts/tier3-smoke.sh`。
+
+本地命令：
+
+```bash
+pnpm exec vp -C packages/create-code4x pack   # 先构建发布包 CLI（Tier-2/3 依赖 dist）
+pnpm run ci:tier2                              # Tier-2 子集（PR 口径）
+pnpm run ci:tier2:all                          # Tier-2 全量（nightly 口径）
+pnpm run ci:tier3                              # Tier-3 冒烟
+```
+
+CI：`.github/workflows/ci.yml`（`push`/`pull_request`：Tier-1 + Tier-2 子集）、`.github/workflows/nightly.yml`（`schedule`/`workflow_dispatch`：Tier-2 全量 + Tier-3 冒烟）。
+
 ## 仓库结构
 
 ```

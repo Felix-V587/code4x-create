@@ -1,0 +1,17 @@
+{
+  "subset": [
+    { "id": "hono-base", "framework": "hono" },
+    { "id": "hono-standard", "framework": "hono", "preset": "hono-standard" },
+    { "id": "vue-base", "framework": "vue" },
+    { "id": "vue-naive-tw", "framework": "vue", "preset": "vue-naive-tw" },
+    { "id": "electron-builder", "framework": "electron", "features": ["electron/builder"] }
+  ],
+  "nightlyOnly": [
+    { "id": "hono-full", "framework": "hono", "preset": "hono-full" },
+    { "id": "vue-standard", "framework": "vue", "preset": "vue-standard" },
+    { "id": "vue-element-tw", "framework": "vue", "preset": "vue-element-tw" },
+    { "id": "vue-unocss-min", "framework": "vue", "preset": "vue-unocss-min" },
+    { "id": "vue-shadcn-tw", "framework": "vue", "preset": "vue-shadcn-tw" },
+    { "id": "electron-base", "framework": "electron" }
+  ]
+}

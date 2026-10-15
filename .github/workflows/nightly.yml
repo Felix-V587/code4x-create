@@ -1,0 +1,66 @@
+name: Nightly
+
+on:
+  schedule:
+    # 03:00 UTC daily.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tier2-all:
+    name: Tier-2 (all blessed combos)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.11.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm exec vp install
+
+      - name: Build the CLI (packed, ships templates/features)
+        run: pnpm exec vp -C packages/create-code4x pack
+
+      - name: Run Tier-2 full matrix
+        run: node scripts/tier2-matrix.mjs --all
+
+  tier3:
+    name: Tier-3 (smoke)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.11.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm exec vp install
+
+      - name: Build the CLI (packed, ships templates/features)
+        run: pnpm exec vp -C packages/create-code4x pack
+
+      - name: Install smoke-test system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xdotool
+
+      - name: Run Tier-3 smoke tests
+        # A Tier-3 failure fails the job (no continue-on-error): visible by design.
+        run: bash scripts/tier3-smoke.sh

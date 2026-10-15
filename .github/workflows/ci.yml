@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tier1:
+    name: Tier-1 (check + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.11.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm exec vp install
+
+      - name: Check (fmt + lint + types)
+        run: pnpm exec vp check
+
+      - name: Test (offline Tier-1 combination matrix included)
+        run: pnpm exec vp test
+
+  tier2:
+    name: Tier-2 (blessed subset)
+    needs: tier1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.11.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm exec vp install
+
+      - name: Build the CLI (packed, ships templates/features)
+        run: pnpm exec vp -C packages/create-code4x pack
+
+      - name: Run Tier-2 blessed subset
+        run: node scripts/tier2-matrix.mjs

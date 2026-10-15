@@ -7,7 +7,10 @@
     "build": "vp run -r build",
     "test": "vp run -r test",
     "check": "vp check",
-    "harness:vp": "bash fixtures/vp-harness/run.sh"
+    "harness:vp": "bash fixtures/vp-harness/run.sh",
+    "ci:tier2": "node scripts/tier2-matrix.mjs",
+    "ci:tier2:all": "node scripts/tier2-matrix.mjs --all",
+    "ci:tier3": "bash scripts/tier3-smoke.sh"
   },
   "devDependencies": {
     "vite-plus": "catalog:"
