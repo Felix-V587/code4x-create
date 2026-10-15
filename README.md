@@ -1,8 +1,8 @@
 # create-code4x
 
-通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档 / `env`（zod 校验配置）/ `testing`（Vitest 示例）/ `logging`（pino）/ `http-hardening`（timeout + body-limit + compress）；Vue：`pinia` / `vue-router`；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：`electron/builder`（经 electron-builder 打包安装包）。
+通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档 / `env`（zod 校验配置）/ `testing`（Vitest 示例）/ `logging`（pino）/ `http-hardening`（timeout + body-limit + compress）；Vue（vp 原生 dev/build/check + `vue-tsc`）：`pinia` / `vue-router` / `vueuse` / `vueuse-router` / `i18n`（vue-i18n）/ 数据层 `query`（TanStack Query）⟂ `colada`（Pinia Colada）/ `testing`（Vitest + @vue/test-utils）/ CSS 引擎 `tailwind` ⟂ `unocss` / UI 套件 `naive-ui`（默认）⟂ `element-plus`；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：`electron/builder`（经 electron-builder 打包安装包）。
 
-**实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；**M6 机制扩展 + M7 Hono 标准化已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening + `hono-standard` / `hono-full` 预设）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 与发布在途。设计与决策文档见 [docs/](./docs/README.md)。
+**实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；**M6 机制扩展 + M7 Hono 标准化 + M8a Vue 全家桶已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening；Vue 基座升级（`@/` 别名、`src/style.css` 组装、`css-imports` 锚点）+ vueuse/i18n/query/colada/testing + tailwind/unocss + naive-ui/element-plus + 预设 `vue-standard`/`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min`/`vue-full`）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 与发布在途。设计与决策文档见 [docs/](./docs/README.md)。
 
 ## 快速开始（仓库内）
 
@@ -22,7 +22,11 @@ node packages/create-code4x/dist/cli.mjs my-api -f hono --features zod -y   # + 
 node packages/create-code4x/dist/cli.mjs my-api -p hono-api -y              # 预设：api-guard + zod + swagger-openapi
 node packages/create-code4x/dist/cli.mjs my-api -p hono-standard -y         # 预设：api-guard + zod + testing
 node packages/create-code4x/dist/cli.mjs my-api -p hono-full -y             # 预设：standard + swagger-openapi + logging + http-hardening
-node packages/create-code4x/dist/cli.mjs my-vue -p vue-full -y              # 预设：Vue + pinia + vue-router
+node packages/create-code4x/dist/cli.mjs my-vue -p vue-standard -y          # 预设：Vue + router + pinia + vueuse + i18n
+node packages/create-code4x/dist/cli.mjs my-vue -p vue-naive-tw -y          # 预设（默认推荐）：standard + naive-ui + tailwind
+node packages/create-code4x/dist/cli.mjs my-vue -p vue-element-tw -y        # 预设：standard + element-plus + tailwind
+node packages/create-code4x/dist/cli.mjs my-vue -p vue-unocss-min -y        # 预设：router + pinia + unocss
+node packages/create-code4x/dist/cli.mjs my-vue -p vue-full -y              # 预设：standard + query + testing
 node packages/create-code4x/dist/cli.mjs my-app -f electron -y             # Electron（Vue 渲染层 + vp pack 主/预加载）
 node packages/create-code4x/dist/cli.mjs my-app -f electron --features electron/builder -y   # + electron-builder 打包（dist / dist:dir）
 ```
@@ -58,7 +62,7 @@ packages/create-code4x/   发布包（name 仍为 create-code4x）
   src/domain/   纯函数层：types / errors / registry / resolve / render（锚点组装、确定性、幂等）
   src/io/       副作用薄层：staging 落盘、rc、PM 探测、git、install
   templates/    框架骨架与静态文件（hono/vue/electron）
-  features/     可选能力（hono/zod、hono/api-guard、hono/swagger-openapi、hono/env、hono/testing、hono/logging、hono/http-hardening、vue/pinia、vue/router、electron/builder）
+  features/     可选能力（hono/zod、hono/api-guard、hono/swagger-openapi、hono/env、hono/testing、hono/logging、hono/http-hardening、vue/pinia、vue/router、vue/vueuse、vue/vueuse-router、vue/i18n、vue/query、vue/colada、vue/testing、vue/tailwind、vue/unocss、vue/naive-ui、vue/element-plus、electron/builder）
   tests/        单测与 CLI e2e
 docs/           设计文档：生态调研 / 架构决策 / wiring 规格 / prompt 流
 fixtures/       vp 集成 harness（本地 `vp create code4x` 端到端验证）

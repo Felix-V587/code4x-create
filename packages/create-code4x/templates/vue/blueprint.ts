@@ -3,9 +3,15 @@ import type { FrameworkBlueprint } from "../../src/domain/types.ts";
 /**
  * Vue framework blueprint.
  *
- * Two assembled files exercise multi-file assembly: `src/main.ts`
- * (`imports` + `app-use`) and `vite.config.ts` (`vite-plugins`). The baseline
- * contributes the `vue()` plugin; features add imports + `app.use(...)` calls.
+ * Three assembled files exercise multi-file assembly: `src/main.ts`
+ * (`imports` + `app-use`), `vite.config.ts` (`vite-imports` + `vite-plugins`)
+ * and `src/style.css` (`css-imports`). The baseline contributes the `vue()`
+ * plugin; features add imports, `app.use(...)` calls, template fragments and
+ * CSS `@import` lines.
+ *
+ * There is intentionally **no** `vite-plugins-pre` anchor: the baseline keeps
+ * classic `createRouter` (not `vue-router/vite` file-based routing), so no
+ * shipped plugin has to run before `vue()`.
  */
 const vueBlueprint: FrameworkBlueprint = {
   id: "vue",
@@ -35,6 +41,16 @@ const vueBlueprint: FrameworkBlueprint = {
         "app-template": { kind: "list" },
       },
     },
+    {
+      path: "src/style.css",
+      skeleton: "files/src/style.skeleton.css",
+      anchors: {
+        // CSS `@import` lines (`@import 'tailwindcss';` / `virtual:uno.css`).
+        // Only one CSS engine is selectable (`vue/css` group), so a `list`
+        // anchor never sees a duplicate statement.
+        "css-imports": { kind: "list" },
+      },
+    },
   ],
   static: {
     files: [
@@ -42,7 +58,6 @@ const vueBlueprint: FrameworkBlueprint = {
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
       { src: "files/index.html", dest: "index.html" },
       { src: "files/src/env.d.ts", dest: "src/env.d.ts" },
-      { src: "files/src/style.css", dest: "src/style.css" },
       { src: "files/_gitignore", dest: ".gitignore" },
       { src: "files/README.md", dest: "README.md" },
     ],

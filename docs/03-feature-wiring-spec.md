@@ -155,7 +155,7 @@ serve({ fetch: app.fetch, port }, (info) => {
 
 - 锚点内排序键 = `(block.order, featureTopoRank, feature.id 字典序)`，全稳定（无时钟、与对象 key 顺序无关）。
 - 跨 feature 的顺序诉求一律上提到 **feature 级 `requires`** 消化为 topoRank，不给 block 级依赖直通车。
-- 同锚点渲染结果中重复语句 → `E-STMT-DUP`；`imports` 锚点则必须去重聚合（正常形态）。
+- 同锚点渲染结果中**不同贡献块之间**重复语句 → `E-STMT-DUP`（单个多行 `raw` 块内的重复行允许，见 §2.8）；`imports` 锚点则必须去重聚合（正常形态）。
 - blueprint `static` 的 `rank = -1`，同 `order` 下先于所有 feature 渲染（`render.ts` 排序键第二项）。
 
 **全局 `order` 预留表（约定，非代码强制）**：`order` 只在锚点内部裁决；跨锚点语义顺序仍由骨架洞位表达。为避免各 feature 手挑魔数，采用下列数值区间：
@@ -172,7 +172,6 @@ serve({ fetch: app.fetch, port }, (info) => {
 现有实现与此表一致：swagger 用 `50/51`，api-guard 用 `10/11`，hono 基座 `requestId`=0 / logger=1 / health=-10，`hono/http-hardening` 用 `20/21/22`。
 
 ### 2.7 M7 锚点与 feature wiring 记录
-
 Hono blueprint（M7）新增/使用的锚点（全部全局唯一）：
 
 | 锚点 | 所属 assembly | kind | 贡献方 |
@@ -189,6 +188,31 @@ feature wiring 摘要：
 - `hono/env`：仅文件贡献 `src/env.ts`（standalone），**不接入** `imports`——避免向 entry 注入未使用 import（生成项目 `vp check` 的 `no-unused-vars` 会失败）。`requires: hono/zod`。
 - `hono/zod`：文件贡献 `src/http/validation.ts`（共享 `validationHook`），`imports` 注入 `./http/validation`；两条路由变体（普通 / swagger）均以 `defaultHook` 位置传入该 hook，使校验失败返回基座同款信封（`{ code: 'VALIDATION', message, details: issues, requestId }`，HTTP 400）。
 - 静态文件不可被 feature 替换（`E-FILE-WRITE`）：错误模型与健康路由因此作为 blueprint static（内容随基座走），而非可替换的 feature。
+
+### 2.8 M8a 锚点与 feature wiring 记录（Vue）
+
+Vue blueprint（M8a）锚点（全部全局唯一）：
+
+| 锚点 | 所属 assembly | kind | 贡献方 |
+|---|---|---|---|
+| `imports` | `src/main.ts` | `imports` | 基座无；`vue/pinia`、`vue/router`、`vue/i18n`、`vue/query`、`vue/colada`、`vue/unocss`（`virtual:uno.css` 副作用 import） |
+| `app-use` | `src/main.ts` | `list` | `vue/pinia`、`vue/router`、`vue/i18n`、`vue/query`、`vue/colada` |
+| `vite-imports` | `vite.config.ts` | `imports` | UI/CSS/i18n 插件 import（`vue/tailwind`、`vue/unocss`、`vue/naive-ui`、`vue/element-plus`、`vue/i18n`） |
+| `vite-plugins` | `vite.config.ts` | `list` | 基座 `vue(),`；上述插件注册 |
+| `app-template` | `src/App.vue` | `list` | `vue/router`（`<router-view />`）、`vue/i18n`（`$t` 示例）、`vue/naive-ui`（`<n-config-provider>` + `<n-button>`）、`vue/element-plus`（`<el-button>`） |
+| `css-imports` | `src/style.css` | `list` | `vue/tailwind`（`@import 'tailwindcss';`） |
+
+补充说明：
+
+- **无 `vite-plugins-pre` 锚点**：基座保留经典 `createRouter`（非 `vue-router/vite` 文件路由），没有任何随 M8a 发布的插件必须先于 `vue()`；因此不引入该锚点。
+- **`@/` 别名**：`tsconfig.json` 用 `paths`（**无 `baseUrl`**——TS7/tsgolint 已移除；`paths` 自 TS 4.1 起相对 tsconfig 解析）声明 `@/* -> ./src/*`，`vite.config.ts` 用 `resolve.alias`（`fileURLToPath(new URL('./src', import.meta.url))`）在打包期对齐；模板 devDependencies 增 `@types/node`。
+- **`src/style.css` 升 assembly**：静态文件改为 `files/src/style.skeleton.css`（顶部 `/* @code4x:begin css-imports */` … `/* @code4x:end css-imports */` 区域），零 CSS 引擎时渲染结果与升级前字节一致；`@import` 必须位于文件最前，区域置于顶部。
+- **`E-STMT-DUP` 语义收敛**：只在**不同贡献块之间**判重；单个贡献的多行 `raw` 块内允许重复行（`vue/element-plus` 的 `AutoImport`/`Components` 各有一行相同的 `ElementPlusResolver({ importStyle: 'css' })`，属合法形态，`render.ts` 的 `list` 渲染为此保留局部去重）。
+- **裸 token 的框架优先解析**：`qualifyFeature(token, known, framework)` 在裸 token 跨框架共用时（如 `testing` = `hono/testing` | `vue/testing`）优先选中 `--framework` 对应项；仍在同框架内多重命中时才 `E-AMBIGUOUS-LIST`。
+- **UnoCSS 入口形态**：`virtual:uno.css` 经 `src/main.ts` 的 `imports` 锚点以 **JS 副作用 import** 注入，而非 CSS `@import`——rolldown-Vite 8 下 CSS `@import 'virtual:uno.css'` 解析失败（`[postcss] ENOENT`），JS 导入正常。
+- **`vueuse-router` 独立文件**：提供 `src/composables/useRouteQuery.ts` 而非向入口注入未使用 import（会触发生成项目 `vp check` 的 `no-unused-vars`），与 `hono/env` 同策略。
+- **`vue/testing`**：devDeps `vitest` + `@vue/test-utils` + `happy-dom` + `test: "vp test"` + `src/App.test.ts` 模板资产。模板测试经**文件级** `// @vitest-environment happy-dom` 注解选择 DOM（无需新增 vite-config `test` 锚点/区域），并 `mount` 一个**内联组件**（仅依赖 `vue`），因此无论 preset 是否装了 router/i18n/UI 套件都开箱可跑。
+- **`vue/query` 的 install 放行**：`@tanstack/vue-query` 传递依赖 `vue-demi`（带 postinstall），经 `workspaceYaml.allowBuilds: { "vue-demi": true }` 写入生成 `pnpm-workspace.yaml`，避免 `ERR_PNPM_IGNORED_BUILDS`。
 
 ### 2.3 渲染确定性
 
@@ -321,7 +345,7 @@ const app = createApp(App)
 app.mount('#app')
 ```
 
-`{base + pinia}` / `{+ pinia + router}`：逐条插 `app.use(createPinia())` / `app.use(router)` + `import router from './router'`；`vite.config.ts` 为第二个 assembly（`vite-plugins` 锚点，blueprint static 贡献 `vue()`）；`src/App.vue` 为第三个 assembly（`app-template` 锚点，router 注入 `<router-view />`）。排序关键点：pinia < router 由 id tiebreak 固定，**与用户勾选顺序无关**——同一组合、不同选择轨迹生成**相同字节**（确定性演示）。生成项目 **`vp check` 开箱通过**（vite.config 内置 lint/fmt/typeCheck 配置，`defineConfig` 来自 `vite-plus`）；`dev`/`build` 仍走 plain `vite` 链（vp 深度集成留待后续评估）。
+`{base + pinia}` / `{+ pinia + router}`：逐条插 `app.use(createPinia())` / `app.use(router)` + `import router from './router'`；`vite.config.ts` 为第二个 assembly（`vite-plugins` 锚点，blueprint static 贡献 `vue()`）、`src/App.vue` 为第三个 assembly（`app-template` 锚点，router 注入 `<router-view />`）、`src/style.css` 为第四个 assembly（`css-imports` 锚点，CSS 引擎注入 `@import`）。排序关键点：pinia < router 由 id tiebreak 固定，**与用户勾选顺序无关**——同一组合、不同选择轨迹生成**相同字节**（确定性演示）。M8a 追加：`vue/i18n` 经 `imports`/`app-use`/`app-template`/`vite-imports`/`vite-plugins` 接入；UI 套件（`vue/ui`）与 CSS 引擎（`vue/css`）同组互斥；数据层（`vue/data`）二选一。生成项目 **`vp check` 开箱通过**（vite.config 内置 lint/fmt/typeCheck 配置，`defineConfig` 来自 `vite-plus`）；`dev`/`build` 仍走 plain `vite` 链（vp 深度集成留待后续评估）。
 
 ### 复用论证：同一 manifest 抽象如何跨框架
 

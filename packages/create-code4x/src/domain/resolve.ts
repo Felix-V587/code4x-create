@@ -50,7 +50,11 @@ function knownFrameworks(reg: Registry): Record<FeatureId, FrameworkId> {
 }
 
 /** Resolve a single raw feature token to a qualified feature id. */
-export function qualifyFeature(token: string, known: Record<FeatureId, FrameworkId>): FeatureId {
+export function qualifyFeature(
+  token: string,
+  known: Record<FeatureId, FrameworkId>,
+  framework?: FrameworkId,
+): FeatureId {
   if (token.includes("/")) return token;
 
   const candidates = Object.keys(known).filter((id) => id === token || id.endsWith(`/${token}`));
@@ -60,6 +64,15 @@ export function qualifyFeature(token: string, known: Record<FeatureId, Framework
     });
   }
   const result = candidates.sort();
+
+  // A bare token may be shared across frameworks (e.g. "testing" is both
+  // `hono/testing` and `vue/testing`); prefer the selected framework before
+  // declaring it ambiguous.
+  if (framework) {
+    const inFramework = result.filter((id) => (known[id] ?? id.split("/")[0]) === framework);
+    if (inFramework.length === 1) return inFramework[0];
+  }
+
   const frameworks = new Set(result.map((id) => known[id] ?? id.split("/")[0]));
   if (result.length > 1 || frameworks.size > 1) {
     fail("E-AMBIGUOUS-LIST", `feature "${token}" is ambiguous: ${result.join(", ")}`, {
@@ -122,7 +135,7 @@ export function resolve(answers: Answers, reg: Registry, context?: ProjectContex
   const seen = new Set<FeatureId>();
   const featureFrameworks = new Set<FrameworkId>();
   for (const token of answers.features) {
-    const id = qualifyFeature(token, known);
+    const id = qualifyFeature(token, known, answers.framework);
     if (seen.has(id)) continue;
     seen.add(id);
 

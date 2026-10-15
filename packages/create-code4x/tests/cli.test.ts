@@ -520,7 +520,14 @@ describe("cli e2e", () => {
     };
     expect(rc.answers.framework).toBe("vue");
     expect(rc.answers.preset).toBe("vue-full");
-    expect(rc.plan.features).toEqual(["vue/pinia", "vue/router"]);
+    expect(rc.plan.features).toEqual([
+      "vue/i18n",
+      "vue/pinia",
+      "vue/query",
+      "vue/router",
+      "vue/testing",
+      "vue/vueuse",
+    ]);
   });
 
   test("--json stdout is pure JSON even when notes are emitted", async () => {

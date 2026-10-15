@@ -296,7 +296,17 @@ function renderRegion(
   const seen = new Set<string>();
   const lines: string[] = [];
   for (const hit of hits) {
+    // A single contribution's (possibly multi-line) block may legitimately
+    // repeat a line (e.g. two identical `ElementPlusResolver` option lines for
+    // the element-plus unplugins). Only a statement shared across *different*
+    // contributions is a duplicate.
+    const local = new Set<string>();
     for (const line of renderBlockLines(hit.block)) {
+      if (local.has(line)) {
+        lines.push(line);
+        continue;
+      }
+      local.add(line);
       if (seen.has(line)) {
         fail("E-STMT-DUP", `duplicate statement in anchor "${anchor}": ${line}`);
       }

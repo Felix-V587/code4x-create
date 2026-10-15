@@ -32,6 +32,16 @@ import loggingManifest from "../../features/hono/logging/manifest.ts";
 import httpHardeningManifest from "../../features/hono/http-hardening/manifest.ts";
 import piniaManifest from "../../features/vue/pinia/manifest.ts";
 import routerManifest from "../../features/vue/router/manifest.ts";
+import vueuseManifest from "../../features/vue/vueuse/manifest.ts";
+import vueuseRouterManifest from "../../features/vue/vueuse-router/manifest.ts";
+import i18nManifest from "../../features/vue/i18n/manifest.ts";
+import queryManifest from "../../features/vue/query/manifest.ts";
+import coladaManifest from "../../features/vue/colada/manifest.ts";
+import vueTestingManifest from "../../features/vue/testing/manifest.ts";
+import tailwindManifest from "../../features/vue/tailwind/manifest.ts";
+import unocssManifest from "../../features/vue/unocss/manifest.ts";
+import naiveUiManifest from "../../features/vue/naive-ui/manifest.ts";
+import elementPlusManifest from "../../features/vue/element-plus/manifest.ts";
 import builderManifest from "../../features/electron/builder/manifest.ts";
 
 const FRAMEWORK_BLUEPRINTS: FrameworkBlueprint[] = [electronBlueprint, honoBlueprint, vueBlueprint];
@@ -47,6 +57,16 @@ const FEATURE_MANIFESTS: FeatureManifest[] = [
   httpHardeningManifest,
   piniaManifest,
   routerManifest,
+  vueuseManifest,
+  vueuseRouterManifest,
+  i18nManifest,
+  queryManifest,
+  coladaManifest,
+  vueTestingManifest,
+  tailwindManifest,
+  unocssManifest,
+  naiveUiManifest,
+  elementPlusManifest,
   builderManifest,
 ];
 
@@ -139,7 +159,41 @@ export function loadRegistry(
     "vue-full": {
       id: "vue-full",
       framework: "vue",
-      features: ["vue/pinia", "vue/router"],
+      features: ["vue/router", "vue/pinia", "vue/vueuse", "vue/i18n", "vue/query", "vue/testing"],
+    },
+    "vue-standard": {
+      id: "vue-standard",
+      framework: "vue",
+      features: ["vue/router", "vue/pinia", "vue/vueuse", "vue/i18n"],
+    },
+    "vue-naive-tw": {
+      id: "vue-naive-tw",
+      framework: "vue",
+      features: [
+        "vue/router",
+        "vue/pinia",
+        "vue/vueuse",
+        "vue/i18n",
+        "vue/naive-ui",
+        "vue/tailwind",
+      ],
+    },
+    "vue-element-tw": {
+      id: "vue-element-tw",
+      framework: "vue",
+      features: [
+        "vue/router",
+        "vue/pinia",
+        "vue/vueuse",
+        "vue/i18n",
+        "vue/element-plus",
+        "vue/tailwind",
+      ],
+    },
+    "vue-unocss-min": {
+      id: "vue-unocss-min",
+      framework: "vue",
+      features: ["vue/router", "vue/pinia", "vue/unocss"],
     },
   };
 

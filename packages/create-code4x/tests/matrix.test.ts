@@ -278,9 +278,8 @@ describe("Tier-1 combination matrix: registry-driven enumeration", () => {
 
 describe("Tier-1 matrix is registry-driven (no snapshot)", () => {
   // A cloned registry with two brand-new grouped features: the matrix must pick
-  // them up without any edit to the test. This also exercises the group path,
-  // which the shipped registry leaves empty (no shipped feature has a `group`
-  // yet).
+  // them up without any edit to the test. The group key is test-only (the
+  // shipped registry now uses `vue/ui` for naive-ui / element-plus).
   const extended: Registry = {
     ...registry,
     features: {
@@ -289,13 +288,13 @@ describe("Tier-1 matrix is registry-driven (no snapshot)", () => {
         id: "vue/ui-alpha",
         title: "Alpha",
         description: "test-only grouped feature",
-        group: "vue/ui",
+        group: "vue/ui-probe",
       },
       "vue/ui-beta": {
         id: "vue/ui-beta",
         title: "Beta",
         description: "test-only grouped feature",
-        group: "vue/ui",
+        group: "vue/ui-probe",
       },
     },
   };
@@ -307,7 +306,7 @@ describe("Tier-1 matrix is registry-driven (no snapshot)", () => {
   });
 
   test("auto-derives exactly-one group choices and an E-CONFLICT probe", () => {
-    const conflict = extendedMatrix.conflicts.find((entry) => entry.group === "vue/ui");
+    const conflict = extendedMatrix.conflicts.find((entry) => entry.group === "vue/ui-probe");
     expect(conflict).toBeDefined();
     expect(conflict?.members).toEqual(["vue/ui-alpha", "vue/ui-beta"]);
     // The conflicting pair is never rendered as a valid combo.

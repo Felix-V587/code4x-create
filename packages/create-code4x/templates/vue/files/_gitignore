@@ -3,3 +3,5 @@ dist
 *.log
 .env
 .DS_Store
+auto-imports.d.ts
+components.d.ts

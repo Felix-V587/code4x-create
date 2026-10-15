@@ -176,16 +176,30 @@ describe("resolve", () => {
     expect(plan.features).toEqual(["vue/pinia"]);
   });
 
-  test("vue-full preset expands to pinia + router", () => {
+  test("vue-full preset expands to the standard stack + query + testing", () => {
     const preset = expandPreset("vue-full", loadRegistry());
     expect(preset.framework).toBe("vue");
-    expect(preset.features).toEqual(["vue/pinia", "vue/router"]);
+    expect(preset.features).toEqual([
+      "vue/router",
+      "vue/pinia",
+      "vue/vueuse",
+      "vue/i18n",
+      "vue/query",
+      "vue/testing",
+    ]);
 
     const plan = resolve(
       answers({ framework: preset.framework, features: preset.features }),
       loadRegistry(),
     );
-    expect(plan.features).toEqual(["vue/pinia", "vue/router"]);
+    expect(plan.features).toEqual([
+      "vue/i18n",
+      "vue/pinia",
+      "vue/query",
+      "vue/router",
+      "vue/testing",
+      "vue/vueuse",
+    ]);
   });
 
   test("two features in the same group -> E-CONFLICT (usage, exit 2) naming members", () => {

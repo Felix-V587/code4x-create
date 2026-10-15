@@ -11,7 +11,7 @@
 | [03-feature-wiring-spec.md](./03-feature-wiring-spec.md) | 核心机制规格：FeatureManifest 类型草案、组装点(wiring) 语义、错误码、目录结构、hono/vue 走查样例 | ✅ 定稿候选 |
 | [04-prompt-flow.md](./04-prompt-flow.md) | 交互问题流 + 参数映射：状态机、逐问呈现、flag/preset/config 优先级、取消语义、边界清单、候选拍板 OQ-A~E | ✅ 定稿候选 |
 | [05-vp-integration.md](./05-vp-integration.md) | vp create 集成笔记：机制核实（含源码行号）、正确调用方式、职责边界、子项目规则、验证路线 | ✅ 已核实 |
-| [06-template-ecosystem-plan.md](./06-template-ecosystem-plan.md) | 模板系统路线图：机制扩展（互斥/贡献面/锚点）、Hono/Vue/Electron feature 矩阵与版本基线、单仓库模式、里程碑与 OQ | ⏳ 待评审（2026-10-14） |
+| [06-template-ecosystem-plan.md](./06-template-ecosystem-plan.md) | 模板系统路线图：机制扩展（互斥/贡献面/锚点）、Hono/Vue/Electron feature 矩阵与版本基线、单仓库模式、里程碑与 OQ | ✅ M6/M7/M8a 已落地（§4 Vue 已 ✅） |
 
 ## 实施状态（2026-10-14）
 
@@ -26,8 +26,9 @@
 | M5+ | ✅ 已完成 | `electron/builder`：electron-builder 打包（`electron-builder.yml` + `dist`/`dist:dir` 脚本；AppImage / dmg+zip / nsis，产物输出 `release/`，asar 默认开启） |
 | M6 | ✅ 已完成 | 机制扩展：`group` 互斥（复用 `E-CONFLICT`）、`package.json#fields`、`workspaceYaml.allowBuilds`（map 形状、排序确定性）、MARKER 块注释、三框架 `vite-imports` 锚点、Tier-1 组合矩阵（`tests/matrix.test.ts`，registry 驱动、离线、幂等/互斥同源） |
 | M7 | ✅ 已完成 | Hono 标准化：基座升级（`requestId` 最先、`error-handlers` 锚点 + `{code,message,requestId}` 信封、`routes/health.ts`、`shutdownTimeoutMs` 优雅停机、`@hono/node-server` ^2.1）+ 新 feature（`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`）+ 预设 `hono-standard` / `hono-full`；生成项目 install→build→start→curl 冒烟通过 |
+| M8a | ✅ 已完成 | Vue 全家桶核心 + CSS 引擎 + UI 套件：基座升级（`@/` 别名、`src/style.css` 组装 + `css-imports` 锚点、`@types/node`）+ `vue/vueuse` / `vue/vueuse-router` / `vue/i18n` / `vue/query` ⟂ `vue/colada` / `vue/testing` + `vue/tailwind` ⟂ `vue/unocss` + `vue/naive-ui`（默认）⟂ `vue/element-plus` + 预设 `vue-standard` / `vue-naive-tw` / `vue-element-tw` / `vue-unocss-min` / 扩展 `vue-full`；三个 UI/引擎预设 install→build→check（含 vue-tsc）→preview 200 开箱通过，互斥 `E-CONFLICT` 实测 |
 | vp 集成 | ✅ harness 实测通过 | `fixtures/vp-harness/`（两 lane + 观察 lane + lane A build smoke）；hono 模板 vp 原生、vue 模板 vp check 开箱通过；发布后 dlx lane 待验证 |
-| M8–M11 | ⏳ 待做 | Vue 全家桶、Electron 加固、工作区场景 A、Tier-2/3 CI、0.1.0 发布 |
+| M4 / M8b–M11 | ⏳ 待做 | 交互流程收口、Vue shadcn-vue（M8b）、Electron 加固、工作区场景 A、Tier-2/3 CI、0.1.0 发布 |
 
 ## 环境约定
 
