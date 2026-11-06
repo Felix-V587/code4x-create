@@ -2,7 +2,7 @@
 
 通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档 / `env`（zod 校验配置）/ `testing`（Vitest 示例）/ `logging`（pino）/ `http-hardening`（timeout + body-limit + compress）；Vue（vp 原生 dev/build/check + `vue-tsc`）：`pinia` / `vue-router` / `vueuse` / `vueuse-router` / `i18n`（vue-i18n）/ 数据层 `query`（TanStack Query）⟂ `colada`（Pinia Colada）/ `testing`（Vitest + @vue/test-utils）/ CSS 引擎 `tailwind` ⟂ `unocss` / UI 套件 `naive-ui`（默认）⟂ `element-plus` ⟂ `shadcn-vue`（copy-paste 组件栈，vendored、需 tailwind）；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：类型化 IPC（`src/shared/ipc.ts` 共享 zod channel 表 + 三端派生类型 + 仅 `message` 的错误信封）+ 生产 `app://` 自定义协议加载（SPA 回退）；`electron/builder`（经 electron-builder 打包安装包）。
 
-**实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；**M6 机制扩展 + M7 Hono 标准化 + M8a Vue 全家桶 + M8b shadcn-vue + M9 Electron 加固已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening；Vue 基座升级（`@/` 别名、`src/style.css` 组装、`css-imports` 锚点）+ vueuse/i18n/query/colada/testing + tailwind/unocss + naive-ui/element-plus + shadcn-vue（vendored 组件 + `app-script` 锚点）+ 预设 `vue-standard`/`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min`/`vue-shadcn-tw`/`vue-full`；Electron 类型化 IPC（共享 zod 表）+ `protocol.handle` `app://` 加载 + `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 与发布在途。设计与决策文档见 [docs/](./docs/README.md)。
+**实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；**M6 机制扩展 + M7 Hono 标准化 + M8a Vue 全家桶 + M8b shadcn-vue + M9 Electron 加固已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening；Vue 基座升级（`@/` 别名、`src/style.css` 组装、`css-imports` 锚点）+ vueuse/i18n/query/colada/testing + tailwind/unocss + naive-ui/element-plus + shadcn-vue（vendored 组件 + `app-script` 锚点）+ 预设 `vue-standard`/`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min`/`vue-shadcn-tw`/`vue-full`；Electron 类型化 IPC（共享 zod 表）+ `protocol.handle` `app://` 加载 + `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 已接入 GitHub Actions；发布流程就绪（`repository` 已补，待 npm 凭据后实际发布）。设计与决策文档见 [docs/](./docs/README.md)。
 
 ## 快速开始（仓库内）
 
@@ -101,7 +101,8 @@ pnpm changeset:publish   # 构建并发布到 npm（public）
 
 - 包内 `prepublishOnly` 已配置 `vp run build`（`vp pack`），发布前自动重建 `dist/`；发布 tarball 含 `package.json` / `README.md` / `LICENSE` / `dist/**`（模板与 features 资产随 `dist/` 一起打包）。
 - 使用形态：`pnpm dlx @code4x/cli <dir>`（等价 `npx @code4x/cli@latest <dir>`）；命令名（bin）仍为 `create-code4x`，故 tarball 安装后可直接 `create-code4x <dir>`。旧的 `pnpm create code4x` 形式展开为 `create-code4x`，**不再映射本包**。
-- 尚未配置 npm 凭据与 git remote：`repository` 字段待补（补 remote 后写入，不编造 URL）；changesets 的 `baseBranch` 已按 `main` 配置。
+- 远端已配置：`origin` = Gitee（`git@gitee.com:code4x/code4x-create.git`），`github` = GitHub（`git@github.com:Felix-V587/code4x-create.git`，GitHub Actions CI 在此运行）；包内 `repository` 指向 GitHub 仓库。changesets 的 `baseBranch` 已按 `main` 配置。
+- 尚待 npm 凭据（当前 `~/.npmrc` 中 token 已失效，`npm whoami` 返回 401）后才能实际发布。
 - 包内 `bumpp` 仍保留于 devDependencies，但**发布流程以 changesets 为准**（决策见 [docs/06](./docs/06-template-ecosystem-plan.md) 修订记录）。
 
 ## 仓库结构

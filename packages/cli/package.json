@@ -4,6 +4,10 @@
   "description": "Scaffold multi-framework projects with optional integrations.",
   "license": "MIT",
   "author": "longyong.xu <2310122662@qq.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Felix-V587/code4x-create.git"
+  },
   "bin": {
     "create-code4x": "./dist/cli.mjs"
   },
