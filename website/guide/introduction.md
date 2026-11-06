@@ -45,7 +45,7 @@
 ## 当前状态
 
 - 版本 `0.1.0`，**尚未发布到 npm**；目前从仓库内构建使用，发布后入口为 `pnpm dlx @code4x/cli`。
-- 支持 Node `^20.19.0 || >=22.12.0`、pnpm 12。
+- 支持 Node `>=22`（推荐 `26+`）、pnpm 12。
 - 设计与决策文档在仓库 [`docs/`](https://github.com/Felix-V587/code4x-create/tree/main/docs)。
 
 ## 非目标（当前版本）

@@ -47,7 +47,7 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 
 | 决策 | 结论 | 依据 |
 |---|---|---|
-| 运行时 | Node ≥20.19 / ≥22.12 + TS ESM + pnpm workspace | create-vite engines 同款（已核实）；CLI 经 npx/corepack 跑在用户机器，Node 摩擦最小 |
+| 运行时 | Node ≥22（推荐 26+）+ TS ESM + pnpm workspace | 与 Vite+ / Vite 8 的引擎要求对齐；CLI 经 npx/corepack 跑在用户机器 |
 | Prompt 库 | `@clack/prompts`（备选 `@inquirer/*`）；`prompts` 已停更勿用 | 生态先例（已核实）；架构下限：prompts 只是 Answers 的 UI，可整体替换 |
 | 模板托管 | v1 全部内置 npm 包；远端拉取（giget + CLI 版本推导 ref）留作未来选项 | create-vite 实证；离线与版本原子性；参考 create-hono ref 策略 |
 | 组合实现 | 声明式 manifest + 窄 hook；第三方插件 API v1 不承诺稳定 | 可静态校验 / 可快照测试 / 接口冻结成本 |

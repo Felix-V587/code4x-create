@@ -61,6 +61,8 @@ node ../code4x-create/packages/cli/dist/cli.mjs apps/web -p vue-naive-tw -y
 
 ## 开发
 
+要求 Node `>=22`（推荐 `26+`）、pnpm 12。
+
 ```bash
 vp install                          # 安装依赖（workspace）
 vp check                            # 格式化 + lint + 类型检查

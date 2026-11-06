@@ -6,6 +6,8 @@
 
 ## 用法
 
+要求 Node `>=22`（推荐 `26+`）。
+
 ```bash
 # pnpm（推荐）
 pnpm dlx @code4x/cli my-api -f hono --features zod -y
