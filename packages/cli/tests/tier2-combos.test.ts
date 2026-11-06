@@ -40,8 +40,9 @@ const catalog = JSON.parse(
 const registry: Registry = loadRegistry();
 const allCombos: Tier2Combo[] = [...catalog.subset, ...catalog.nightlyOnly];
 
-// The M11 blessed list (docs/06 §7): subset is the PR lane, nightly adds the
-// rest. Pinning the ids keeps an accidental deletion from passing silently.
+// The blessed list (docs/06 §7): subset is the PR lane, nightly adds the rest
+// (M11 plus later feature additions). Pinning the ids keeps an accidental
+// deletion from passing silently.
 const M11_SUBSET = ["hono-base", "hono-standard", "vue-base", "vue-naive-tw", "electron-builder"];
 const M11_NIGHTLY_ONLY = [
   "hono-full",
@@ -49,6 +50,8 @@ const M11_NIGHTLY_ONLY = [
   "vue-element-tw",
   "vue-unocss-min",
   "vue-shadcn-tw",
+  "vue-colada",
+  "vue-alova",
   "electron-base",
 ];
 

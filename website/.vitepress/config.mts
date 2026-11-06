@@ -24,7 +24,7 @@ export default defineConfig({
       "meta",
       {
         property: "og:description",
-        content: "一条命令创建 Hono / Vue / Electron 项目：21 个可选能力按需勾选，同一组合字节级一致，开箱即用 Vite+ 工具链。",
+        content: "一条命令创建 Hono / Vue / Electron 项目：22 个可选能力按需勾选，同一组合字节级一致，开箱即用 Vite+ 工具链。",
       },
     ],
     ["meta", { name: "twitter:card", content: "summary" }],

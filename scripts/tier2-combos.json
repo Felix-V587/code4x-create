@@ -12,6 +12,8 @@
     { "id": "vue-element-tw", "framework": "vue", "preset": "vue-element-tw" },
     { "id": "vue-unocss-min", "framework": "vue", "preset": "vue-unocss-min" },
     { "id": "vue-shadcn-tw", "framework": "vue", "preset": "vue-shadcn-tw" },
+    { "id": "vue-colada", "framework": "vue", "features": ["vue/colada"] },
+    { "id": "vue-alova", "framework": "vue", "features": ["vue/alova"] },
     { "id": "electron-base", "framework": "electron" }
   ]
 }

@@ -1,7 +1,7 @@
 <script setup>
 const stats = [
   { n: "3", label: "框架基座" },
-  { n: "21", label: "可选 feature" },
+  { n: "22", label: "可选 feature" },
   { n: "9", label: "内置预设" },
   { n: "3", label: "验证层级" },
 ];

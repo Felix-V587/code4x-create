@@ -13,7 +13,7 @@
 | 框架 | 基座 | 可选能力 | 预设 |
 |---|---|---|---|
 | Hono | requestId、统一错误信封、健康检查、优雅停机 | zod、api-guard、swagger-openapi、env、testing、logging、http-hardening | `hono-api`、`hono-standard`、`hono-full` |
-| Vue | `@/` 别名、CSS 组装、Vite+ check | router、pinia、vueuse、vueuse-router、i18n、query / colada、testing、tailwind / unocss、naive-ui / element-plus / shadcn-vue | `vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-shadcn-tw`、`vue-unocss-min`、`vue-full` |
+| Vue | `@/` 别名、CSS 组装、Vite+ check | router、pinia、vueuse、vueuse-router、i18n、query / colada / alova（请求策略三选一）、testing、tailwind / unocss、naive-ui / element-plus / shadcn-vue | `vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-shadcn-tw`、`vue-unocss-min`、`vue-full` |
 | Electron | Vue 3 渲染层、类型化 IPC、`app://` 生产加载、单实例锁 | electron-builder | 无（用 `-f electron` 直接生成） |
 
 完整的 id、依赖与互斥关系见 [Feature 矩阵](/reference/features)。

@@ -1,7 +1,7 @@
 # 02 · 架构与关键技术决策
 
 > 状态：定稿候选（OQ-1~7 未见异议，按倾向定案）。
-> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`、`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`、`vue/pinia`、`vue/router`、`vue/vueuse`、`vue/vueuse-router`、`vue/i18n`、`vue/query`、`vue/colada`、`vue/testing`、`vue/tailwind`、`vue/unocss`、`vue/naive-ui`、`vue/element-plus`、`vue/shadcn-vue`、`electron/builder`；presets：`hono-api`、`hono-standard`、`hono-full`、`vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-unocss-min`、`vue-shadcn-tw`、`vue-full`。
+> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`、`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`、`vue/pinia`、`vue/router`、`vue/vueuse`、`vue/vueuse-router`、`vue/i18n`、`vue/query`、`vue/colada`、`vue/alova`、`vue/testing`、`vue/tailwind`、`vue/unocss`、`vue/naive-ui`、`vue/element-plus`、`vue/shadcn-vue`、`electron/builder`；presets：`hono-api`、`hono-standard`、`hono-full`、`vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-unocss-min`、`vue-shadcn-tw`、`vue-full`。
 > 上游依据：[01-ecosystem-research.md](./01-ecosystem-research.md)；机制细节：[03-feature-wiring-spec.md](./03-feature-wiring-spec.md)。
 
 ## 1. 五层架构（核心两层必须是纯函数）

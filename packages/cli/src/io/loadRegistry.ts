@@ -37,6 +37,7 @@ import vueuseRouterManifest from "../../features/vue/vueuse-router/manifest.ts";
 import i18nManifest from "../../features/vue/i18n/manifest.ts";
 import queryManifest from "../../features/vue/query/manifest.ts";
 import coladaManifest from "../../features/vue/colada/manifest.ts";
+import alovaManifest from "../../features/vue/alova/manifest.ts";
 import vueTestingManifest from "../../features/vue/testing/manifest.ts";
 import tailwindManifest from "../../features/vue/tailwind/manifest.ts";
 import unocssManifest from "../../features/vue/unocss/manifest.ts";
@@ -63,6 +64,7 @@ const FEATURE_MANIFESTS: FeatureManifest[] = [
   i18nManifest,
   queryManifest,
   coladaManifest,
+  alovaManifest,
   vueTestingManifest,
   tailwindManifest,
   unocssManifest,

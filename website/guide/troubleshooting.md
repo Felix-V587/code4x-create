@@ -17,7 +17,7 @@
 |---|---|---|
 | `E-DIR-REQUIRED` | 非交互模式没有提供目标目录 | 在第一个参数给出目录，例如 `create-code4x my-api` |
 | `E-INVALID-VALUE` | 参数值非法（未知框架、feature、模板等） | 检查拼写；`--json` 不能在交互模式使用 |
-| `E-CONFLICT` | 同组 feature 冲突，或字段来源矛盾 | 二选一；位置参数与 `projectName` 只能留一个 |
+| `E-CONFLICT` | 同组 feature 冲突，或字段来源矛盾 | 同组只能选一个；位置参数与 `projectName` 只能留一个 |
 | `E-AMBIGUOUS-LIST` | 裸 feature 名无法唯一解析 | 改用全限定名，例如 `vue/pinia` |
 | `E-UNKNOWN-FRAMEWORK` | 未知框架 | 只能是 `hono` / `vue` / `electron` |
 | `E-CONFIG-READ` | config 文件读不到 | 检查路径 |

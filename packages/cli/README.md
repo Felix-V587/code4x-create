@@ -55,17 +55,17 @@ vp create code4x -- my-api -f hono --features zod -y    # 参数化（CI 同此�
 
 ### Vue（SPA）
 
-| Feature id                                             | 说明                                                                                                      |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| `vue/router`                                           | Vue Router（经典 `createRouter`）                                                                         |
-| `vue/pinia`                                            | Pinia 状态管理                                                                                            |
-| `vue/vueuse`                                           | `@vueuse/core`                                                                                            |
-| `vue/vueuse-router`                                    | `@vueuse/router`（requires `vue/router` + `vue/vueuse`）                                                  |
-| `vue/i18n`                                             | vue-i18n（`legacy:false`）+ unplugin 自动导入                                                             |
-| `vue/query` ⟂ `vue/colada`                             | 数据层二选一：TanStack Query ⟂ Pinia Colada（`group: vue/data`）                                          |
-| `vue/testing`                                          | Vitest + `@vue/test-utils` + happy-dom 示例                                                               |
-| `vue/tailwind` ⟂ `vue/unocss`                          | CSS 引擎二选一（`group: vue/css`）                                                                        |
-| `vue/naive-ui` ⟂ `vue/element-plus` ⟂ `vue/shadcn-vue` | UI 套件三选一（`group: vue/ui`；`vue/shadcn-vue` requires `vue/tailwind`，为 vendored copy-paste 组件栈） |
+| Feature id                                             | 说明                                                                                                                            |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `vue/router`                                           | Vue Router（经典 `createRouter`）                                                                                               |
+| `vue/pinia`                                            | Pinia 状态管理                                                                                                                  |
+| `vue/vueuse`                                           | `@vueuse/core`                                                                                                                  |
+| `vue/vueuse-router`                                    | `@vueuse/router`（requires `vue/router` + `vue/vueuse`）                                                                        |
+| `vue/i18n`                                             | vue-i18n（`legacy:false`）+ unplugin 自动导入                                                                                   |
+| `vue/query` ⟂ `vue/colada` ⟂ `vue/alova`               | 请求策略三选一：TanStack Query ⟂ Pinia Colada ⟂ Alova 3（`group: vue/data`；Colada / Alova 附带基础 client 与 `useTodos` 示例） |
+| `vue/testing`                                          | Vitest + `@vue/test-utils` + happy-dom 示例                                                                                     |
+| `vue/tailwind` ⟂ `vue/unocss`                          | CSS 引擎二选一（`group: vue/css`）                                                                                              |
+| `vue/naive-ui` ⟂ `vue/element-plus` ⟂ `vue/shadcn-vue` | UI 套件三选一（`group: vue/ui`；`vue/shadcn-vue` requires `vue/tailwind`，为 vendored copy-paste 组件栈）                       |
 
 基座自带：`@/` 路径别名、`src/style.css` 组装（`css-imports` 锚点）、`vue-tsc` 类型检查。
 

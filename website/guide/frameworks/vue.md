@@ -32,8 +32,24 @@ my-web/
 | `vue/vueuse` | `@vueuse/core` | 仅依赖 |
 | `vue/vueuse-router` | `@vueuse/router` 组合式函数 | requires vueuse + router |
 | `vue/i18n` | `vue-i18n`（`legacy:false`）+ unplugin 自动导入 | 生成 `src/locales/{en,zh-CN}.ts` |
-| `vue/query` ⟂ `vue/colada` | 数据层二选一 | `group: vue/data` |
+| `vue/query` ⟂ `vue/colada` ⟂ `vue/alova` | 请求 / 数据层三选一 | `group: vue/data` |
 | `vue/testing` | Vitest + `@vue/test-utils` + happy-dom | 示例测试自包含 |
+
+### 请求策略（三选一）
+
+| 选项 | 生成的基础配置 |
+|---|---|
+| `vue/query` | `src/lib/queryClient.ts` + `app.use(VueQueryPlugin, { queryClient })` |
+| `vue/colada` | `src/lib/colada.ts`（全局 `staleTime`）+ `app.use(PiniaColada, coladaOptions)`（requires `vue/pinia`） |
+| `vue/alova` | `src/lib/alova.ts`（baseURL / timeout / fetch adapter / 非 2xx 归一化）+ `src/api/todos.ts` + `src/composables/useTodos.ts` |
+
+- 三者共享 `group: vue/data`，只能选一个。
+- Colada 与 Alova 都附带 `src/api/todos.ts` 与 `useTodos()` 示例，替换为真实 API 即可。
+- `baseURL` 读取 `VITE_API_BASE_URL`，默认 `/api`：
+
+```bash
+VITE_API_BASE_URL=https://api.example.com pnpm dev
+```
 
 ## CSS 引擎与 UI 套件
 

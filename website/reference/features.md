@@ -16,7 +16,7 @@ Feature id 形如 `框架/能力`。命令行里可以写全限定名，也可�
 | `hono/logging` | Pino logging | `hono` | 替换基线 logger |
 | `hono/http-hardening` | HTTP hardening | `hono` | timeout / body-limit / compress |
 
-## Vue（13）
+## Vue（14）
 
 | id | 标题 | requires | group |
 |---|---|---|---|
@@ -27,6 +27,7 @@ Feature id 形如 `框架/能力`。命令行里可以写全限定名，也可�
 | `vue/i18n` | i18n | `vue` | — |
 | `vue/query` | TanStack Query | `vue` | `vue/data` |
 | `vue/colada` | Pinia Colada | `vue`, `vue/pinia` | `vue/data` |
+| `vue/alova` | Alova | `vue` | `vue/data` |
 | `vue/testing` | Testing | `vue` | — |
 | `vue/tailwind` | Tailwind CSS | `vue` | `vue/css` |
 | `vue/unocss` | UnoCSS | `vue` | `vue/css` |
@@ -46,7 +47,7 @@ Feature id 形如 `框架/能力`。命令行里可以写全限定名，也可�
 
 | group | 成员 |
 |---|---|
-| `vue/data` | `vue/query` ⟂ `vue/colada` |
+| `vue/data` | `vue/query` ⟂ `vue/colada` ⟂ `vue/alova` |
 | `vue/css` | `vue/tailwind` ⟂ `vue/unocss` |
 | `vue/ui` | `vue/naive-ui` ⟂ `vue/element-plus` ⟂ `vue/shadcn-vue` |
 

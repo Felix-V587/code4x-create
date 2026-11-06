@@ -169,7 +169,7 @@ describe("render / vue/i18n", () => {
   });
 });
 
-describe("render / vue/data (query ⟂ colada)", () => {
+describe("render / vue/data (query ⟂ colada ⟂ alova)", () => {
   test("vue/query wires a shared query client", () => {
     const { files } = generate(["query"]);
     expect(file(files, "src/lib/queryClient.ts").contents).toContain("new QueryClient()");
@@ -183,20 +183,45 @@ describe("render / vue/data (query ⟂ colada)", () => {
     expect(file(files, "pnpm-workspace.yaml").contents).toContain("vue-demi: true");
   });
 
-  test("vue/colada requires pinia and installs after it", () => {
+  test("vue/colada requires pinia, installs after it and ships defaults + example", () => {
     const { files, features } = generate(["colada"]);
     expect(features).toEqual(["vue/pinia", "vue/colada"]);
     const main = file(files, "src/main.ts").contents;
     expect(main).toContain("app.use(createPinia())");
-    expect(main).toContain("app.use(PiniaColada, {})");
+    expect(main).toContain("import { coladaOptions } from './lib/colada'");
+    expect(main).toContain("app.use(PiniaColada, coladaOptions)");
     expect(main.indexOf("app.use(createPinia())")).toBeLessThan(
       main.indexOf("app.use(PiniaColada"),
     );
-    expect(pkg(files).dependencies["@pinia/colada"]).toBe("^1.4.0");
+    expect(pkg(files).dependencies["@pinia/colada"]).toBe("^1.4.9");
+    const options = file(files, "src/lib/colada.ts");
+    expect(options.source).toBe("vue/colada");
+    expect(options.contents).toContain("staleTime: 30_000");
+    expect(file(files, "src/api/todos.ts").contents).toContain("fetchTodos");
+    expect(file(files, "src/composables/useTodos.ts").contents).toContain("useQuery");
   });
 
-  test("query + colada are mutually exclusive", () => {
+  test("vue/alova ships a configured client and a composable", () => {
+    const { files, features } = generate(["alova"]);
+    expect(features).toEqual(["vue/alova"]);
+    const client = file(files, "src/lib/alova.ts");
+    expect(client.source).toBe("vue/alova");
+    expect(client.contents).toContain("createAlova(");
+    expect(client.contents).toContain("statesHook: vueHook");
+    expect(client.contents).toContain("requestAdapter: adapterFetch()");
+    expect(client.contents).toContain("baseURL: import.meta.env.VITE_API_BASE_URL");
+    expect(client.contents).toContain("timeout: 15_000");
+    expect(file(files, "src/api/todos.ts").contents).toContain("alova.Get<Todo[]>");
+    expect(file(files, "src/composables/useTodos.ts").contents).toContain("from 'alova/client'");
+    expect(pkg(files).dependencies.alova).toBe("^3.5.5");
+    // Alova needs no `app.use`; the entry stays byte-identical to the base.
+    expect(file(files, "src/main.ts").contents).toBe(BASE_MAIN);
+  });
+
+  test("query / colada / alova are mutually exclusive", () => {
     expectConflict(["vue/query", "vue/colada"], "vue/data");
+    expectConflict(["vue/query", "vue/alova"], "vue/data");
+    expectConflict(["vue/colada", "vue/alova"], "vue/data");
   });
 });
 

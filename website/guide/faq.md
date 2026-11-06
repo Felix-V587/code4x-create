@@ -33,7 +33,7 @@
 
 ## 为什么 Vue 生成物有两个组件库不能同时选？
 
-UI 套件共享同一个「主组件体系」槽位（`group: vue/ui`），混用会叠加两套样式与装配模型，因此设计为互斥。CSS 引擎（`group: vue/css`）与数据层（`group: vue/data`）同理。
+UI 套件共享同一个「主组件体系」槽位（`group: vue/ui`），混用会叠加两套样式与装配模型，因此设计为互斥。CSS 引擎（`group: vue/css`）与请求/数据层（`group: vue/data`）同理。
 
 ## 预设和 features 能一起用吗？
 
