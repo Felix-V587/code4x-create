@@ -11,6 +11,9 @@
     "ci:tier2": "node scripts/tier2-matrix.mjs",
     "ci:tier2:all": "node scripts/tier2-matrix.mjs --all",
     "ci:tier3": "bash scripts/tier3-smoke.sh",
+    "docs:dev": "pnpm -C website dev",
+    "docs:build": "pnpm -C website build",
+    "docs:preview": "pnpm -C website preview",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish"

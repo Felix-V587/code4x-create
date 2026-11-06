@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="code4x">
+  <rect x="0" y="0" width="32" height="32" rx="7" fill="#A94D0A"/>
+  <!-- anchor brackets: the four corners of an assembly point -->
+  <g fill="none" stroke="#FBF3E4" stroke-width="2.6" stroke-linecap="square">
+    <path d="M7.3 12.2 V 7.3 H 12.2"/>
+    <path d="M19.8 7.3 H 24.7 V 12.2"/>
+    <path d="M24.7 19.8 V 24.7 H 19.8"/>
+    <path d="M12.2 24.7 H 7.3 V 19.8"/>
+  </g>
+  <rect x="13.4" y="13.4" width="5.2" height="5.2" fill="#FBF3E4"/>
+</svg>

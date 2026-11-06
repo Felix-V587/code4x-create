@@ -70,6 +70,18 @@ vp -C packages/cli pack   # 构建 CLI 与模板资产到 packages/cli/dist/
 
 Vite+ 工具链说明见 [AGENTS.md](./AGENTS.md)。
 
+### 用户手册（文档站）
+
+用户手册使用 VitePress，位于 `website/`（独立的 pnpm 项目）：
+
+```bash
+pnpm -C website install
+pnpm -C website dev      # 本地预览
+pnpm -C website build    # 构建到 website/.vitepress/dist
+```
+
+根脚本 `pnpm docs:dev` / `pnpm docs:build` / `pnpm docs:preview` 为等价入口。GitHub Actions 在 `main` 分支的 `website/**` 变更时自动部署到 GitHub Pages（`.github/workflows/docs.yml`；需先在仓库 Settings → Pages 选择 GitHub Actions）。
+
 ## 验证 / CI
 
 三级验证（验收口径见 [docs/06](./docs/06-template-ecosystem-plan.md) §0）：
@@ -116,6 +128,7 @@ packages/cli/   发布包（name = @code4x/cli；bin = create-code4x）
   tests/        单测与 CLI e2e
 docs/           设计文档：生态调研 / 架构决策 / wiring 规格 / prompt 流
 fixtures/       vp 集成 harness（本地 `vp create code4x` 端到端验证）
+website/        用户手册（VitePress，独立 pnpm 项目）
 ```
 
 ## 许可

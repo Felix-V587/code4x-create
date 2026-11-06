@@ -1,0 +1,592 @@
+/* ============================================================
+   code4x docs theme — "scaffold precision"
+   Warm paper / ink, one burnt-orange accent, mono annotations.
+   Extends the VitePress default theme; CSS only.
+   ============================================================ */
+
+/* ---------- 1. Design tokens ---------- */
+
+:root {
+  /* palette — light (warm paper) */
+  --c4x-bg: #f7f4ec;
+  --c4x-bg-alt: #f2efe6;
+  --c4x-bg-elv: #fdfbf5;
+  --c4x-bg-soft: #edeadd;
+  --c4x-text-1: #24211a;
+  --c4x-text-2: #5c574b;
+  --c4x-text-3: #7f7a6b;
+  --c4x-divider: rgba(36, 33, 26, 0.13);
+  --c4x-acc: #a34a08;
+  --c4x-acc-strong: #7e3a08;
+  --c4x-acc-soft: rgba(163, 74, 8, 0.09);
+  --c4x-on-acc: #fbf6ea;
+  --c4x-grid: rgba(36, 33, 26, 0.06);
+  --c4x-selection: rgba(163, 74, 8, 0.22);
+  --c4x-hero-shadow: 0 24px 60px -28px rgba(36, 30, 20, 0.4);
+
+  /* map to VitePress vars */
+  --vp-font-family-base: "Space Grotesk", "PingFang SC", "Hiragino Sans GB",
+    "Noto Sans SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+  --vp-font-family-mono: "IBM Plex Mono", ui-monospace, "SF Mono",
+    "Cascadia Mono", Consolas, monospace;
+
+  --vp-c-bg: var(--c4x-bg);
+  --vp-c-bg-alt: var(--c4x-bg-alt);
+  --vp-c-bg-elv: var(--c4x-bg-elv);
+  --vp-c-bg-soft: var(--c4x-bg-soft);
+  --vp-c-text-1: var(--c4x-text-1);
+  --vp-c-text-2: var(--c4x-text-2);
+  --vp-c-text-3: var(--c4x-text-3);
+  --vp-c-divider: var(--c4x-divider);
+  --vp-c-gutter: var(--c4x-divider);
+
+  --vp-c-brand-1: var(--c4x-acc);
+  --vp-c-brand-2: var(--c4x-acc-strong);
+  --vp-c-brand-3: #c96716;
+  --vp-c-brand-soft: var(--c4x-acc-soft);
+  --vp-c-brand: var(--c4x-acc);
+
+  --vp-c-gray-1: #6f6a5e;
+  --vp-c-gray-2: #575246;
+  --vp-c-gray-3: #8a8477;
+  --vp-c-gray-soft: rgba(36, 33, 26, 0.07);
+
+  --vp-c-default-1: var(--vp-c-gray-1);
+  --vp-c-default-2: var(--vp-c-gray-2);
+  --vp-c-default-3: var(--vp-c-gray-3);
+  --vp-c-default-soft: var(--vp-c-gray-soft);
+
+  --vp-nav-bg-color: var(--c4x-bg);
+  --vp-sidebar-bg-color: var(--c4x-bg);
+
+  --vp-button-brand-bg: var(--c4x-acc);
+  --vp-button-brand-text: var(--c4x-on-acc);
+  --vp-button-brand-border: var(--c4x-acc);
+  --vp-button-brand-hover-bg: var(--c4x-acc-strong);
+  --vp-button-brand-hover-text: var(--c4x-on-acc);
+  --vp-button-brand-hover-border: var(--c4x-acc-strong);
+  --vp-button-brand-active-bg: var(--c4x-acc-strong);
+  --vp-button-brand-active-text: var(--c4x-on-acc);
+  --vp-button-brand-active-border: var(--c4x-acc-strong);
+
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-text: var(--c4x-text-1);
+  --vp-button-alt-border: rgba(36, 33, 26, 0.35);
+  --vp-button-alt-hover-bg: var(--c4x-acc-soft);
+  --vp-button-alt-hover-text: var(--c4x-acc-strong);
+  --vp-button-alt-hover-border: var(--c4x-acc);
+  --vp-button-alt-active-bg: var(--c4x-bg-soft);
+  --vp-button-alt-active-text: var(--c4x-text-1);
+  --vp-button-alt-active-border: rgba(36, 33, 26, 0.5);
+
+  --vp-code-block-bg: #f1eee3;
+  --vp-code-color: #7c3b06;
+  --vp-code-bg: rgba(163, 74, 8, 0.09);
+  --vp-code-lang-color: var(--vp-c-text-3);
+  --vp-code-copy-code-bg: var(--c4x-bg-elv);
+}
+
+.dark {
+  /* palette — dark (warm near-black) */
+  --c4x-bg: #14120e;
+  --c4x-bg-alt: #191712;
+  --c4x-bg-elv: #1c1a14;
+  --c4x-bg-soft: #201d16;
+  --c4x-text-1: #eae6da;
+  --c4x-text-2: #ada695;
+  --c4x-text-3: #837d6b;
+  --c4x-divider: rgba(234, 230, 218, 0.15);
+  --c4x-acc: #f0a151;
+  --c4x-acc-strong: #ffb566;
+  --c4x-acc-soft: rgba(240, 161, 81, 0.13);
+  --c4x-on-acc: #241505;
+  --c4x-grid: rgba(234, 230, 218, 0.05);
+  --c4x-selection: rgba(240, 161, 81, 0.3);
+  --c4x-hero-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.65);
+
+  --vp-c-brand-3: #b96f22;
+
+  --vp-c-gray-1: #b3ac9a;
+  --vp-c-gray-2: #9a9381;
+  --vp-c-gray-3: #7e7867;
+  --vp-c-gray-soft: rgba(234, 230, 218, 0.09);
+
+  --vp-button-alt-border: rgba(234, 230, 218, 0.35);
+  --vp-button-alt-hover-text: var(--c4x-acc);
+  --vp-button-alt-active-border: rgba(234, 230, 218, 0.5);
+
+  --vp-code-block-bg: #1a1712;
+  --vp-code-color: var(--c4x-acc);
+  --vp-code-bg: rgba(240, 161, 81, 0.12);
+}
+
+/* ---------- 2. Base polish ---------- */
+
+body {
+  letter-spacing: 0.01em;
+}
+
+::selection {
+  background: var(--c4x-selection);
+}
+
+:focus-visible {
+  outline: 2px solid var(--c4x-acc);
+  outline-offset: 2px;
+}
+
+/* headings — tighter, poster-like */
+.vp-doc h1 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.vp-doc h2,
+.vp-doc h3 {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* blueprint rules between sections */
+.vp-doc h2 {
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 2rem;
+}
+
+/* tables — survey-sheet headers */
+.vp-doc th {
+  background: var(--vp-c-bg-soft);
+  border-bottom: 2px solid var(--vp-c-text-1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.vp-doc table {
+  border-collapse: collapse;
+}
+
+/* blockquote — annotated margin note */
+.vp-doc blockquote {
+  border-left: 2px solid var(--vp-c-brand-1);
+  background: var(--vp-c-bg-soft);
+  border-radius: 0 4px 4px 0;
+  padding: 12px 18px;
+  margin: 20px 0;
+  color: var(--vp-c-text-2);
+}
+
+.vp-doc blockquote > p {
+  margin: 0;
+  font-size: 0.92em;
+}
+
+/* inline code rhythm */
+.vp-doc :not(pre, h1, h2, h3, h4) > code {
+  font-size: 0.86em;
+}
+
+/* custom blocks (tip/warning/danger) */
+.vp-doc .custom-block.tip {
+  border-color: var(--c4x-acc);
+}
+
+/* nav & sidebar */
+.VPNavBarTitle .title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* footer */
+.VPFooter {
+  border-top: 1px solid var(--vp-c-divider) !important;
+  background: transparent;
+}
+
+/* ---------- 3. Home hero ---------- */
+
+.VPHomeHero .main {
+  position: relative;
+  isolation: isolate;
+}
+
+/* faint blueprint grid behind the hero copy */
+@media (min-width: 960px) {
+  .VPHome .VPHomeHero {
+    overflow: clip;
+  }
+  .c4x-hero-grid {
+    position: absolute;
+    z-index: -1;
+    inset: -128px 0 auto 0;
+    height: 560px;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--c4x-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--c4x-grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+    -webkit-mask-image: radial-gradient(72% 82% at 50% 28%, #000, transparent 90%);
+    mask-image: radial-gradient(72% 82% at 50% 28%, #000, transparent 90%);
+  }
+}
+
+.VPHomeHero .name {
+  color: var(--c4x-text-1);
+  font-size: clamp(3.2rem, 9vw, 4.5rem);
+  letter-spacing: -0.04em;
+  line-height: 1.06;
+}
+
+.VPHomeHero .text {
+  font-size: clamp(1.75rem, 4.4vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.VPHomeHero .tagline {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--c4x-text-2);
+  max-width: 620px;
+  margin-inline: auto;
+}
+
+.VPHomeHero .container {
+  max-width: 960px;
+}
+
+.VPButton {
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- 4. Hero stat strip ---------- */
+
+.c4x-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 10px;
+  list-style: none;
+  margin: 28px auto 0;
+  padding: 0;
+}
+
+.c4x-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-inline: 18px;
+  border-left: 1px solid var(--vp-c-divider);
+}
+
+.c4x-stat:first-child {
+  border-left: 0;
+}
+
+.c4x-stat-n {
+  font-family: var(--vp-font-family-mono);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--c4x-acc);
+  font-variant-numeric: tabular-nums;
+}
+
+.c4x-stat-l {
+  font-size: 0.85rem;
+  color: var(--c4x-text-2);
+}
+
+/* ---------- 5. Feature grid — numbered, squared ---------- */
+
+.VPFeatures {
+  padding: 24px 0 88px !important;
+}
+
+.VPFeatures .items {
+  counter-reset: c4x-feat;
+}
+
+.VPFeature {
+  counter-increment: c4x-feat;
+  position: relative;
+  border: 1px solid var(--vp-c-divider) !important;
+  background: var(--vp-c-bg-elv) !important;
+  border-radius: 4px !important;
+}
+
+.VPFeature::before {
+  content: counter(c4x-feat, decimal-leading-zero);
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--c4x-acc);
+}
+
+.VPFeature .title {
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .VPFeature {
+    transition: border-color 0.25s ease, transform 0.25s ease;
+  }
+  .VPFeature:hover {
+    border-color: var(--c4x-acc) !important;
+    transform: translateY(-2px);
+  }
+}
+
+/* ---------- 6. Quick-start band + terminal ---------- */
+
+.c4x-band {
+  padding: 40px 24px 128px;
+  max-width: 1152px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .c4x-band {
+    padding-inline: 32px;
+  }
+}
+
+@media (min-width: 960px) {
+  .c4x-band {
+    padding-top: 56px;
+  }
+}
+
+.c4x-kicker {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  color: var(--c4x-acc);
+  margin: 0 0 14px;
+}
+
+.c4x-band-title {
+  font-size: clamp(1.65rem, 3.2vw, 2.15rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--c4x-text-1);
+  margin: 0 0 14px;
+}
+
+.c4x-band-lede {
+  max-width: 620px;
+  margin: 0 auto;
+  font-size: 0.98rem;
+  line-height: 1.85;
+  color: var(--c4x-text-2);
+}
+
+/*. terminal window — always dark, a real shell on a warm page */
+
+.c4x-terminal {
+  margin: 36px auto 0;
+  max-width: 720px;
+  border: 1px solid rgba(234, 230, 218, 0.14);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--c4x-hero-shadow);
+  text-align: left;
+  color-scheme: dark;
+}
+
+.c4x-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  background: #1e1a12;
+  border-bottom: 1px solid rgba(234, 230, 218, 0.08);
+}
+
+.c4x-term-dots {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.c4x-term-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(234, 230, 218, 0.18);
+}
+
+.c4x-term-title {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: #9a927e;
+}
+
+.c4x-term-body {
+  margin: 0;
+  padding: 18px 20px 22px;
+  background: #17140e;
+  color: #d9d3c2;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.84rem;
+  line-height: 1.75;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.c4x-term-body .t-c {
+  color: #8f8668;
+  font-style: italic;
+  user-select: none;
+}
+
+.c4x-term-body .t-p {
+  color: #f0a151;
+  font-weight: 600;
+}
+
+.c4x-term-body .t-k {
+  color: #9a9280;
+}
+
+.c4x-term-body .t-v {
+  color: #ede8d8;
+}
+
+.c4x-term-body .t-ok {
+  color: #f0a151;
+  font-weight: 600;
+}
+
+.c4x-term-body .t-caret {
+  display: inline-block;
+  width: 0.58em;
+  height: 1.15em;
+  margin-left: 3px;
+  background: #f0a151;
+  vertical-align: -0.2em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .c4x-term-body .t-caret {
+    animation: c4x-blink 1.15s steps(2, start) infinite;
+  }
+  @keyframes c4x-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+}
+
+/*. preset chips */
+
+.c4x-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  list-style: none;
+  margin: 30px 0 0;
+  padding: 0;
+}
+
+.c4x-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  background: var(--vp-c-bg-elv);
+}
+
+.c4x-chip code {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--c4x-acc);
+  background: none;
+  padding: 0;
+}
+
+.c4x-chip-desc {
+  font-size: 0.82rem;
+  color: var(--c4x-text-2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .c4x-chip {
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+}
+
+.c4x-chip:hover {
+  border-color: var(--c4x-acc);
+  background: var(--c4x-acc-soft);
+}
+
+.c4x-chip:hover .c4x-chip-desc {
+  color: var(--c4x-text-1);
+}
+
+.c4x-note {
+  margin: 22px 0 0;
+  font-size: 0.83rem;
+  color: var(--c4x-text-3);
+}
+
+.c4x-note code {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.9em;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 3px;
+  padding: 1px 6px;
+  color: var(--c4x-text-2);
+}
+
+.c4x-note a {
+  color: var(--c4x-acc);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- 7. Small screens ---------- */
+
+@media (max-width: 639px) {
+  .c4x-stats {
+    max-width: 300px;
+    margin-inline: auto;
+  }
+  .c4x-stat {
+    flex-basis: 50%;
+    justify-content: center;
+    border-left: 0 !important;
+  }
+  .c4x-stat:nth-child(2) {
+    border-left: 1px solid var(--vp-c-divider) !important;
+  }
+  .c4x-stat:nth-child(n + 3) {
+    border-top: 1px solid var(--vp-c-divider);
+    padding-top: 10px;
+  }
+  .c4x-band {
+    padding-inline: 20px;
+  }
+  .c4x-term-body {
+    font-size: 0.78rem;
+    padding-inline: 14px;
+  }
+  .c4x-chip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
