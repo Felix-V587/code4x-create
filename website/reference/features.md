@@ -24,13 +24,13 @@ Feature id 形如 `框架/能力`。命令行里可以写全限定名，也可�
 | `vue/pinia` | Pinia | `vue` | — |
 | `vue/vueuse` | VueUse | `vue` | — |
 | `vue/vueuse-router` | VueUse Router | `vue`, `vue/vueuse`, `vue/router` | — |
-| `vue/i18n` | i18n | `vue` | — |
 | `vue/query` | TanStack Query | `vue` | `vue/data` |
 | `vue/colada` | Pinia Colada | `vue`, `vue/pinia` | `vue/data` |
 | `vue/alova` | Alova | `vue` | `vue/data` |
 | `vue/testing` | Testing | `vue` | — |
 | `vue/tailwind` | Tailwind CSS | `vue` | `vue/css` |
 | `vue/unocss` | UnoCSS | `vue` | `vue/css` |
+| `vue/reka-ui` | Reka UI | `vue` | `vue/ui` |
 | `vue/naive-ui` | Naive UI | `vue` | `vue/ui` |
 | `vue/element-plus` | Element Plus | `vue` | `vue/ui` |
 | `vue/shadcn-vue` | shadcn-vue | `vue`, `vue/tailwind` | `vue/ui` |
@@ -41,9 +41,9 @@ Feature id 形如 `框架/能力`。命令行里可以写全限定名，也可�
 
 | 章节 | 形态 | 成员 |
 |---|---|---|
-| Vue ecosystem | 多选 | pinia / router / vueuse / vueuse-router / i18n / testing |
+| Vue ecosystem | 多选 | pinia / router / vueuse / vueuse-router / testing |
 | Request strategy | 单选 + None | alova / colada / query |
-| UI framework | 单选 + None | naive-ui / element-plus / shadcn-vue |
+| UI framework | 单选 + None | reka-ui（默认）/ naive-ui / element-plus / shadcn-vue |
 | CSS engine | 单选 + None | tailwind / unocss |
 
 选择 shadcn-vue 会自动带入 tailwind 并跳过 CSS engine。未归组的 feature（未来新增且未标注 `promptSection`）会落到 `Other integrations` 多选。
@@ -62,7 +62,7 @@ Feature id 形如 `框架/能力`。命令行里可以写全限定名，也可�
 |---|---|
 | `vue/data` | `vue/query` ⟂ `vue/colada` ⟂ `vue/alova` |
 | `vue/css` | `vue/tailwind` ⟂ `vue/unocss` |
-| `vue/ui` | `vue/naive-ui` ⟂ `vue/element-plus` ⟂ `vue/shadcn-vue` |
+| `vue/ui` | `vue/reka-ui` ⟂ `vue/naive-ui` ⟂ `vue/element-plus` ⟂ `vue/shadcn-vue` |
 
 ## 解析规则
 

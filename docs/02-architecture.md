@@ -1,7 +1,7 @@
 # 02 · 架构与关键技术决策
 
 > 状态：定稿候选（OQ-1~7 未见异议，按倾向定案）。
-> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`、`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`、`vue/pinia`、`vue/router`、`vue/vueuse`、`vue/vueuse-router`、`vue/i18n`、`vue/query`、`vue/colada`、`vue/alova`、`vue/testing`、`vue/tailwind`、`vue/unocss`、`vue/naive-ui`、`vue/element-plus`、`vue/shadcn-vue`、`electron/builder`；presets：`hono-api`、`hono-standard`、`hono-full`、`vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-unocss-min`、`vue-shadcn-tw`、`vue-full`。
+> v1 范围：Hono + Vue + Electron；feature：`hono/zod`、`hono/swagger-openapi`、`hono/api-guard`、`hono/env`、`hono/testing`、`hono/logging`、`hono/http-hardening`、`vue/pinia`、`vue/router`、`vue/vueuse`、`vue/vueuse-router`、`vue/query`、`vue/colada`、`vue/alova`、`vue/testing`、`vue/tailwind`、`vue/unocss`、`vue/reka-ui`、`vue/naive-ui`、`vue/element-plus`、`vue/shadcn-vue`、`electron/builder`；presets：`hono-api`、`hono-standard`、`hono-full`、`vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-unocss-min`、`vue-shadcn-tw`、`vue-full`。
 > 上游依据：[01-ecosystem-research.md](./01-ecosystem-research.md)；机制细节：[03-feature-wiring-spec.md](./03-feature-wiring-spec.md)。
 
 ## 1. 五层架构（核心两层必须是纯函数）
@@ -109,6 +109,7 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 - ✅ **M4 / M10–M11**：完整交互流程、工作区场景 A、Tier-2/3 CI、presets 均已完成；`0.1.0` 发布流程就绪，待 npm 凭据后实际发布。
 - ✅ **M12**：交互式项目类型（Standard / Monorepo）+ Vue 引导式分步（`promptSections`）+ 整仓生成（`--monorepo` / `--app`：根 package.json / pnpm-workspace.yaml + allowBuilds / .gitignore / README / rc，应用位于 `apps/<app>`；monorepo 固定 pnpm，install/git 在根执行）。
 - ✅ **M13**：Vue 基座对齐 Vite+ 官方 `vue-ts` 模板——`@vue/tsconfig` + project references（`tsconfig.app.json` / `tsconfig.node.json`）、`vue-tsc -b`、`lazyPlugins`、`vite` → `@voidzero-dev/vite-plus-core` alias；六组 Vue 生成物 install→build→check 通过。
+- ✅ **M14**：Vue 能力调整（移除 `vue/i18n`，新增 `vue/reka-ui` 并设为默认 UI）+ 全栈快捷模式（N0 Full-stack / `--fullstack`：Hono API + Vue Web + Electron 桌面壳单仓库；固定 pnpm、根脚本并行、Web 5175 / Electron 5173）。
 - **Defer**：react（低风险增量）、add-to-existing、远程模板、第三方插件、Bun/Deno 变体。
 
 ## 8. 风险与缓解

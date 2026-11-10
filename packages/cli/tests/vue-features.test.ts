@@ -169,28 +169,24 @@ describe("render / vue/vueuse-router", () => {
   });
 });
 
-describe("render / vue/i18n", () => {
-  test("ships locales + i18n instance and wires imports/app-use", () => {
-    const { files } = generate(["i18n"]);
-    expect(file(files, "src/i18n.ts").contents).toContain("legacy: false");
-    expect(file(files, "src/locales/en.ts").contents).toContain("hello");
-    expect(file(files, "src/locales/zh-CN.ts").contents).toContain("你好");
-    const main = file(files, "src/main.ts").contents;
-    expect(main).toContain("import { i18n } from './i18n'");
-    expect(main).toContain("app.use(i18n)");
-    expect(file(files, "src/App.vue").contents).toContain("{{ $t('hello') }}");
+describe("render / vue/reka-ui", () => {
+  test("adds reka-ui and ships a wired dialog example", () => {
+    const { files } = generate(["reka-ui"]);
+    expect(pkg(files).dependencies["reka-ui"]).toBe("^2.11.0");
+    const dialog = file(files, "src/components/RekaDialog.vue");
+    expect(dialog.source).toBe("vue/reka-ui");
+    const app = file(files, "src/App.vue").contents;
+    expect(app).toContain("import RekaDialog from './components/RekaDialog.vue'");
+    expect(app).toContain("<RekaDialog />");
+    // All wiring lives in the app-script/app-template anchors; the entry stays
+    // byte-identical to the base.
+    expect(file(files, "src/main.ts").contents).toBe(BASE_MAIN);
   });
 
-  test("registers the vite plugin via vite-imports + vite-plugins", () => {
-    const vite = file(generate(["i18n"]).files, "vite.config.ts").contents;
-    expect(vite).toContain("import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'");
-    expect(vite).toContain("VueI18nPlugin({ include: './src/locales/**' }),");
-  });
-
-  test("adds vue-i18n + @intlify/unplugin-vue-i18n", () => {
-    const deps = pkg(generate(["i18n"]).files);
-    expect(deps.dependencies["vue-i18n"]).toBe("^11.4.0");
-    expect(deps.devDependencies["@intlify/unplugin-vue-i18n"]).toBe("^11.2.0");
+  test("reka-ui is mutually exclusive with the other vue/ui kits", () => {
+    expectConflict(["vue/reka-ui", "vue/naive-ui"], "vue/ui");
+    expectConflict(["vue/reka-ui", "vue/element-plus"], "vue/ui");
+    expectConflict(["vue/reka-ui", "vue/shadcn-vue"], "vue/ui");
   });
 });
 
@@ -366,13 +362,12 @@ describe("presets / vue (M8a)", () => {
     return render(resolve({ ...ANSWERS, features: preset.features }, registry), registry);
   }
 
-  test("vue-standard = router + pinia + vueuse + i18n", () => {
+  test("vue-standard = router + pinia + vueuse", () => {
     const preset = expandPreset("vue-standard", registry);
-    expect(preset.features).toEqual(["vue/router", "vue/pinia", "vue/vueuse", "vue/i18n"]);
+    expect(preset.features).toEqual(["vue/router", "vue/pinia", "vue/vueuse"]);
     const files = presetPlan("vue-standard");
     expect(file(files, "src/router/index.ts")).toBeDefined();
     expect(file(files, "src/stores/counter.ts")).toBeDefined();
-    expect(file(files, "src/i18n.ts")).toBeDefined();
     for (const entry of files) expect(entry.contents).not.toContain("@code4x");
   });
 
@@ -386,14 +381,7 @@ describe("presets / vue (M8a)", () => {
       resolve(
         {
           ...ANSWERS,
-          features: [
-            "vue/tailwind",
-            "vue/naive-ui",
-            "vue/i18n",
-            "vue/vueuse",
-            "vue/router",
-            "vue/pinia",
-          ],
+          features: ["vue/tailwind", "vue/naive-ui", "vue/vueuse", "vue/router", "vue/pinia"],
         },
         registry,
       ),
@@ -416,8 +404,6 @@ describe("presets / vue (M8a)", () => {
     expect(preset.features).toEqual(["vue/router", "vue/pinia", "vue/unocss"]);
     const files = presetPlan("vue-unocss-min");
     expect(file(files, "src/main.ts").contents).toContain("import 'virtual:uno.css'");
-    // No i18n in the minimal preset.
-    expect(files.some((entry) => entry.path === "src/i18n.ts")).toBe(false);
   });
 
   test("vue-full = standard + query + testing (semantics widened in M8a)", () => {
@@ -426,7 +412,6 @@ describe("presets / vue (M8a)", () => {
       "vue/router",
       "vue/pinia",
       "vue/vueuse",
-      "vue/i18n",
       "vue/query",
       "vue/testing",
     ]);

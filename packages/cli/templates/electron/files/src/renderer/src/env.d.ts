@@ -7,18 +7,17 @@ declare module '*.vue' {
   export default component
 }
 
-// Vite+ provides the renderer build via its bundled Vite; declare the CSS
-// side-effect import locally so `vue-tsc`/`vp check` resolve it without a
-// direct `vite` dependency (which would shadow Vite+'s aliased core).
+// Vite+ 通过内置的 Vite 提供渲染进程构建；在本地声明 CSS 副作用的导入，
+// 这样 `vue-tsc`/`vp check` 无需直接依赖 `vite`（否则会遮蔽 Vite+ 的别名核心）
+// 也能解析它。
 declare module '*.css' {
   const css: string
   export default css
 }
 
-// The renderer's view of `window.code4x` is derived from the shared channel
-// table (`src/shared/ipc.ts`), so argument/result types cannot drift from the
-// preload bridge. This file must stay a script (no top-level import/export) so
-// the wildcard module declarations above remain ambient.
+// 渲染进程看到的 `window.code4x` 由共享通道表（`src/shared/ipc.ts`）派生，
+// 因此参数/结果类型不会与 preload 桥接层不一致。此文件必须保持为脚本
+// （不包含顶层 import/export），以便上面的通配模块声明保持全局可见。
 type IpcChannel = import('../../shared/ipc').IpcChannel
 type IpcArgs<C extends IpcChannel> = import('../../shared/ipc').IpcArgs<C>
 type IpcResult<C extends IpcChannel> = import('../../shared/ipc').IpcResult<C>

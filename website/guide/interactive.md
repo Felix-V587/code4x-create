@@ -5,7 +5,7 @@
 ## 问题顺序
 
 ```text
-N0 项目类型（Standard project / Monorepo project）
+N0 项目类型（Standard / Monorepo / Full-stack）
 N1 目标文件夹（workspace 内：扫描 packages 后选择 + 项目名）
 N2 框架（Hono / Vue / Electron）
 N2b 应用名（仅 Monorepo；默认 api / web / desktop）
@@ -21,8 +21,20 @@ N7 是否初始化 git（默认 Yes）
 |---|---|
 | Standard project | 在目标目录直接生成单个应用（默认） |
 | Monorepo project | 在目标目录生成 pnpm workspace 根，应用位于 `apps/<应用名>/` |
+| Full-stack project | 直接生成 `apps/api`(Hono) + `apps/web`(Vue) + `apps/desktop`(Electron) 标准全栈单仓库 |
 
 Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 workspace 根执行。生成物的根 `pnpm-workspace.yaml` 会带上应用所需的 `allowBuilds`。
+
+### 全栈快捷模式
+
+选择 **Full-stack project**（或非交互 `--fullstack`）会跳过框架/能力提问，直接固定为：
+
+- `apps/api`：Hono + api-guard + zod + testing
+- `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175
+- `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173
+- 根 `pnpm dev` 并行启动三端；包管理器固定 pnpm
+
+全栈模式不接受 `--framework` / `--features` / `--preset` / `--app`（会报 `E-CONFLICT`）。
 
 ### 目标文件夹
 
@@ -46,13 +58,13 @@ Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 wor
 选中 Vue 后，可选能力按三步（UI 相关拆成两个问题）依次提问：
 
 ```text
-1. Vue ecosystem    多选：Pinia / Vue Router / VueUse / VueUse Router / i18n / Testing
+1. Vue ecosystem    多选：Pinia / Vue Router / VueUse / VueUse Router / Testing
 2. Request strategy 单选：None / Alova / Pinia Colada / TanStack Query
-3. UI framework     单选：None / Naive UI / Element Plus / shadcn-vue
+3. UI framework     单选：Reka UI / Naive UI / Element Plus / shadcn-vue
    CSS engine       单选：None / Tailwind CSS / UnoCSS
 ```
 
-- 默认勾选 VueUse、i18n；UI 默认 Naive UI，CSS 默认 Tailwind。
+- 默认勾选 VueUse；UI 默认 Reka UI，CSS 默认 Tailwind。
 - 选择 shadcn-vue 时 CSS 引擎自动锁定 Tailwind（该问题会跳过）。
 - Hono / Electron 以及没有分步配置的框架仍使用一次多选。
 

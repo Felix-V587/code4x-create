@@ -75,14 +75,13 @@ describe("collectAnswers / vue guided prompts", () => {
     const answers = await collectAnswers({}, prompter, registry, deps());
 
     expect(multiCalls.find((call) => call.message === "Vue ecosystem")?.initialValues).toEqual([
-      "vue/i18n",
       "vue/vueuse",
     ]);
     expect(selectCalls.find((call) => call.message === "Request strategy")?.initialValue).toBe(
       "none",
     );
     expect(selectCalls.find((call) => call.message === "UI framework")?.initialValue).toBe(
-      "vue/naive-ui",
+      "vue/reka-ui",
     );
     expect(selectCalls.find((call) => call.message === "CSS engine")?.initialValue).toBe(
       "vue/tailwind",

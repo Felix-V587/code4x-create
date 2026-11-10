@@ -1,4 +1,4 @@
-# Logs
+# 日志
 logs
 *.log
 npm-debug.log*
@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# 编辑器目录与文件
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -23,6 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# UI-kit unplugins generate these at build time
+# UI 组件库的 unplugin 会在构建时生成这些文件
 auto-imports.d.ts
 components.d.ts

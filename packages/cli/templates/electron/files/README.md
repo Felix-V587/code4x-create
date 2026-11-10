@@ -18,8 +18,8 @@ restarts Electron whenever the main/preload bundles change.
 ## Build & run
 
 ```bash
-pnpm build   # vp pack (main + preload -> dist/*/index.cjs) && vp build (renderer -> dist/renderer)
-pnpm start   # electron .
+pnpm build   # vp pack（main + preload -> dist/*/index.cjs）&& vp build（renderer -> dist/renderer）
+pnpm start   # 启动 Electron
 ```
 
 `pnpm typecheck` runs `vue-tsc --noEmit`; `pnpm check` runs `vp check`
@@ -28,12 +28,12 @@ pnpm start   # electron .
 ## Project layout
 
 ```
-src/main/index.ts       Electron main process (window, protocol, lifecycle)
-src/preload/index.ts    contextBridge surface exposed as window.code4x
-src/shared/ipc.ts       typed IPC channel table shared by all three processes
-src/renderer/           Vue 3 renderer (index.html + src/)
-scripts/dev.mjs         zero-dependency dev orchestrator
-vite.config.ts          renderer (Vite) + main/preload (vp pack) config
+src/main/index.ts       Electron 主进程（窗口、协议、生命周期）
+src/preload/index.ts    通过 contextBridge 暴露为 window.code4x 的接口
+src/shared/ipc.ts       三个进程共享的类型化 IPC 通道表
+src/renderer/           Vue 3 渲染进程（index.html + src/）
+scripts/dev.mjs         零依赖的开发编排器
+vite.config.ts          渲染进程（Vite）+ 主进程/preload（vp pack）配置
 ```
 
 ## Renderer loading (dev vs production)

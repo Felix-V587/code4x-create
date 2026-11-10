@@ -3,9 +3,8 @@ import { mount } from '@vue/test-utils'
 import { defineComponent, h, ref } from 'vue'
 import { describe, expect, test } from 'vite-plus/test'
 
-// Self-contained: an inline component that only depends on `vue`, so this test
-// stays green whatever optional plugins (router / i18n / UI kit) the project
-// has installed.
+// 自包含：内联组件仅依赖 `vue`，因此无论项目安装了哪些可选插件
+//（router / i18n / UI 组件库），该测试都能保持通过。
 const Counter = defineComponent({
   setup() {
     const count = ref(0)

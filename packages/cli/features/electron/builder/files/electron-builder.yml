@@ -1,30 +1,30 @@
-# electron-builder packaging configuration.
-# Docs: https://www.electron.build/configuration/configuration
+# electron-builder 打包配置。
+# 文档：https://www.electron.build/configuration/configuration
 #
-# TODO(customize): set a reverse-DNS `appId` for your app before shipping, e.g.
+# TODO（自定义）：发布前为你的应用设置一个反向 DNS 格式的 `appId`，例如
 #   appId: com.example.myapp
-# electron-builder otherwise falls back to its own default app id. The product
-# name is derived from `package.json#name`.
+# 否则 electron-builder 会回退到它自己的默认 app id。产品名由
+# `package.json#name` 派生。
 
 directories:
-  # Keep installers out of `dist/` (that is the Vite+ build output).
+  # 将安装包输出到 `dist/` 之外（`dist/` 是 Vite+ 的构建输出）。
   output: release
 
-# Bundle the compiled app only. `package.json` is always included; `dist/main`
-# is the entry pointed at by `package.json#main`, `dist/renderer` the UI.
+# 仅打包编译后的应用。`package.json` 始终会被包含；`dist/main` 是
+# `package.json#main` 指向的入口，`dist/renderer` 是 UI。
 files:
   - dist/**
   - package.json
 
-# asar is enabled by default; uncomment to opt out.
+# asar 默认启用；如需退出可取消注释。
 # asar: false
 
 linux:
   target:
     - AppImage
   category: Utility
-  # TODO(customize): AppImage desktop metadata. Set `maintainer` (and a
-  # `description` in package.json) when packaging .deb/.rpm.
+  # TODO（自定义）：AppImage 桌面元数据。在打包 .deb/.rpm 时设置 `maintainer`
+  #（以及 package.json 中的 `description`）。
 
 mac:
   target:

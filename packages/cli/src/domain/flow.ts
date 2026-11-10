@@ -19,6 +19,7 @@ import type {
 } from "./types.ts";
 import type { Registry } from "./registry.ts";
 import { fail } from "./errors.ts";
+import { FULLSTACK_APPS, uniqueWorkspaceName } from "./fullstack.ts";
 import { groupConflicts, normalizePackageName } from "./resolve.ts";
 
 export class CancelledError extends Error {
@@ -125,7 +126,7 @@ export async function collectAnswers(
   registry: Registry,
   deps: FlowDeps,
 ): Promise<Answers> {
-  // N0 — project type (standalone vs monorepo).
+  // N0 — project type (standalone / monorepo / full-stack).
   const projectType: ProjectType =
     partial.projectType ??
     ((await prompter.select({
@@ -141,6 +142,11 @@ export async function collectAnswers(
           value: "monorepo",
           label: "Monorepo project",
           hint: "pnpm workspace with the application under apps/",
+        },
+        {
+          value: "fullstack",
+          label: "Full-stack project",
+          hint: "Hono API + Vue web + Electron desktop in one pnpm workspace",
         },
       ],
     })) as ProjectType);
@@ -187,7 +193,12 @@ export async function collectAnswers(
 
       let name = partial.projectName;
       if (name === undefined) {
-        const defaultName = projectType === "monorepo" ? "my-workspace" : "my-app";
+        const defaultName =
+          projectType === "fullstack"
+            ? "my-fullstack"
+            : projectType === "monorepo"
+              ? "my-workspace"
+              : "my-app";
         const answer = (
           await prompter.text({
             message: "Project name",
@@ -200,11 +211,13 @@ export async function collectAnswers(
       targetDir = baseDir === "." ? name : join(baseDir, name);
     } else {
       const placeholder =
-        projectType === "monorepo"
-          ? "./my-workspace"
-          : partial.framework
-            ? `./${partial.framework}-api`
-            : "./my-app";
+        projectType === "fullstack"
+          ? "./my-fullstack"
+          : projectType === "monorepo"
+            ? "./my-workspace"
+            : partial.framework
+              ? `./${partial.framework}-api`
+              : "./my-app";
       const answer = await prompter.text({
         message: "Where should we create your project?",
         placeholder,
@@ -214,9 +227,17 @@ export async function collectAnswers(
     }
   }
 
-  // N2 — framework (dynamic from the registry, no preselection).
+  // N2 — framework (dynamic from the registry, no preselection). Full-stack
+  // projects use a fixed set of frameworks and skip this question.
   let framework = partial.framework;
-  if (framework === undefined) {
+  if (projectType === "fullstack") {
+    if (partial.framework !== undefined) {
+      fail("E-CONFLICT", "full-stack projects use fixed frameworks", {
+        fix: "remove --framework; full-stack includes hono, vue and electron",
+      });
+    }
+    framework = "fullstack";
+  } else if (framework === undefined) {
     const options = Object.values(registry.frameworks)
       .map((blueprint) => ({ value: blueprint.id, label: blueprint.title }))
       .sort((a, b) => (a.value < b.value ? -1 : 1));
@@ -224,10 +245,21 @@ export async function collectAnswers(
   }
 
   // Monorepo application name (directory under apps/) + workspace root name.
+  // Full-stack uses fixed app names; only the workspace root is named.
   let appName: string | undefined;
   let workspaceName: string | undefined;
   let projectName: string;
-  if (projectType === "monorepo") {
+  if (projectType === "fullstack") {
+    const rawBase = basename(resolve(targetDir));
+    workspaceName = uniqueWorkspaceName(
+      partial.projectName ?? normalizePackageName(rawBase),
+      FULLSTACK_APPS.map((app) => app.name),
+    );
+    projectName = workspaceName;
+    if (partial.projectName === undefined && workspaceName !== normalizePackageName(rawBase)) {
+      prompter.info(`Workspace name (package.json): ${workspaceName}`);
+    }
+  } else if (projectType === "monorepo") {
     if (partial.appName === undefined) {
       const defaultAppName = APP_NAME_DEFAULTS[framework] ?? "app";
       const raw = (
@@ -259,9 +291,17 @@ export async function collectAnswers(
   }
 
   // N4 — features. Frameworks with guided sections ask them one by one; the
-  // rest keep the flat multiselect (closure is still not prefilled).
+  // rest keep the flat multiselect (closure is still not prefilled). Full-stack
+  // uses a fixed per-app feature set.
   let features = partial.features;
-  if (features === undefined) {
+  if (projectType === "fullstack") {
+    if (partial.features !== undefined) {
+      fail("E-CONFLICT", "full-stack projects use fixed per-app features", {
+        fix: "remove --features; full-stack uses the api/web/desktop defaults",
+      });
+    }
+    features = [];
+  } else if (features === undefined) {
     const sections = registry.frameworks[framework]?.promptSections ?? [];
     features =
       sections.length > 0
@@ -269,16 +309,20 @@ export async function collectAnswers(
         : await askFlatFeatures(framework, prompter, registry);
   }
 
-  // N5 — package manager. Monorepo projects always use pnpm workspaces.
+  // N5 — package manager. Monorepo/full-stack projects always use pnpm.
   let packageManager: PackageManager;
-  if (projectType === "monorepo") {
+  if (projectType === "monorepo" || projectType === "fullstack") {
     if (partial.packageManager !== undefined && partial.packageManager !== "pnpm") {
-      fail("E-INVALID-VALUE", "monorepo projects use pnpm workspaces", {
+      fail("E-INVALID-VALUE", "workspace projects use pnpm workspaces", {
         fix: "use --pm pnpm or drop --pm",
       });
     }
     if (partial.packageManager === undefined) {
-      prompter.info("Monorepo projects use pnpm workspaces.");
+      prompter.info(
+        projectType === "fullstack"
+          ? "Full-stack projects use pnpm workspaces."
+          : "Monorepo projects use pnpm workspaces.",
+      );
     }
     packageManager = "pnpm";
   } else {
@@ -336,6 +380,10 @@ export async function collectAnswers(
   if (projectType === "monorepo") {
     answers.appName = appName;
     answers.workspaceName = workspaceName;
+  }
+  if (projectType === "fullstack") {
+    answers.workspaceName = workspaceName;
+    answers.stackApps = FULLSTACK_APPS;
   }
   if (partial.preset !== undefined) answers.preset = partial.preset;
   if (partial.variant !== undefined) answers.variant = partial.variant;

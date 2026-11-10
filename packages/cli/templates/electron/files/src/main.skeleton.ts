@@ -6,11 +6,10 @@ import { ipc, type IpcArgs, type IpcChannel, type IpcEnvelope, type IpcResult } 
 // @code4x:begin imports
 // @code4x:end imports
 
-// The renderer is served in production from `dist/renderer` over a custom
-// `app://` scheme: Electron's security checklist discourages `file://`, and
-// `protocol.handle` is the current API (`protocol.register*Protocol` is
-// deprecated since Electron 25). `registerSchemesAsPrivileged` must run before
-// the app is ready.
+// 生产环境中，渲染进程通过自定义 `app://` 协议从 `dist/renderer` 提供：
+// Electron 的安全检查清单不建议使用 `file://`，而 `protocol.handle` 是当前
+// API（`protocol.register*Protocol` 自 Electron 25 起已废弃）。
+// `registerSchemesAsPrivileged` 必须在应用就绪之前调用。
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ])
@@ -18,9 +17,9 @@ protocol.registerSchemesAsPrivileged([
 const rendererDir = join(__dirname, '../renderer')
 
 /**
- * Resolve an `app://` request path to a file inside `dist/renderer`, or `null`
- * when it escapes the directory (path-traversal guard). `normalize` collapses
- * `..` segments before the containment check.
+ * 将 `app://` 请求路径解析为 `dist/renderer` 内的文件，若越出该目录
+ * 则返回 `null`（路径穿越防护）。`normalize` 会在包含性检查之前
+ * 折叠 `..` 路径段。
  */
 function resolveRendererFile(pathname: string): string | null {
   const root = normalize(rendererDir)
@@ -29,15 +28,15 @@ function resolveRendererFile(pathname: string): string | null {
   return target
 }
 
-/** Deliberate error envelope: only `message` crosses the IPC boundary. */
+/** 刻意的错误信封：只有 `message` 会跨越 IPC 边界。 */
 function fail(message: string): IpcEnvelope<never> {
   return { ok: false, error: { message } }
 }
 
 /**
- * Register one handler per channel in `../shared/ipc`, validating arguments and
- * results against the shared schemas. A thrown error never crosses the boundary
- * with its stack or custom fields — only `message` is returned.
+ * 为 `../shared/ipc` 中的每个通道注册一个处理器，并依据共享 schema 校验
+ * 参数与结果。抛出的错误绝不会带着堆栈或自定义字段跨越边界——只返回
+ * `message`。
  */
 function register<C extends IpcChannel>(
   channel: C,
@@ -47,9 +46,9 @@ function register<C extends IpcChannel>(
     const parsedArgs = ipc[channel].args.safeParse(rawArgs)
     if (!parsedArgs.success) return fail('invalid IPC arguments')
     try {
-      // Indexing the const `ipc` object with a generic channel widens the schema
-      // to the union of every entry, so the parsed value is re-asserted as this
-      // channel's tuple (the schema above already validated the shape).
+      // 用泛型通道索引 const 对象 `ipc` 会把 schema 拓宽为所有条目的联合类型，
+      // 因此这里将解析后的值重新断言为该通道的元组（上面的 schema 已经校验过
+      // 其形状）。
       const args = parsedArgs.data as IpcArgs<C>
       const parsedResult = ipc[channel].result.safeParse(await handler(args))
       return parsedResult.success
@@ -80,14 +79,14 @@ function createWindow(): void {
     void window.loadURL('app://./index.html')
   }
 
-  // Open external links in the user's browser instead of a new Electron window.
+  // 在用户浏览器中打开外部链接，而不是新建 Electron 窗口。
   window.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
     return { action: 'deny' }
   })
 }
 
-// Keep a single running instance; focus the existing window on relaunch.
+// 保持单实例运行；再次启动时聚焦已有窗口。
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
@@ -105,13 +104,13 @@ if (!gotLock) {
       const { pathname } = new URL(request.url)
       const target = resolveRendererFile(pathname)
       if (target === null) return new Response('Forbidden', { status: 403 })
-      // Unknown paths fall back to `index.html` so history-mode routers and deep
-      // links resolve; assets that exist are served directly.
+      // 未知路径回退到 `index.html`，以便 history 模式路由和深层链接
+      // 能够解析；实际存在的资源则直接提供。
       const file = existsSync(target) ? target : join(rendererDir, 'index.html')
       return net.fetch(pathToFileURL(file).toString())
     })
 
-    // Add a channel in `../shared/ipc` first; these calls are then type-checked.
+    // 先在 `../shared/ipc` 中添加通道；这些调用随后会进行类型检查。
     register('app:ping', () => 'pong')
     register('app:echo', (args) => args[0])
 

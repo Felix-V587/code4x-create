@@ -354,6 +354,41 @@ describe("collectAnswers", () => {
     ).toBe(false);
   });
 
+  test("full-stack skips framework/feature/PM prompts and fixes all apps", async () => {
+    const prompter = scriptedPrompter({
+      text: ["./my-fullstack"],
+      select: ["fullstack"],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers({}, prompter, registry, deps());
+
+    expect(answers.projectType).toBe("fullstack");
+    expect(answers.framework).toBe("fullstack");
+    expect(answers.features).toEqual([]);
+    expect(answers.workspaceName).toBe("my-fullstack");
+    expect(answers.projectName).toBe("my-fullstack");
+    expect(answers.packageManager).toBe("pnpm");
+    expect(answers.stackApps?.map((app) => [app.name, app.framework])).toEqual([
+      ["api", "hono"],
+      ["web", "vue"],
+      ["desktop", "electron"],
+    ]);
+    expect(prompter.log.some((line) => line.startsWith("select:Which framework?"))).toBe(false);
+    expect(prompter.log.some((line) => line.startsWith("multiselect:Vue ecosystem"))).toBe(false);
+    expect(prompter.log.some((line) => line.startsWith("select:Package manager"))).toBe(false);
+  });
+
+  test("full-stack dedupes a workspace name that matches a fixed app", async () => {
+    const prompter = scriptedPrompter({
+      text: ["./web"],
+      select: ["fullstack"],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers({}, prompter, registry, deps());
+    expect(answers.workspaceName).toBe("web-workspace");
+    expect(answers.projectName).toBe("web-workspace");
+  });
+
   test("monorepo rejects a non-pnpm package manager", async () => {
     await expect(
       collectAnswers(

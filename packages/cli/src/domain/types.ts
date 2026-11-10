@@ -25,9 +25,18 @@ export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
  * Project shape chosen in the interactive flow:
  *   - `standalone`: one application generated directly in `targetDir`;
  *   - `monorepo`: a pnpm workspace root in `targetDir`, with the application
- *     generated under `apps/<appName>/`.
+ *     generated under `apps/<appName>/`;
+ *   - `fullstack`: a fixed Hono + Vue + Electron pnpm workspace (quick start).
  */
-export type ProjectType = "standalone" | "monorepo";
+export type ProjectType = "standalone" | "monorepo" | "fullstack";
+
+/** One application inside a full-stack workspace. */
+export interface StackApp {
+  name: string;
+  framework: FrameworkId;
+  /** Explicit feature selection; the resolver completes the closure. */
+  features: FeatureId[];
+}
 
 export type Answers = {
   /** Project directory, kept verbatim (filesystem use only). */
@@ -42,8 +51,10 @@ export type Answers = {
   projectType?: ProjectType;
   /** Monorepo only: normalized application directory name under `apps/`. */
   appName?: string;
-  /** Monorepo only: normalized workspace-root package name. */
+  /** Monorepo/full-stack: normalized workspace-root package name. */
   workspaceName?: string;
+  /** Full-stack only: fixed application plans (api / web / desktop). */
+  stackApps?: StackApp[];
   /** User's explicit selection; `resolve()` completes the dependency closure. */
   features: FeatureId[];
   packageManager?: PackageManager;

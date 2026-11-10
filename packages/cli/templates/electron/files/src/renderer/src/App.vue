@@ -18,7 +18,7 @@ async function echo() {
   try {
     echoOutput.value = await api.echo(echoInput.value)
   } catch (caught) {
-    // Only `message` crosses the IPC boundary; the preload rethrows it here.
+    // 只有 `message` 会跨越 IPC 边界；preload 在这里将它重新抛出。
     error.value = caught instanceof Error ? caught.message : String(caught)
   }
 }

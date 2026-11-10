@@ -1,14 +1,14 @@
 import { Hono } from 'hono'
 
 /**
- * Readiness probes. Each probe resolves when its dependency is healthy and
- * rejects otherwise; the first rejection makes `GET /readyz` answer 503.
+ * 就绪探针。每个探针在其依赖健康时 resolve，否则 reject；第一个 reject
+ * 会使 `GET /readyz` 返回 503。
  *
- * TODO: register real probes (database ping, cache, downstream API) before
- * relying on this endpoint in production.
+ * TODO：在生产环境中依赖此端点之前，注册真实的探针
+ *（数据库 ping、缓存、下游 API）。
  */
 const probes: Array<() => Promise<void>> = [
-  // No-op placeholder: always ready.
+  // 空操作占位：始终就绪。
   () => Promise.resolve(),
 ]
 

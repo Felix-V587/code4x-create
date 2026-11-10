@@ -7,8 +7,8 @@
 | `hono-api` | Hono | api-guard + zod + swagger-openapi |
 | `hono-standard` | Hono | api-guard + zod + testing |
 | `hono-full` | Hono | standard + swagger-openapi + logging + http-hardening |
-| `vue-standard` | Vue | router + pinia + vueuse + i18n |
-| `vue-naive-tw` | Vue | standard + naive-ui + tailwind（默认推荐） |
+| `vue-standard` | Vue | router + pinia + vueuse |
+| `vue-naive-tw` | Vue | standard + naive-ui + tailwind（常用推荐） |
 | `vue-element-tw` | Vue | standard + element-plus + tailwind |
 | `vue-shadcn-tw` | Vue | standard + tailwind + shadcn-vue |
 | `vue-unocss-min` | Vue | router + pinia + unocss |
@@ -47,7 +47,7 @@ node packages/cli/dist/cli.mjs my-web -p vue-naive-tw --features router,pinia -y
 
 ```bash
 node packages/cli/dist/cli.mjs my-web -f vue \
-  --features router,pinia,vueuse,i18n,query,testing,tailwind,shadcn-vue -y
+  --features router,pinia,vueuse,query,testing,tailwind,shadcn-vue -y
 ```
 
 完整的 id、依赖与互斥关系见 [Feature 矩阵](/reference/features)。

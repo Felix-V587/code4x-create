@@ -1,6 +1,6 @@
 # code4x-create 设计文档
 
-通用项目创建脚手架（对标 create-vite）：交互式 / 参数式创建多框架项目，按框架可选集成常用能力（Hono：zod / swagger / env / testing / logging / http-hardening / 中间件；Vue：pinia / vue-router / vueuse / i18n / query / tailwind / unocss / naive-ui / element-plus / shadcn-vue 等；Electron：Vue 3 渲染层 + vp pack 主/预加载进程 + electron-builder 打包）。
+通用项目创建脚手架（对标 create-vite）：交互式 / 参数式创建多框架项目，按框架可选集成常用能力（Hono：zod / swagger / env / testing / logging / http-hardening / 中间件；Vue：pinia / vue-router / vueuse / query / tailwind / unocss / reka-ui / naive-ui / element-plus / shadcn-vue 等；Electron：Vue 3 渲染层 + vp pack 主/预加载进程 + electron-builder 打包）。
 
 ## 文档索引
 
@@ -11,7 +11,7 @@
 | [03-feature-wiring-spec.md](./03-feature-wiring-spec.md) | 核心机制规格：FeatureManifest 类型草案、组装点(wiring) 语义、错误码、目录结构、hono/vue 走查样例 | ✅ 定稿候选 |
 | [04-prompt-flow.md](./04-prompt-flow.md) | 交互问题流 + 参数映射：状态机、逐问呈现、flag/preset/config 优先级、取消语义、边界清单、候选拍板 OQ-A~E | ✅ 定稿候选 |
 | [05-vp-integration.md](./05-vp-integration.md) | vp create 集成笔记：机制核实（含源码行号）、正确调用方式、职责边界、子项目规则、验证路线 | ✅ 已核实 |
-| [06-template-ecosystem-plan.md](./06-template-ecosystem-plan.md) | 模板系统路线图：机制扩展（互斥/贡献面/锚点）、Hono/Vue/Electron feature 矩阵与版本基线、单仓库模式、里程碑与 OQ | ✅ M6–M13 已落地（§4 Vue、§5 Electron 已 ✅） |
+| [06-template-ecosystem-plan.md](./06-template-ecosystem-plan.md) | 模板系统路线图：机制扩展（互斥/贡献面/锚点）、Hono/Vue/Electron feature 矩阵与版本基线、单仓库模式、里程碑与 OQ | ✅ M6–M14 已落地（§4 Vue、§5 Electron 已 ✅） |
 
 ## 实施状态（2026-11-06）
 
@@ -34,6 +34,7 @@
 | M11 | ✅ 已完成 | CI 收口：Tier-2 blessed 轮换（`scripts/tier2-matrix.mjs` + `scripts/tier2-combos.json`，subset/all + registry 防漂移 `tests/tier2-combos.test.ts`）与 Tier-3 冒烟（`scripts/tier3-smoke.sh`：hono `/healthz`+优雅停机、vue preview 200、electron 解包启动）纳入 GitHub Actions（`.github/workflows/ci.yml` / `nightly.yml`）；根脚本 `ci:tier2` / `ci:tier2:all` / `ci:tier3` |
 | M12 | ✅ 已完成 | 交互式项目类型（Standard / Monorepo）+ Vue 引导式分步（`promptSections`：ecosystem → data → ui → css，shadcn 锁定 Tailwind）+ 整仓生成（`--monorepo` / `--app`：根 package.json / pnpm-workspace.yaml + allowBuilds / .gitignore / README / rc，应用位于 `apps/<app>`）；monorepo 固定 pnpm、install/git 在根执行 |
 | M13 | ✅ 已完成 | Vue 基座对齐 Vite+ 官方 `vue-ts` 模板：`@vue/tsconfig` + project references（`tsconfig.app.json` / `tsconfig.node.json`）、`vue-tsc -b`、`lazyPlugins`、`vite` → `@voidzero-dev/vite-plus-core` alias、TS 6 / vue-tsc 3.3；六组 Vue 生成物 install→build→check 通过 |
+| M14 | ✅ 已完成 | Vue 移除 `vue/i18n`，新增 `vue/reka-ui`（默认 UI，含 Dialog 示例）；N0 新增全栈快捷模式（`--fullstack`）：apps/api(Hono) + apps/web(Vue 全家桶 + reka-ui + alova + unocss) + apps/desktop(Electron + builder)，根脚本并行、Web 5175 / Electron 5173；生成物注释中文化 |
 | 0.1.0 发布 | 🟡 流程就绪 | 包级 `README.md` / `LICENSE`、changesets（`.changeset/config.json` + 根脚本 `changeset` / `changeset:version` / `changeset:publish`）就绪；发布演练（`npm pack` 清单核对 + 本地 tarball 安装/`pnpm dlx` 生成 + `npm publish --dry-run`）通过；远端与 `repository` 已就绪（Gitee `origin` + GitHub `github`，包内 `repository` 指向 GitHub）；**待 npm 凭据**（当前 `~/.npmrc` token 返回 401），尚未真正发布 |
 
 ## 环境约定

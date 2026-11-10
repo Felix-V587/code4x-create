@@ -36,6 +36,17 @@ import { sha256, buildRc, rcVirtualFile, RC_FILENAME, type RcFile } from "./io/r
 import { loadRegistry } from "./io/loadRegistry.ts";
 import { detectPackageManagerWithSource } from "./io/pm.ts";
 import { detectNestedWorkspace, readHostWorkspace, readWorkspaceLayout } from "./io/workspace.ts";
+import {
+  FULLSTACK_APPS,
+  buildFullstackPlans,
+  collectFullstackAllowBuilds,
+  fullstackRcApps,
+  renderFullstack,
+  syntheticFullstackPlan,
+  uniqueWorkspaceName as uniqueFullstackWorkspaceName,
+  type FullstackAppPlan,
+  type FullstackRcApp,
+} from "./domain/fullstack.ts";
 import { findRepoRoot, initGit } from "./io/git.ts";
 import { createClackPrompter } from "./io/prompts.ts";
 import { runInstall } from "./io/install.ts";
@@ -110,6 +121,7 @@ const CONFIG_KEYS = new Set([
   "preset",
   "variant",
   "monorepo",
+  "fullstack",
   "appName",
 ]);
 
@@ -135,6 +147,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
       "CI",
       "interactive",
       "monorepo",
+      "fullstack",
     ],
   });
 
@@ -148,6 +161,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   const flagPm = optionalString(parsed.pm);
   const flagApp = optionalString(parsed.app);
   const flagMonorepo = optionalBoolean(parsed.monorepo, "--monorepo");
+  const flagFullstack = optionalBoolean(parsed.fullstack, "--fullstack");
   const flagInstall = optionalBoolean(parsed.install, "--install");
   const flagGit = optionalBoolean(parsed.git, "--git");
   const flagFeatures = normaliseFeatures(parsed.features);
@@ -195,6 +209,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   const configFeatures = normaliseFeatures(config.features);
   const configProjectName = optionalString(config.projectName);
   const configMonorepo = optionalBoolean(config.monorepo, "config.monorepo");
+  const configFullstack = optionalBoolean(config.fullstack, "config.fullstack");
   const configAppName = optionalString(config.appName);
   const targetDir = positionalTarget ?? optionalString(config.targetDir);
   if (positionalTarget !== undefined && config.projectName !== undefined) {
@@ -212,12 +227,26 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   const install = flagInstall ?? optionalBoolean(config.install, "install");
   const git = flagGit ?? optionalBoolean(config.git, "git");
 
-  // Project shape: explicit `--monorepo` / `--no-monorepo` beats config, and an
+  // Project shape: explicit `--monorepo` / `--fullstack` beats config, and an
   // absent value stays undefined so the interactive flow can ask (or the
   // non-interactive path can fall back to `"standalone"`).
   const monorepoFlag = flagMonorepo ?? configMonorepo;
+  const fullstackFlag = flagFullstack ?? configFullstack;
+  if (monorepoFlag === true && fullstackFlag === true) {
+    throw usage("E-CONFLICT", "--monorepo and --fullstack are mutually exclusive", {
+      fix: "choose one project type",
+    });
+  }
   const projectType: ProjectType | undefined =
-    monorepoFlag === undefined ? undefined : monorepoFlag ? "monorepo" : "standalone";
+    fullstackFlag === true
+      ? "fullstack"
+      : fullstackFlag === false
+        ? "standalone"
+        : monorepoFlag === undefined
+          ? undefined
+          : monorepoFlag
+            ? "monorepo"
+            : "standalone";
   const appName =
     flagApp === undefined && configAppName === undefined
       ? undefined
@@ -227,6 +256,24 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     throw usage("E-INVALID-VALUE", `invalid variant "${JSON.stringify(config.variant)}"`, {
       fix: 'only "ts" is supported',
     });
+  }
+
+  // The full-stack shortcut has a fixed app/feature matrix; framework/feature
+  // flags would silently contradict it, so reject them up front.
+  if (projectType === "fullstack") {
+    const conflicts = [
+      framework !== undefined ? "--framework" : undefined,
+      preset !== undefined ? "--preset" : undefined,
+      features !== undefined ? "--features" : undefined,
+      appName !== undefined ? "--app" : undefined,
+    ].filter((flag): flag is string => flag !== undefined);
+    if (conflicts.length > 0) {
+      throw usage(
+        "E-CONFLICT",
+        `full-stack projects use fixed apps/features; remove ${conflicts.join(", ")}`,
+        { fix: "use --fullstack alone (plus --install / --git / --pm pnpm)" },
+      );
+    }
   }
 
   // Preset expansion (preset sits below flags/config in the value chain).
@@ -289,7 +336,31 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     }
     const detection = detectPackageManagerWithSource(io.env, resolve(io.cwd, targetDir));
     const resolvedProjectType = projectType ?? "standalone";
-    if (resolvedProjectType === "monorepo") {
+    if (resolvedProjectType === "fullstack") {
+      if (packageManager !== undefined && packageManager !== "pnpm") {
+        throw usage(
+          "E-INVALID-VALUE",
+          `full-stack workspaces require pnpm, but --pm "${packageManager}" was given`,
+          { fix: "remove --pm (pnpm is used), or pass --pm pnpm" },
+        );
+      }
+      const workspaceName = uniqueFullstackWorkspaceName(
+        configProjectName ?? normalizePackageName(basename(resolve(io.cwd, targetDir))),
+        FULLSTACK_APPS.map((app) => app.name),
+      );
+      answers = {
+        targetDir,
+        projectName: workspaceName,
+        framework: "fullstack",
+        projectType: "fullstack",
+        features: [],
+        packageManager: "pnpm",
+        install: install ?? false,
+        git: git ?? true,
+        workspaceName,
+        stackApps: FULLSTACK_APPS,
+      };
+    } else if (resolvedProjectType === "monorepo") {
       if (packageManager !== undefined && packageManager !== "pnpm") {
         throw usage(
           "E-INVALID-VALUE",
@@ -335,6 +406,25 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   // derived workspace/app fields plus the pnpm invariant.
   answers.projectType ??= "standalone";
   const isMonorepo = answers.projectType === "monorepo";
+  const isFullstack = answers.projectType === "fullstack";
+  if (isFullstack) {
+    if (answers.packageManager !== undefined && answers.packageManager !== "pnpm") {
+      throw usage(
+        "E-INVALID-VALUE",
+        `full-stack workspaces require pnpm, but "${answers.packageManager}" was selected`,
+        { fix: "choose pnpm for a full-stack workspace" },
+      );
+    }
+    answers.packageManager = "pnpm";
+    answers.framework = "fullstack";
+    answers.features = [];
+    answers.stackApps ??= FULLSTACK_APPS;
+    answers.workspaceName ??= uniqueFullstackWorkspaceName(
+      normalizePackageName(basename(resolve(io.cwd, answers.targetDir))),
+      FULLSTACK_APPS.map((app) => app.name),
+    );
+    answers.projectName = answers.workspaceName;
+  }
   if (isMonorepo) {
     if (answers.packageManager !== undefined && answers.packageManager !== "pnpm") {
       throw usage(
@@ -359,15 +449,17 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   }
 
   const detection = detectPackageManagerWithSource(io.env, resolve(io.cwd, answers.targetDir));
-  // A generated monorepo is a workspace root of its own: the app is nested in
-  // the workspace we create, with an empty (pure-data) host policy. An existing
-  // host is still detected for the standalone/nested case.
-  const nestedWorkspace = isMonorepo || detectNestedWorkspace(answers.targetDir, io.cwd);
-  const host: { catalog: Record<string, string>; allowBuilds: string[] } | undefined = isMonorepo
-    ? { catalog: {}, allowBuilds: [] }
-    : nestedWorkspace
-      ? readHostWorkspace(answers.targetDir, io.cwd)
-      : undefined;
+  // A generated monorepo/full-stack workspace is a workspace root of its own:
+  // apps are nested in the workspace we create, with an empty (pure-data) host
+  // policy. An existing host is still detected for the standalone/nested case.
+  const nestedWorkspace =
+    isMonorepo || isFullstack || detectNestedWorkspace(answers.targetDir, io.cwd);
+  const host: { catalog: Record<string, string>; allowBuilds: string[] } | undefined =
+    isMonorepo || isFullstack
+      ? { catalog: {}, allowBuilds: [] }
+      : nestedWorkspace
+        ? readHostWorkspace(answers.targetDir, io.cwd)
+        : undefined;
   const context: ProjectContext = {
     nestedWorkspace,
     pmFrom: detection.source,
@@ -377,8 +469,17 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   // Print the fully-expanded manifest before doing anything (docs/04 §3.2).
   if (!json) printManifest(answers, io);
 
-  const plan = resolvePlan(answers, registry, context);
-  const rendered = render(plan, registry, context);
+  let plan: Plan;
+  let rendered: VirtualFile[];
+  let fullstackPlans: FullstackAppPlan[] | undefined;
+  if (isFullstack) {
+    fullstackPlans = buildFullstackPlans(answers, registry, context);
+    rendered = renderFullstack(fullstackPlans, registry, answers);
+    plan = syntheticFullstackPlan(answers, fullstackPlans, context);
+  } else {
+    plan = resolvePlan(answers, registry, context);
+    rendered = render(plan, registry, context);
+  }
 
   // Nested workspaces own the build policy: no `pnpm-workspace.yaml` is emitted
   // (see render), so surface the required host-side entries on stderr — never on
@@ -388,33 +489,38 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   // A generated monorepo is the exception: its workspace root — including
   // `pnpm-workspace.yaml` with every allowBuilds entry — is written by us, so
   // nothing is missing, no catalog rewrites apply, and no host hints are shown.
-  const requiredAllowBuilds =
-    isMonorepo || nestedWorkspace ? collectAllowBuilds(plan, registry) : [];
+  const requiredAllowBuilds = isFullstack
+    ? collectFullstackAllowBuilds(fullstackPlans ?? [], registry)
+    : isMonorepo || nestedWorkspace
+      ? collectAllowBuilds(plan, registry)
+      : [];
   const hostAllow = new Set(host?.allowBuilds ?? []);
-  const missingAllowBuilds = isMonorepo
-    ? []
-    : requiredAllowBuilds.filter((key) => !hostAllow.has(key));
+  const missingAllowBuilds =
+    isMonorepo || isFullstack ? [] : requiredAllowBuilds.filter((key) => !hostAllow.has(key));
 
   const packageJson = rendered.find((file) => file.path === "package.json");
   const catalogRewrites =
-    !isMonorepo && nestedWorkspace && packageJson ? catalogRewriteNames(packageJson.contents) : [];
+    !isMonorepo && !isFullstack && nestedWorkspace && packageJson
+      ? catalogRewriteNames(packageJson.contents)
+      : [];
   const catalogSuggest =
-    !isMonorepo && nestedWorkspace && packageJson
+    !isMonorepo && !isFullstack && nestedWorkspace && packageJson
       ? Object.entries(catalogCandidates(packageJson.contents)).filter(
           ([name]) => !host || !Object.prototype.hasOwnProperty.call(host.catalog, name),
         )
       : [];
 
-  if (!isMonorepo && missingAllowBuilds.length > 0) {
+  if (!isMonorepo && !isFullstack && missingAllowBuilds.length > 0) {
     io.err("note: nested workspace detected; add to the host pnpm-workspace.yaml:");
     io.err("  allowBuilds:");
     for (const key of missingAllowBuilds) io.err(`    ${key}: true`);
   }
-  if (!isMonorepo && catalogSuggest.length > 0) {
+  if (!isMonorepo && !isFullstack && catalogSuggest.length > 0) {
     io.err("note: optional — add to the host catalog for version reuse:");
     for (const [name, version] of catalogSuggest) io.err(`  ${name}: ${version}`);
   }
 
+  const stack = isFullstack && fullstackPlans ? fullstackRcApps(fullstackPlans) : undefined;
   const rc = buildRc(
     answers,
     plan,
@@ -422,12 +528,13 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     CLI_VERSION,
     context,
     nestedWorkspace ? { requiredAllowBuilds, missingAllowBuilds, catalogRewrites } : undefined,
+    stack,
   );
   const files: VirtualFile[] = [...rendered, rcVirtualFile(rc)];
 
   if (json) {
     const nextSteps = buildNextSteps(answers);
-    io.out(JSON.stringify(buildJsonOutput(answers, plan, files, nextSteps), null, 2));
+    io.out(JSON.stringify(buildJsonOutput(answers, plan, files, nextSteps, stack), null, 2));
   }
 
   // Resolve against the injected cwd (production: process.cwd()) so relative
@@ -504,6 +611,7 @@ function buildJsonOutput(
   plan: Plan,
   files: VirtualFile[],
   nextSteps: string[],
+  stack?: FullstackRcApp[],
 ): object {
   return {
     answers,
@@ -515,6 +623,7 @@ function buildJsonOutput(
       })),
       features: { explicit: plan.explicitFeatures, resolved: plan.features },
     },
+    ...(stack ? { stack } : {}),
     nextSteps,
   };
 }
@@ -533,6 +642,9 @@ function buildNextSteps(answers: Answers): string[] {
 
 function summaryLine(answers: Answers): string {
   const integrations = answers.features.length > 0 ? ` + ${answers.features.join(" + ")}` : "";
+  if (answers.projectType === "fullstack") {
+    return `✔ Scaffolded full-stack workspace in ${answers.targetDir} (api: hono, web: vue, desktop: electron; metadata: ${RC_FILENAME})`;
+  }
   if (answers.projectType === "monorepo") {
     return `✔ Scaffolded ${answers.framework}${integrations} in ${answers.targetDir} (monorepo, app: apps/${answers.appName}; metadata: ${RC_FILENAME})`;
   }
@@ -548,7 +660,22 @@ function printManifest(answers: Answers, io: CliIO): void {
     io.out(`  app:        apps/${answers.appName}`);
   }
   io.out(`  framework:  ${answers.framework}`);
-  io.out(`  features:   ${answers.features.length > 0 ? answers.features.join(", ") : "(none)"}`);
+  if (answers.projectType === "fullstack") {
+    io.out("  apps:");
+    for (const app of answers.stackApps ?? FULLSTACK_APPS) {
+      const features = app.features.length > 0 ? app.features.join(", ") : "(none)";
+      io.out(`    ${app.name.padEnd(8)} ${app.framework.padEnd(10)} ${features}`);
+    }
+  }
+  io.out(
+    `  features:   ${
+      answers.projectType === "fullstack"
+        ? "(per-app)"
+        : answers.features.length > 0
+          ? answers.features.join(", ")
+          : "(none)"
+    }`,
+  );
   io.out(`  preset:     ${answers.preset ?? "(none)"}`);
   io.out(`  packageMgr: ${answers.packageManager ?? "(none)"}`);
   io.out(`  install:    ${answers.install ? "yes" : "no"}`);

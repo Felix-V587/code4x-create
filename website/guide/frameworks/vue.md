@@ -12,8 +12,7 @@ my-web/
 │   ├── style.css        # 组装点：css-imports（CSS 引擎与主题注入）
 │   ├── router/          # 选择 vue/router 时
 │   ├── stores/          # 选择 vue/pinia 时
-│   ├── locales/         # 选择 vue/i18n 时
-│   └── components/ui/   # 选择 vue/shadcn-vue 时
+│   ├── components/      # reka-ui 示例 / shadcn-vue 组件
 ├── index.html
 ├── vite.config.ts
 ├── package.json
@@ -42,7 +41,6 @@ my-web/
 | `vue/pinia` | 状态管理 + `src/stores/counter.ts` | — |
 | `vue/vueuse` | `@vueuse/core` | 仅依赖 |
 | `vue/vueuse-router` | `@vueuse/router` 组合式函数 | requires vueuse + router |
-| `vue/i18n` | `vue-i18n`（`legacy:false`）+ unplugin 自动导入 | 生成 `src/locales/{en,zh-CN}.ts` |
 | `vue/query` ⟂ `vue/colada` ⟂ `vue/alova` | 请求 / 数据层三选一 | `group: vue/data` |
 | `vue/testing` | Vitest + `@vue/test-utils` + happy-dom | 示例测试自包含 |
 
@@ -71,11 +69,12 @@ CSS 引擎二选一（`group: vue/css`）：
 | `vue/tailwind` | Tailwind CSS v4，CSS-first（`@import "tailwindcss"` + `@theme`） |
 | `vue/unocss` | UnoCSS + `presetWind4`，经入口 JS `import 'virtual:uno.css'` |
 
-UI 套件三选一（`group: vue/ui`）：
+UI 套件四选一（`group: vue/ui`）：
 
 | Feature | 说明 |
 |---|---|
-| `vue/naive-ui` | 默认推荐；resolver + AutoImport |
+| `vue/reka-ui` | 默认推荐；无样式、可访问的组件原语 + Dialog 示例 |
+| `vue/naive-ui` | resolver + AutoImport |
 | `vue/element-plus` | 双 resolver + `importStyle: 'css'` |
 | `vue/shadcn-vue` | copy-paste 组件栈，requires `vue/tailwind` |
 
@@ -94,8 +93,8 @@ UI 套件三选一（`group: vue/ui`）：
 
 | 预设 | 内容 |
 |---|---|
-| `vue-standard` | router + pinia + vueuse + i18n |
-| `vue-naive-tw` | standard + naive-ui + tailwind（默认推荐） |
+| `vue-standard` | router + pinia + vueuse |
+| `vue-naive-tw` | standard + naive-ui + tailwind（常用推荐） |
 | `vue-element-tw` | standard + element-plus + tailwind |
 | `vue-shadcn-tw` | standard + tailwind + shadcn-vue |
 | `vue-unocss-min` | router + pinia + unocss |
@@ -125,5 +124,5 @@ node packages/cli/dist/cli.mjs my-web -p vue-element-tw -y
 node packages/cli/dist/cli.mjs my-web -p vue-unocss-min -y
 
 # 自定义组合
-node packages/cli/dist/cli.mjs my-web -f vue --features router,pinia,i18n,tailwind,shadcn-vue -y
+node packages/cli/dist/cli.mjs my-web -f vue --features router,pinia,tailwind,shadcn-vue -y
 ```

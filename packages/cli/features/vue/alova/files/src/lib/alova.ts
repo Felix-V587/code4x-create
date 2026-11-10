@@ -3,11 +3,11 @@ import adapterFetch from 'alova/fetch'
 import vueHook from 'alova/vue'
 
 /**
- * Shared Alova instance for the app.
+ * 应用共享的 Alova 实例。
  *
- * - `baseURL` comes from `VITE_API_BASE_URL` (fallback `/api`).
- * - `vueHook` is required so `useRequest` / `useWatcher` expose Vue refs.
- * - `responded.onSuccess` normalizes non-2xx responses into rejected promises.
+ * - `baseURL` 来自 `VITE_API_BASE_URL`（回退为 `/api`）。
+ * - `vueHook` 是必需的，这样 `useRequest` / `useWatcher` 才能暴露 Vue ref。
+ * - `responded.onSuccess` 会将非 2xx 响应规范化为 rejected promise。
  */
 export const alova = createAlova({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',

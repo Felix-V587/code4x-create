@@ -21,6 +21,7 @@ export type {
   PromptSection,
   Requirement,
   ScriptEdit,
+  StackApp,
   VirtualFile,
   WiringBlock,
   WiringContribution,
@@ -39,6 +40,17 @@ export {
   resolve,
 } from "./domain/resolve.ts";
 export type { GroupConflict } from "./domain/resolve.ts";
+export {
+  FULLSTACK_APPS,
+  buildFullstackPlans,
+  collectFullstackAllowBuilds,
+  collectFullstackPeerDependencyRules,
+  fullstackRcApps,
+  renderFullstack,
+  syntheticFullstackPlan,
+  uniqueWorkspaceName,
+} from "./domain/fullstack.ts";
+export type { FullstackAppPlan, FullstackRcApp } from "./domain/fullstack.ts";
 export { collectAllowBuilds, render, renderWorkspaceYaml } from "./domain/render.ts";
 export {
   CUSTOM_FOLDER,

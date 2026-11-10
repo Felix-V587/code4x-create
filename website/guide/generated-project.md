@@ -39,7 +39,8 @@
 | `plan.features` | **解析后的闭包**（显式勾选 + 依赖带入） |
 | `plan.sources` | 每个文件来自 assembly 还是哪个 feature |
 | `plan.hashes` | 文件内容的 sha256 |
-| `answers.projectType` | `standalone`（默认）或 `monorepo` |
+| `answers.projectType` | `standalone`（默认）/ `monorepo` / `fullstack` |
+| `stack.apps` | 全栈模式：`api` / `web` / `desktop` 三端的框架与 feature 计划 |
 | `answers.appName` / `workspaceName` | 仅 Monorepo：应用目录名与 workspace 根包名 |
 | `context` / `workspace` | 仅嵌套 / Monorepo 场景出现，见 [在 workspace 中使用](/guide/workspace) |
 
@@ -57,6 +58,8 @@
 | `.code4xrc.json` | 工作区级元数据；`answers.projectType = "monorepo"`，`appName` / `workspaceName` 记录在案 |
 
 应用本身位于 `apps/<app>/`，文件树与 standalone 生成一致；不会写应用级 `pnpm-workspace.yaml`，Tailwind 使用 `source('../')`。依赖安装与 `git init` 都在根目录执行。
+
+全栈模式（`--fullstack`）是 Monorepo 的固定三应用特例：`apps/api`、`apps/web`、`apps/desktop`，根脚本并行执行，`.code4xrc.json` 额外记录 `stack.apps`。
 
 ## 常用脚本
 

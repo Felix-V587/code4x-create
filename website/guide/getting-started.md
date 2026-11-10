@@ -82,8 +82,11 @@ node packages/cli/dist/cli.mjs my-api -f hono -y
 # Hono：标准后端（api-guard + zod + testing）
 node packages/cli/dist/cli.mjs my-api -p hono-standard -y
 
-# Vue：默认推荐（router + pinia + vueuse + i18n + naive-ui + tailwind）
+# Vue：默认推荐（router + pinia + vueuse + naive-ui + tailwind）
 node packages/cli/dist/cli.mjs my-web -p vue-naive-tw -y
+
+# 全栈单仓库：Hono API + Vue Web + Electron 桌面壳
+node packages/cli/dist/cli.mjs my-stack --fullstack -y
 
 # Electron：Vue 3 渲染层 + 类型化 IPC
 node packages/cli/dist/cli.mjs my-app -f electron -y

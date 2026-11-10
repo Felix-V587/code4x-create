@@ -228,11 +228,11 @@ Vue blueprint（M8a）锚点（全部全局唯一）：
 
 | 锚点 | 所属 assembly | kind | 贡献方 |
 |---|---|---|---|
-| `imports` | `src/main.ts` | `imports` | 基座无；`vue/pinia`、`vue/router`、`vue/i18n`、`vue/query`、`vue/colada`、`vue/unocss`（`virtual:uno.css` 副作用 import） |
-| `app-use` | `src/main.ts` | `list` | `vue/pinia`、`vue/router`、`vue/i18n`、`vue/query`、`vue/colada` |
-| `vite-imports` | `vite.config.ts` | `imports` | UI/CSS/i18n 插件 import（`vue/tailwind`、`vue/unocss`、`vue/naive-ui`、`vue/element-plus`、`vue/i18n`） |
+| `imports` | `src/main.ts` | `imports` | 基座无；`vue/pinia`、`vue/router`、`vue/query`、`vue/colada`、`vue/unocss`（`virtual:uno.css` 副作用 import） |
+| `app-use` | `src/main.ts` | `list` | `vue/pinia`、`vue/router`、`vue/query`、`vue/colada` |
+| `vite-imports` | `vite.config.ts` | `imports` | UI/CSS 插件 import（`vue/tailwind`、`vue/unocss`、`vue/naive-ui`、`vue/element-plus`） |
 | `vite-plugins` | `vite.config.ts` | `list` | 基座 `vue(),`；上述插件注册 |
-| `app-template` | `src/App.vue` | `list` | `vue/router`（`<router-view />`）、`vue/i18n`（`$t` 示例）、`vue/naive-ui`（`<n-config-provider>` + `<n-button>`）、`vue/element-plus`（`<el-button>`） |
+| `app-template` | `src/App.vue` | `list` | `vue/router`（`<router-view />`）、`vue/reka-ui`（`<RekaDialog />`）、`vue/naive-ui`（`<n-config-provider>` + `<n-button>`）、`vue/element-plus`（`<el-button>`） |
 | `css-imports` | `src/style.css` | `list` | `vue/tailwind`（`@import 'tailwindcss';`） |
 
 补充说明：
@@ -244,7 +244,7 @@ Vue blueprint（M8a）锚点（全部全局唯一）：
 - **裸 token 的框架优先解析**：`qualifyFeature(token, known, framework)` 在裸 token 跨框架共用时（如 `testing` = `hono/testing` | `vue/testing`）优先选中 `--framework` 对应项；仍在同框架内多重命中时才 `E-AMBIGUOUS-LIST`。
 - **UnoCSS 入口形态**：`virtual:uno.css` 经 `src/main.ts` 的 `imports` 锚点以 **JS 副作用 import** 注入，而非 CSS `@import`——rolldown-Vite 8 下 CSS `@import 'virtual:uno.css'` 解析失败（`[postcss] ENOENT`），JS 导入正常。
 - **`vueuse-router` 独立文件**：提供 `src/composables/useRouteQuery.ts` 而非向入口注入未使用 import（会触发生成项目 `vp check` 的 `no-unused-vars`），与 `hono/env` 同策略。
-- **`vue/testing`**：devDeps `vitest` + `@vue/test-utils` + `happy-dom` + `test: "vp test"` + `src/App.test.ts` 模板资产。模板测试经**文件级** `// @vitest-environment happy-dom` 注解选择 DOM（无需新增 vite-config `test` 锚点/区域），并 `mount` 一个**内联组件**（仅依赖 `vue`），因此无论 preset 是否装了 router/i18n/UI 套件都开箱可跑。
+- **`vue/testing`**：devDeps `@vue/test-utils` + `happy-dom` + `test: "vp test"` + `src/App.test.ts` 模板资产（测试从 `vite-plus/test` 导入，复用 Vite+ 内置 runner）。模板测试经**文件级** `// @vitest-environment happy-dom` 注解选择 DOM（无需新增 vite-config `test` 锚点/区域），并 `mount` 一个**内联组件**（仅依赖 `vue`），因此无论 preset 是否装了 router/UI 套件都开箱可跑。
 - **`vue/query` 的 install 放行**：`@tanstack/vue-query` 传递依赖 `vue-demi`（带 postinstall），经 `workspaceYaml.allowBuilds: { "vue-demi": true }` 写入生成 `pnpm-workspace.yaml`，避免 `ERR_PNPM_IGNORED_BUILDS`。
 
 ### 2.9 M8b 锚点与 feature wiring 记录（shadcn-vue）
@@ -409,7 +409,7 @@ const app = createApp(App)
 app.mount('#app')
 ```
 
-`{base + pinia}` / `{+ pinia + router}`：逐条插 `app.use(createPinia())` / `app.use(router)` + `import router from './router'`；`vite.config.ts` 为第二个 assembly（`vite-plugins` 锚点，blueprint static 贡献 `vue()`）、`src/App.vue` 为第三个 assembly（`app-template` 锚点，router 注入 `<router-view />`）、`src/style.css` 为第四个 assembly（`css-imports` 锚点，CSS 引擎注入 `@import`）。排序关键点：pinia < router 由 id tiebreak 固定，**与用户勾选顺序无关**——同一组合、不同选择轨迹生成**相同字节**（确定性演示）。M8a 追加：`vue/i18n` 经 `imports`/`app-use`/`app-template`/`vite-imports`/`vite-plugins` 接入；UI 套件（`vue/ui`）与 CSS 引擎（`vue/css`）同组互斥；数据层（`vue/data`）二选一。生成项目 **`vp check` 开箱通过**（vite.config 内置 lint/fmt/typeCheck 配置，`defineConfig` 来自 `vite-plus`）；`dev`/`build` 仍走 plain `vite` 链（vp 深度集成留待后续评估）。
+`{base + pinia}` / `{+ pinia + router}`：逐条插 `app.use(createPinia())` / `app.use(router)` + `import router from './router'`；`vite.config.ts` 为第二个 assembly（`vite-plugins` 锚点，blueprint static 贡献 `vue()`）、`src/App.vue` 为第三个 assembly（`app-template` 锚点，router 注入 `<router-view />`）、`src/style.css` 为第四个 assembly（`css-imports` 锚点，CSS 引擎注入 `@import`）。排序关键点：pinia < router 由 id tiebreak 固定，**与用户勾选顺序无关**——同一组合、不同选择轨迹生成**相同字节**（确定性演示）。M8a 追加：UI 套件（`vue/ui`）与 CSS 引擎（`vue/css`）同组互斥；数据层（`vue/data`）三选一；当前 UI 默认 `vue/reka-ui`。生成项目 **`vp check` 开箱通过**（vite.config 内置 lint/fmt/typeCheck 配置，`defineConfig` 来自 `vite-plus`）；`dev`/`build` 仍走 plain `vite` 链（vp 深度集成留待后续评估）。
 
 ### 复用论证：同一 manifest 抽象如何跨框架
 

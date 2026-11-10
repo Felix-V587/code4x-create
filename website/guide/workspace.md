@@ -139,6 +139,31 @@ my-workspace/
 - 应用仍按“嵌套 workspace”渲染：不会生成 `apps/web/pnpm-workspace.yaml`，Tailwind 使用 `source('../')`。
 - `.code4xrc.json` 位于 workspace 根，`answers` 记录 `projectType: "monorepo"` / `appName` / `workspaceName`，`plan.sources` 中的路径带 `apps/web/` 前缀。
 
+## 场景 C：全栈快捷单仓库
+
+交互式选择 **Full-stack project**（或 `--fullstack`）会一次生成标准全栈单仓库：
+
+```bash
+node packages/cli/dist/cli.mjs my-stack --fullstack -y
+```
+
+```text
+my-stack/
+├── package.json            # dev/build/check/test + dev:api/dev:web/dev:desktop
+├── pnpm-workspace.yaml     # apps/* + packages/* + allowBuilds + peerDependencyRules
+├── .gitignore
+├── README.md
+├── .code4xrc.json          # stack.apps 记录三端
+└── apps/
+    ├── api/                # Hono + api-guard + zod + testing（dev 3000）
+    ├── web/                # Vue 全家桶 + reka-ui + alova + unocss（dev 5175）
+    └── desktop/            # Electron + electron-builder（渲染器 dev 5173）
+```
+
+- `pnpm dev` 并行启动三端；Web 使用 5175，避免与 Electron 渲染器 5173 冲突。
+- 固定 pnpm；不接受 `--framework` / `--features` / `--preset` / `--app`。
+- 三个应用都按嵌套 workspace 渲染；`packages/*` 已声明，可放共享代码。
+
 ## 已知边界
 
 - 宿主 `pnpm-workspace.yaml` 损坏时会降级为空宿主，不阻断生成。

@@ -1,8 +1,8 @@
-// Dev orchestrator: `vp pack --watch` (main + preload) alongside `vp dev`
-// (renderer), then launch Electron once the first bundles and the dev server
-// are ready. Restart Electron when the main/preload bundles change.
+// 开发编排器：在 `vp dev`（渲染进程）的同时运行 `vp pack --watch`
+// （主进程 + preload），等首批产物和开发服务器就绪后启动 Electron。
+// 当主进程/preload 产物变化时重启 Electron。
 //
-// Zero extra dependencies: only Node built-ins plus the `electron` binary path.
+// 不引入额外依赖：仅使用 Node 内置模块以及 `electron` 二进制路径。
 import { spawn } from 'node:child_process'
 import { existsSync, watch } from 'node:fs'
 import { createConnection } from 'node:net'
@@ -26,9 +26,9 @@ let restartTimer = null
 let stopping = false
 
 function launch(command, args, extra = {}) {
-  // `detached` puts each child in its own process group so shutdown can kill the
-  // whole subtree: `vp dev`/`vp pack` fork deeper node processes (`vite`, tsdown)
-  // that would otherwise be orphaned and keep the port/socket alive.
+  // `detached` 让每个子进程处于自己的进程组中，以便关闭时能杀掉整个
+  // 子树：`vp dev`/`vp pack` 会派生出更深的 node 进程（`vite`、tsdown），
+  // 否则它们会变成孤儿进程并让端口/socket 保持存活。
   return track(
     spawn(command, args, {
       cwd: root,
@@ -49,7 +49,7 @@ function killAll(signal) {
   for (const child of children) {
     if (child.exitCode !== null || child.signalCode !== null) continue
     try {
-      // Negative PID targets the child's whole process group.
+      // 负 PID 用于定位该子进程的整个进程组。
       process.kill(-child.pid, signal)
     } catch {
       child.kill(signal)
@@ -63,8 +63,8 @@ function shutdown(code) {
   if (restartTimer) clearTimeout(restartTimer)
   log('shutting down')
   killAll('SIGTERM')
-  // Escalate to SIGKILL if a child ignores SIGTERM. The timer is not unref'd so
-  // the process always exits with `code`, even when children stop instantly.
+  // 若子进程忽略 SIGTERM，则升级为 SIGKILL。该定时器未被 unref，
+  // 因此即使子进程立即退出，本进程也总会以 `code` 退出。
   setTimeout(() => {
     killAll('SIGKILL')
     process.exit(code)
@@ -77,7 +77,7 @@ function startElectron() {
   })
   electron = child
   child.on('exit', (code) => {
-    // Ignore exits from a deliberate restart or shutdown.
+    // 忽略故意重启或关闭导致的退出。
     if (stopping || child !== electron) return
     log(`electron exited (${code ?? 0})`)
     shutdown(0)
@@ -109,7 +109,7 @@ function waitForPort(port, timeoutMs) {
   return new Promise((resolve) => {
     const deadline = Date.now() + timeoutMs
     const attempt = () => {
-      // `localhost` (not 127.0.0.1): Vite's dev server binds IPv6 ::1 by default.
+      // 使用 `localhost`（而非 127.0.0.1）：Vite 开发服务器默认绑定 IPv6 的 ::1。
       const socket = createConnection({ port, host: 'localhost' })
       socket.once('connect', () => {
         socket.destroy()

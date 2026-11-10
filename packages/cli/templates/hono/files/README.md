@@ -19,8 +19,8 @@ PORT=4000 pnpm dev
 ## Build & run
 
 ```bash
-pnpm build        # vp build -> dist/index.js
-pnpm start        # node dist/index.js
+pnpm build        # 构建：vp build -> dist/index.js
+pnpm start        # 启动：node dist/index.js
 ```
 
 The dev port is read from `PORT` at runtime, but the **built** server's port is baked
@@ -41,9 +41,9 @@ format + lint + type check).
 
 ```
 src/
-  index.ts          # app entry: request id -> logger -> routes -> error handlers
-  routes/health.ts  # liveness + readiness endpoints
-  schemas/          # request/response validation schemas (when `zod` is selected)
+  index.ts          # 应用入口：请求 id -> 日志 -> 路由 -> 错误处理器
+  routes/health.ts  # 存活 + 就绪端点
+  schemas/          # 请求/响应校验 schema（选择 `zod` 时存在）
 ```
 
 - **Request id** — `hono/request-id` runs first, so every request gets an

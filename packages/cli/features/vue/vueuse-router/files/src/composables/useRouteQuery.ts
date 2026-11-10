@@ -1,6 +1,6 @@
 import { useRouteQuery } from '@vueuse/router'
 
-/** Two-way binding between the `q` route query param and a ref. */
+/** `q` 路由查询参数与 ref 之间的双向绑定。 */
 export function useSearchQuery() {
   return useRouteQuery('q', '')
 }

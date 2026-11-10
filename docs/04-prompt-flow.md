@@ -30,7 +30,7 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 
 | # | 节点（Answers 字段） | 触发条件（要问） | 跳过条件（已绑定） | 默认值 | 绑定来源 |
 |---|---|---|---|---|---|
-| N0 | projectType | 未绑定 | `--monorepo` / `--no-monorepo` / config `monorepo` | `standalone` | flag > config；交互内选择 |
+| N0 | projectType | 未绑定 | `--monorepo` / `--fullstack`（及 `--no-*`）/ config `monorepo` / `fullstack` | `standalone` | flag > config；交互内选择 |
 | N1 | targetDir（→ projectName 派生） | 无 positional | positional 已给 | 普通目录：placeholder `./my-app`（framework 已绑定则 `./hono-api`；monorepo 为 `./my-workspace`）；workspace 内：扫描 packages 的父目录选项 + `Custom folder…`，再问项目名 | 仅 positional；workspace 选项来自 `readWorkspaceLayout` |
 | N2 | framework | 未绑定 | `--framework` 合法 / preset 隐含 / features 单框架可推断 | 选项序 [Hono, Vue]，非交互默认 Hono | flag > config > preset > feature 推断 |
 | N2b | appName（仅 monorepo，→ projectName/workspaceName） | monorepo 且未绑定 | `--app` / config `appName` | 按框架取 `api` / `web` / `desktop` / `app` | flag > config；交互内输入 |
@@ -113,14 +113,29 @@ Vue blueprint 声明 `promptSections`，feature 通过 `promptSection` 归组；
 
 | 步骤 | 章节 | 形态 | 成员（含默认） |
 |---|---|---|---|
-| 1 | `Vue ecosystem` | multiselect | pinia / router / vueuse（默认）/ vueuse-router / i18n（默认）/ testing |
+| 1 | `Vue ecosystem` | multiselect | pinia / router / vueuse（默认）/ vueuse-router / testing |
 | 2 | `Request strategy` | select + None | alova / colada / query |
-| 3 | `UI framework` | select + None | naive-ui（默认）/ element-plus / shadcn-vue |
+| 3 | `UI framework` | select + None | reka-ui（默认）/ naive-ui / element-plus / shadcn-vue |
 | 3 | `CSS engine` | select + None | tailwind（默认）/ unocss |
 
 - 选择 `shadcn-vue` 时自动带入 `vue/tailwind` 并跳过 CSS 问题（避免闭包与 unocss 冲突）。
 - 每步选择后立即检查 `group` 冲突；冲突则 note + 重问当前步骤。
 - 未归组的 feature 落到末尾 `Other integrations` 多选；无 `promptSections` 的框架保持单次多选。
+
+#### 2.2 全栈快捷模式（N0 = fullstack）
+
+选择 **Full-stack project**（或 `--fullstack`）后跳过 N2/N2b/N4/N5，固定生成：
+
+| 应用 | 框架 | 默认能力 | dev |
+|---|---|---|---|
+| `apps/api` | Hono | api-guard + zod + testing | 3000 |
+| `apps/web` | Vue | router + pinia + vueuse + vueuse-router + testing + reka-ui + alova + unocss | 5175 |
+| `apps/desktop` | Electron | electron/builder | 5173 |
+
+- 固定 pnpm；`--framework` / `--features` / `--preset` / `--app` → `E-CONFLICT`。
+- 根 `package.json` 提供 `dev`/`build`/`check`/`test`/`preview` 与 `dev:api`/`dev:web`/`dev:desktop`。
+- `.code4xrc.json` 的 `stack.apps` 记录三端计划；`plan.features` 为三端闭包并集。
+- Web 使用 5175，避免与 Electron 固定渲染器端口 5173 冲突。
 
 呈现决策：**不用 groupMultiselect**（框架已定，选项天然单组；超 ~7 项再考虑分组）；`required: false`；**不把 requires 闭包预填进 selection**——UI 只反映用户勾选，swagger 的 hint 写明 "includes Zod validation"，闭包在 resolve() 补齐并在 summary 行标注 `<hono/zod (required by swagger)>`。这保住「prompts 是 UI」：`Answers.features` = 用户原始勾选，`.code4xrc` 同时存 explicit 与 resolved 两份。
 
@@ -141,7 +156,7 @@ Vue blueprint 声明 `promptSections`，feature 通过 `promptSection` 归组；
 | 字段 | flag | 短 | 取值 | 示例 |
 |---|---|---|---|---|
 | targetDir | 位置参数 | — | 相对/绝对路径 | `create-code4x my-api` |
-| projectType | `--monorepo` / `--no-monorepo` | — | boolean；config 键 `monorepo` | `--monorepo` |
+| projectType | `--monorepo` / `--fullstack`（及 `--no-*`） | — | boolean；config 键 `monorepo` / `fullstack` | `--monorepo` / `--fullstack` |
 | appName | `--app` | — | monorepo 应用目录名 | `--app web` |
 | framework | `--framework` | `-f` | `hono\|vue` | `-f vue` |
 | features | `--features` | — | 逗号列；裸名或全限定名；`none` 清空 | `--features zod,swagger-openapi` |
@@ -214,7 +229,7 @@ $ create-code4x my-api -f hono --features pinia
 - `--features a,b`：逗号/空格皆可；裸 id 合法但**必须唯一解析**（`zod` → `hono/zod`，v1 唯一）；含混（未来 `express/zod`）→ `E-AMBIGUOUS-LIST`。
 - 不带 `--framework` 时，若全部裸 id 同属一个框架 → **推断并绑定该框架**，打印 `framework inferred: hono (from features)`。这使 `--features zod -y` 也可复现。
 - `--features none` ≡ `--no-features`，显式空集。
-- preset 展开：`hono-api` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/swagger-openapi] }`；`hono-standard` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/testing] }`；`hono-full` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/testing, hono/swagger-openapi, hono/logging, hono/http-hardening] }`；`vue-full` = `{ framework: vue, features: [vue/pinia, vue/router] }`。
+- preset 展开：`hono-api` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/swagger-openapi] }`；`hono-standard` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/testing] }`；`hono-full` = `{ framework: hono, features: [hono/api-guard, hono/zod, hono/testing, hono/swagger-openapi, hono/logging, hono/http-hardening] }`；`vue-standard` = `{ framework: vue, features: [vue/router, vue/pinia, vue/vueuse] }`；`vue-full` = standard + query + testing。
 - `--config` 与 Answers **同构**（同一 TS type 的 JSON 投影），额外允许 `preset` 字段；未知键 → `E-CONFIG-KEY`（防手误静默）。config 不能做 flag 做不到的事（否则 parity 集合被隐式扩大）。config 与 positional 同时给 `projectName` → `E-CONFLICT`（单一句柄原则）。
 
 ### 3.6 env 行为

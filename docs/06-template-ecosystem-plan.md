@@ -1,6 +1,6 @@
 # 06 · vp 生态模板系统：最佳实践路线与实施方案
 
-> 状态：M6/M7/M8a/M8b/M9/M10/M11/M12 已落地（M12：2026-11-10）。版本核实日期 2026-10-14（M8b shadcn-vue 依赖集 2026-10-15 核实）。
+> 状态：M6–M14 已落地（M12–M14：2026-11-10）。版本核实日期 2026-10-14（M8b shadcn-vue 依赖集 2026-10-15 核实）。
 > 上游依据：[02 架构与决策](./02-architecture.md)、[03 wiring 规格](./03-feature-wiring-spec.md)；本轮 Hono / Vue / Electron 三份外部调研 memo（结论内联在本文，关键来源附链接）。
 
 ## 0. 目标与验收口径
@@ -137,7 +137,8 @@
 | `vue/pinia` | `pinia 4.0.3` | 既有 | 必选 |
 | `vue/vueuse` | `@vueuse/core 15.0` | 仅依赖 | 默认开 |
 | `vue/vueuse-router` | `@vueuse/router 15.0` | `imports` | 可选 |
-| `vue/i18n` | `vue-i18n 11.4`（`legacy:false`）+ `@intlify/unplugin-vue-i18n 11.2` | `imports`+`app-use`+`vite-plugins`+`src/locales/**` | 默认开（中文场景） |
+| ~~`vue/i18n`~~ | **已移除（M14）**：不再提供国际化选项 | — | — |
+| `vue/reka-ui` | `reka-ui 2.11` | 无样式可访问组件原语；`app-script` 引入 Dialog 示例 + `app-template` 渲染 | **默认 UI（M14）** |
 | `vue/query` ⟂ `vue/colada` ⟂ `vue/alova` | `@tanstack/vue-query 5.104` / `@pinia/colada 1.4.9` / `alova 3.5.5` | query/colada：`imports`+`app-use`；alova：独立 client（无 `app-use`） | 三选一（`vue/data`） |
 | `vue/testing` | `vitest 5` + `@vue/test-utils 2.5` + `happy-dom`（`vite-plus/test`） | scripts+devDeps；模板测试用文件级 `// @vitest-environment happy-dom` + 内联组件（自包含） | 可选 |
 
@@ -166,7 +167,7 @@
 - 样式装配：`src/style.css` 升 assembly（`css-imports`，`list` 锚点）已落地；CSS `@import` 位于文件最前。**`vue/tailwind` 用 CSS `@import 'tailwindcss';`；`vue/unocss` 因 rolldown-Vite 8 无法解析 CSS 侧 `virtual:uno.css`，改为入口 JS 副作用 import（`import 'virtual:uno.css'`）。**
 - **`.vue` 检查边界**：`vp check`（TS-Go/tsgolint）不覆盖 `.vue`，且 oxlint 尚不解析 SFC script 块 → `build`/`typecheck` 脚本使用 **`vue-tsc -b`**（project references，已在基座 package.json）；UI 套件的 auto-import `dts` 纳入 `tsconfig.app.json` include、`.gitignore` 与 vite.config 的 lint/fmt ignore。
 - **`@/` 别名**：`tsconfig.app.json` 的 `paths` **不可带 `baseUrl`**（TS7/tsgolint 已移除该选项，会让生成项目 `vp check` 失败）；`paths` 相对 tsconfig 解析即可，`vite.config` 侧用 `resolve.alias` 对齐。
-- 预设：`vue-standard`（router+pinia+vueuse+i18n）、`vue-naive-tw`（默认推荐）、`vue-element-tw`、`vue-unocss-min`（router+pinia+unocss）、`vue-full`（已扩为 standard + query + testing，语义变化见修订记录）。
+- 预设：`vue-standard`（router+pinia+vueuse）、`vue-naive-tw`（推荐）、`vue-element-tw`、`vue-unocss-min`（router+pinia+unocss）、`vue-full`（standard + query + testing）。
 
 ### 4.5 shadcn-vue 实现注意（M8b 落地结论）
 
@@ -277,7 +278,7 @@ my-workspace/
 | # | 问题 | 定案 |
 |---|---|---|
 | OQ-8 | `ant-design-vue` 去留 | **删除**（不保留 legacy 入口） |
-| OQ-9 | `vue/i18n` 是否默认开启 | 默认开启 |
+| OQ-9 | `vue/i18n` 是否默认开启 | **已被 M14 取代**：移除 i18n；默认 UI 改为 `vue/reka-ui` |
 | OQ-10 | 单仓库模式形态 | 场景 A（嵌套生成增强）先行；场景 B 保留方向 |
 | OQ-11 | electron-store / updater 进基座还是 feature | 均为 opt-in feature；store 先做「核心内置 JSON store」 |
 | OQ-12 | hono v5 策略 | 仅做 peer 兼容性护栏；GA 后单独里程碑 |
@@ -310,7 +311,9 @@ my-workspace/
 
 - **2026-11-06 Vue 请求策略层（`vue/alova` + Colada 基础配置）**：**新增 `vue/alova`**（alova 3.5.5，`group: vue/data`）——`src/lib/alova.ts`（`createAlova` + `alova/vue` 的 `vueHook` + `alova/fetch` 的 `adapterFetch()` + `VITE_API_BASE_URL` 回落 `/api` + 15s 超时 + 非 2xx 归一化）、`src/api/todos.ts`（类型化 `alova.Get<Todo[]>()`）、`src/composables/useTodos.ts`（`useRequest` from `alova/client`）；无需 `app.use`，入口保持零改动。**`vue/colada` 补基础配置**——新增 `src/lib/colada.ts`（全局 `staleTime: 30_000`）与同款 `src/api/todos.ts` / `useTodos.ts` 示例，入口改为 `app.use(PiniaColada, coladaOptions)`；依赖升 `^1.4.9`（peer vue ≥3.5.41 / pinia 4 兼容）。**互斥**：`vue/data` 由二选一扩为三选一（query ⟂ colada ⟂ alova），Tier-1 矩阵自动覆盖。**验证**：`vp test` 284 全绿、`vp check` 绿；两组生成物（`-f vue --features alova` / `--features colada`）`pnpm install` → `pnpm build` → `pnpm check`（含 vue-tsc）全通过；Tier-2 nightly 增 `vue-colada` / `vue-alova`。**文档**：站内指南/矩阵/首页计数（22 feature）与包 README 同步。
 
+- **2026-11-10 M14（Vue 能力调整 + 全栈快捷模式 + 注释中文化）**：**Vue**——移除 `vue/i18n`（feature/预设/提示/文档）；新增 `vue/reka-ui`（`group: vue/ui`、`defaults: true`、`promptSection: ui`，依赖 `reka-ui ^2.11.0`，附带 `src/components/RekaDialog.vue` 与 `app-script`/`app-template` 接线），naive-ui 不再默认；`vue/testing` 改用 `vite-plus/test`（移除独立 vitest）。**全栈**——`ProjectType` 增加 `fullstack`；N0 第三项 + `--fullstack`；固定 `apps/api`（hono api-guard+zod+testing）、`apps/web`（vue router/pinia/vueuse/vueuse-router/testing + reka-ui + alova + unocss）、`apps/desktop`（electron/builder）；新 `src/domain/fullstack.ts` 负责多计划 resolve/render、路径前缀、根 `package.json`/`pnpm-workspace.yaml`（allowBuilds + peer rules 并集）/README/rc `stack.apps`；根 `pnpm dev` 并行，Web 强制 5175 避开 Electron 5173；固定 pnpm，拒绝 framework/features/preset/app 覆盖。**注释**——生成物模板/feature 资产中的英文注释统一改为中文（`@code4x` 标记与 `@vitest-environment` 指令保持原样）。实测：`vp test` 341 全绿、`vp check` 绿；全栈生成物 install→build→check→test 全通过。
+
 - **2026-11-10 Vue 基座对齐 Vite+ 官方 vue-ts 模板**：以 `vp create` 的 Vue TS 产物（`demos/demo-vue`）为参照，重构模板依赖与配置——`@vue/tsconfig ^0.9.1` + `tsconfig.json`（`files: []` + references）/`tsconfig.app.json`（extends `tsconfig.dom.json`、`types: ["vite/client"]`、`paths`、auto-import dts）/`tsconfig.node.json`（vite.config.ts）；`build: vue-tsc -b && vp build`、`typecheck: vue-tsc -b`、`dev/preview: vp dev`/`vp preview`；`vite.config.ts` 改用 `lazyPlugins(() => [...])`，feature 插件在回调内注入，去掉旧版插件类型 cast；`vue`/`@types/node`/`@vitejs/plugin-vue`/`typescript ~6.0.3`/`vue-tsc` 对齐官方版本；`vite` 使用 `npm:@voidzero-dev/vite-plus-core@^1.5.0` 显式 alias（与 `vite-plus ^1.5.0` 同版本；Vite+ 要求，嵌套 catalog 场景仍自动改写为 `catalog:`），package.json 同时写 npm/Bun `overrides` 与 Yarn `resolutions`（npm 直接 alias 会被 `@vitejs/plugin-vue` 的 Vite 8 peer 范围拒绝；overrides 后 npm install/build/check 实测通过），并在生成物 `pnpm-workspace.yaml` 写入 `peerDependencyRules.allowedVersions.vite: "*"` 消除 pnpm 告警（`pnpm peers check` 零问题），`vue/testing` 改用 `vite-plus/test`（移除独立 vitest 依赖，复用 Vite+ 内置 runner）；`src/env.d.ts` 改为官方形状，`.gitignore` 补官方条目，新增 `.vscode/extensions.json`（Volar）。生成物 `base` / `vue-naive-tw` / `vue-element-tw` / `vue-unocss-min` / `vue-full` / `vue-shadcn-tw` 六组均 `pnpm install` → `pnpm build`（`vue-tsc -b`）→ `pnpm check` 通过；`vue-full` 额外 `pnpm test` 绿。
 - **2026-11-06 Node 支持版本调整**：根与发布包 `engines.node` 由 `^20.19.0 || >=22.12.0` 收紧为 `>=22`；三个生成物模板补 `engines.node: ">=22"`；CI（`ci.yml` / `nightly.yml` / `docs.yml`）统一 `node-version: 26`；文档前置要求改为「Node ≥22（推荐 26+）」，并注明 Vite 8 / Vite+ 实际要求 22.18+。实测：`vp check` / `vp test` 全绿；三框架生成物均带 `engines`，Vue 生成物 install→build→check 通过。
 
-hono 4.13.13 · @hono/node-server **2.1.5（待升级）** · zod 4.6.7 · hono-openapi 1.3.5 · @hono/swagger-ui 0.6.1 · pino 10.4 · hono-pino 0.10.3 · drizzle-orm 0.45.4 · vue 3.5.44 · vue-router 5.4.0 · pinia 4.0.3 · @vueuse/core 15.0.0 · vue-i18n 11.4.14 · @tanstack/vue-query 5.104.2 · @pinia/colada 1.4.9 · alova 3.5.5 · naive-ui 2.45.3 · element-plus 2.14.7 · shadcn-vue 组件栈（reka-ui 2.11.0 · class-variance-authority 0.7.1 · clsx 2.1.1 · tailwind-merge 3.7.0 · lucide-vue-next 1.0.0 · tw-animate-css 1.4.0，2026-10-15 核实） · tailwindcss 4.3.3 · unocss 66.11.0 · electron 44.7.2 · electron-builder 26.15.3 · electron-updater 6.8.9 · electron-store 12.0.0 · vite 8.3.4（Rolldown）
+hono 4.13.13 · @hono/node-server **2.1.5（待升级）** · zod 4.6.7 · hono-openapi 1.3.5 · @hono/swagger-ui 0.6.1 · pino 10.4 · hono-pino 0.10.3 · drizzle-orm 0.45.4 · vue 3.5.44 · vue-router 5.4.0 · pinia 4.0.3 · @vueuse/core 15.0.0 · @tanstack/vue-query 5.104.2 · @pinia/colada 1.4.9 · alova 3.5.5 · naive-ui 2.45.3 · element-plus 2.14.7 · shadcn-vue 组件栈（reka-ui 2.11.0 · class-variance-authority 0.7.1 · clsx 2.1.1 · tailwind-merge 3.7.0 · lucide-vue-next 1.0.0 · tw-animate-css 1.4.0，2026-10-15 核实） · tailwindcss 4.3.3 · unocss 66.11.0 · electron 44.7.2 · electron-builder 26.15.3 · electron-updater 6.8.9 · electron-store 12.0.0 · vite 8.3.4（Rolldown）

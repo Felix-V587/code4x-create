@@ -3,17 +3,17 @@
 import { defineConfig } from 'vite-plus'
 import vue from '@vitejs/plugin-vue'
 
-// Single config, two tools:
-//   - `vp build` / `vp dev` drive the Vue renderer rooted at `src/renderer`;
-//   - `vp pack` (tsdown) bundles `src/main` + `src/preload` to CommonJS.
-// The cast keeps `tsc`/`vue-tsc` happy: `@vitejs/plugin-vue` returns `vite`'s
-// plugin type while `vite-plus`'s config expects its own; a plain object literal
-// also trips a TS 5.9 overload-resolution bug.
+// 单一配置，两套工具：
+//   - `vp build` / `vp dev` 驱动以 `src/renderer` 为根目录的 Vue 渲染进程；
+//   - `vp pack`（tsdown）将 `src/main` + `src/preload` 打包为 CommonJS。
+// 这里的类型断言是为了让 `tsc`/`vue-tsc` 通过检查：`@vitejs/plugin-vue` 返回的
+// 是 `vite` 的插件类型，而 `vite-plus` 的配置期望自己的插件类型；直接写对象字面量
+// 还会触发 TS 5.9 的重载解析 bug。
 export default defineConfig({
   root: 'src/renderer',
   base: './',
   plugins: [
-    // Vite plugins.
+    // Vite 插件。
     // @code4x:begin vite-plugins
     // @code4x:end vite-plugins
   ],
@@ -33,15 +33,15 @@ export default defineConfig({
     format: ['cjs'],
     platform: 'node',
     outDir: 'dist',
-    // An application does not ship types or a rewritten `exports` map.
+    // 应用程序不需要发布类型声明，也不需要重写 `exports` 映射。
     dts: false,
     exports: false,
     deps: {
-      // `electron` is provided by the runtime, never bundled.
+      // `electron` 由运行时提供，绝不打包。
       neverBundle: ['electron'],
-      // `zod` is a runtime `dependencies` entry, so tsdown externalizes it by
-      // default. The sandboxed preload cannot `require()` external modules, so
-      // force it into the bundle: `dist/preload/index.cjs` stays self-contained.
+      // `zod` 是运行时 `dependencies` 依赖，tsdown 默认会把它外部化。
+      // 但沙箱中的 preload 无法 `require()` 外部模块，因此强制将其打入
+      // 产物：`dist/preload/index.cjs` 保持自包含。
       alwaysBundle: ['zod'],
     },
   },

@@ -3,7 +3,7 @@
 **code4x** 是一个多框架项目脚手架，用法对标 [`create-vite`](https://github.com/vitejs/vite/tree/main/packages/create-vite)，但把「框架骨架」和「可选能力」拆成了两个独立维度：
 
 - 先选框架：**Hono**（后端）、**Vue**（前端 SPA）、**Electron**（桌面端）；
-- 再按需勾选能力：校验、OpenAPI、日志、测试、路由、状态管理、i18n、CSS 引擎、UI 套件、打包等；
+- 再按需勾选能力：校验、OpenAPI、日志、测试、路由、状态管理、CSS 引擎、UI 套件（Reka UI / Naive UI / Element Plus / shadcn-vue）、打包等；
 - 生成物默认使用 [Vite+](https://viteplus.dev/)（`vp`）工具链，`install → build → check` 开箱即用。
 
 也可以用预设（preset）一次选定常用组合，例如 `-p vue-naive-tw`。
@@ -13,7 +13,7 @@
 | 框架 | 基座 | 可选能力 | 预设 |
 |---|---|---|---|
 | Hono | requestId、统一错误信封、健康检查、优雅停机 | zod、api-guard、swagger-openapi、env、testing、logging、http-hardening | `hono-api`、`hono-standard`、`hono-full` |
-| Vue | `@/` 别名、CSS 组装、Vite+ check | router、pinia、vueuse、vueuse-router、i18n、query / colada / alova（请求策略三选一）、testing、tailwind / unocss、naive-ui / element-plus / shadcn-vue | `vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-shadcn-tw`、`vue-unocss-min`、`vue-full` |
+| Vue | `@/` 别名、CSS 组装、Vite+ check | router、pinia、vueuse、vueuse-router、query / colada / alova（请求策略三选一）、testing、tailwind / unocss、reka-ui / naive-ui / element-plus / shadcn-vue | `vue-standard`、`vue-naive-tw`、`vue-element-tw`、`vue-shadcn-tw`、`vue-unocss-min`、`vue-full` |
 | Electron | Vue 3 渲染层、类型化 IPC、`app://` 生产加载、单实例锁 | electron-builder | 无（用 `-f electron` 直接生成） |
 
 完整的 id、依赖与互斥关系见 [Feature 矩阵](/reference/features)。

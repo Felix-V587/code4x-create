@@ -32,6 +32,16 @@ export interface RcFile {
     /** Dependency names emitted as `"catalog:"` because the host catalogs them. */
     catalogRewrites: string[];
   };
+  /** Full-stack only: fixed per-app plans. */
+  stack?: { apps: FullstackRcApp[] };
+}
+
+export interface FullstackRcApp {
+  name: string;
+  path: string;
+  framework: string;
+  explicitFeatures: string[];
+  features: string[];
 }
 
 export interface RcWorkspace {
@@ -52,6 +62,7 @@ export function buildRc(
   cliVersion: string,
   context: ProjectContext = { nestedWorkspace: false, pmFrom: "default" },
   workspace?: RcWorkspace,
+  stack?: FullstackRcApp[],
 ): RcFile {
   const sources: Record<string, string> = {};
   const hashes: Record<string, string> = {};
@@ -65,6 +76,7 @@ export function buildRc(
     plan: { features: plan.features, sources, hashes },
     context,
     ...(workspace ? { workspace } : {}),
+    ...(stack ? { stack: { apps: stack } } : {}),
   };
 }
 

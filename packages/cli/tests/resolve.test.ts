@@ -183,7 +183,6 @@ describe("resolve", () => {
       "vue/router",
       "vue/pinia",
       "vue/vueuse",
-      "vue/i18n",
       "vue/query",
       "vue/testing",
     ]);
@@ -193,7 +192,6 @@ describe("resolve", () => {
       loadRegistry(),
     );
     expect(plan.features).toEqual([
-      "vue/i18n",
       "vue/pinia",
       "vue/query",
       "vue/router",

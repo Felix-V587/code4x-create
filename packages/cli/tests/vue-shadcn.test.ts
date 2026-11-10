@@ -229,7 +229,6 @@ describe("preset / vue-shadcn-tw", () => {
       "vue/router",
       "vue/pinia",
       "vue/vueuse",
-      "vue/i18n",
       "vue/tailwind",
       "vue/shadcn-vue",
     ]);
@@ -251,8 +250,6 @@ describe("preset / vue-shadcn-tw", () => {
     expect(file(fromPreset, "src/components/ui/button/Button.vue")).toBeDefined();
     expect(file(fromPreset, "src/style.css").contents).toContain("@import 'tailwindcss';");
     expect(file(fromPreset, "src/style.css").contents).toContain("@import 'tw-animate-css';");
-    // i18n (part of the standard closure) still contributes to App.vue.
-    expect(file(fromPreset, "src/App.vue").contents).toContain("{{ $t('hello') }}");
     for (const entry of fromPreset) expect(entry.contents).not.toContain("@code4x");
   });
 });

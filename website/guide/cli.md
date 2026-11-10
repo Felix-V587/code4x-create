@@ -15,6 +15,7 @@
 |---|---|---|
 | `<dir>` | 相对 / 绝对路径 | 目标目录（位置参数；Monorepo 下为 workspace 根） |
 | `--monorepo` / `--no-monorepo` | boolean | 生成单仓库（pnpm workspace）项目；交互式默认询问项目类型 |
+| `--fullstack` / `--no-fullstack` | boolean | 生成标准全栈单仓库（Hono + Vue + Electron）；固定 pnpm，不接受框架/feature 覆盖 |
 | `--app <name>` | 目录名 | Monorepo 应用名（`apps/<name>`）；缺省按框架取 `api` / `web` / `desktop` |
 | `-f, --framework` | `hono` \| `vue` \| `electron` | 选择框架；未给且 features 同属一个框架时可自动推断 |
 | `--features` | 逗号分隔 | 全限定名或裸名；`none` 表示清空 |
@@ -48,7 +49,7 @@ flag > config 文件 > preset > 交互中用户输入 > 内置默认
 | 字段 | 默认 |
 |---|---|
 | `targetDir` | **必须提供**（否则 `E-DIR-REQUIRED`） |
-| `projectType` | `standalone`；用 `--monorepo` 切换 |
+| `projectType` | `standalone`；用 `--monorepo` / `--fullstack` 切换 |
 | `appName` | Monorepo 下按框架取 `api` / `web` / `desktop` |
 | `framework` | `hono` |
 | `features` | 空（要用 batteries 请显式给 `-p`） |
@@ -89,9 +90,21 @@ node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-n
 
 详见 [在 workspace 中使用](/guide/workspace)。
 
+## 全栈快捷模式
+
+```bash
+node packages/cli/dist/cli.mjs my-stack --fullstack -y
+```
+
+- 固定生成 `apps/api`（Hono + api-guard + zod + testing）、`apps/web`（Vue router/pinia/vueuse/vueuse-router/testing + reka-ui + alova + unocss）、`apps/desktop`（Electron + electron-builder）。
+- 根 `package.json` 提供 `dev` / `build` / `check` / `test` / `preview` 与 `dev:api` / `dev:web` / `dev:desktop`。
+- `pnpm dev` 并行启动三端：API 3000、Web 5175、Electron 渲染器 5173。
+- 固定 pnpm；`--framework` / `--features` / `--preset` / `--app` 会报 `E-CONFLICT`。
+- `.code4xrc.json` 的 `stack.apps` 记录三端计划。
+
 ## `--config`
 
-支持以下键：`targetDir`、`projectName`、`framework`、`features`、`packageManager`、`install`、`git`、`preset`、`variant`（仅 `"ts"`）、`monorepo`（boolean）、`appName`（string）。
+支持以下键：`targetDir`、`projectName`、`framework`、`features`、`packageManager`、`install`、`git`、`preset`、`variant`（仅 `"ts"`）、`monorepo`（boolean）、`fullstack`（boolean）、`appName`（string）。
 
 ```json
 {

@@ -549,6 +549,114 @@ describe("cli e2e", () => {
     expect(rc.answers.projectType).toBe("standalone");
   });
 
+  test("--fullstack generates a standard api + web + desktop workspace", async () => {
+    const root = tempRoot();
+    const target = join(root, "full-stack");
+    const { code, stdout, stderr } = await invoke(["--fullstack", "-y", "--no-git", target], root);
+    expect(code).toBe(0);
+    expect(stderr).not.toContain("allowBuilds");
+    expect(stdout).toContain("full-stack workspace");
+
+    for (const relative of [
+      "package.json",
+      "pnpm-workspace.yaml",
+      ".gitignore",
+      "README.md",
+      ".code4xrc.json",
+      "apps/api/package.json",
+      "apps/web/package.json",
+      "apps/desktop/package.json",
+      "apps/web/src/main.ts",
+      "apps/desktop/src/main/index.ts",
+    ]) {
+      expect(existsSync(join(target, relative)), relative).toBe(true);
+    }
+
+    const rootPkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    expect(rootPkg.scripts.dev).toBe("pnpm -r --parallel dev");
+    expect(rootPkg.scripts.test).toBe("pnpm -r test");
+
+    const workspace = readFileSync(join(target, "pnpm-workspace.yaml"), "utf8");
+    expect(workspace).toContain("allowBuilds:");
+    expect(workspace).toContain("electron-winstaller: true");
+    expect(workspace).toContain("peerDependencyRules:");
+    expect(workspace).toContain("vite: '*'");
+
+    const webPkg = JSON.parse(readFileSync(join(target, "apps/web/package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+    expect(webPkg.dependencies["reka-ui"]).toBe("^2.11.0");
+    expect(webPkg.dependencies.alova).toBeDefined();
+    expect(webPkg.devDependencies.unocss).toBeDefined();
+    expect(webPkg.dependencies["vue-i18n"]).toBeUndefined();
+
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { projectType: string; framework: string; workspaceName: string };
+      stack: { apps: Array<{ name: string; path: string; framework: string }> };
+      plan: { features: string[] };
+    };
+    expect(rc.answers.projectType).toBe("fullstack");
+    expect(rc.answers.framework).toBe("fullstack");
+    expect(rc.answers.workspaceName).toBe("full-stack");
+    expect(rc.stack.apps.map((app) => [app.name, app.path, app.framework])).toEqual([
+      ["api", "apps/api", "hono"],
+      ["web", "apps/web", "vue"],
+      ["desktop", "apps/desktop", "electron"],
+    ]);
+    expect(rc.plan.features).toContain("vue/reka-ui");
+    expect(rc.plan.features).not.toContain("vue/i18n");
+  });
+
+  test("interactive Full-stack project option scaffolds the fixed apps", async () => {
+    const root = tempRoot();
+    const target = join(root, "interactive-stack");
+    const prompter = scriptedPrompter({
+      text: [target],
+      select: ["fullstack"],
+      confirm: [false, false],
+    });
+    const { code } = await invoke([], root, { isTTY: true, createPrompter: () => prompter });
+    expect(code).toBe(0);
+    for (const app of ["api", "web", "desktop"]) {
+      expect(existsSync(join(target, "apps", app, "package.json")), app).toBe(true);
+    }
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { projectType: string };
+      stack: { apps: Array<{ name: string }> };
+    };
+    expect(rc.answers.projectType).toBe("fullstack");
+    expect(rc.stack.apps.map((app) => app.name)).toEqual(["api", "web", "desktop"]);
+  });
+
+  test("--fullstack rejects framework/feature overrides", async () => {
+    const root = tempRoot();
+    const target = join(root, "bad-stack");
+    const { code, stderr } = await invoke(
+      ["--fullstack", "--features", "pinia", "-f", "hono", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(2);
+    expect(stderr).toContain("E-CONFLICT");
+    expect(stderr).toContain("fixed apps/features");
+    expect(existsSync(target)).toBe(false);
+  });
+
+  test("--fullstack --pm npm -> E-INVALID-VALUE, exit 2", async () => {
+    const root = tempRoot();
+    const target = join(root, "npm-stack");
+    const { code, stderr } = await invoke(
+      ["--fullstack", "--pm", "npm", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(2);
+    expect(stderr).toContain("E-INVALID-VALUE");
+    expect(stderr).toContain("pnpm");
+    expect(existsSync(target)).toBe(false);
+  });
+
   test("standalone vue preset -> caret versions and no hint", async () => {
     const root = tempRoot();
     const target = join(root, "web");
@@ -750,7 +858,6 @@ describe("cli e2e", () => {
     expect(rc.answers.framework).toBe("vue");
     expect(rc.answers.preset).toBe("vue-full");
     expect(rc.plan.features).toEqual([
-      "vue/i18n",
       "vue/pinia",
       "vue/query",
       "vue/router",

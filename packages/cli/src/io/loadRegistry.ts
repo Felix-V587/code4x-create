@@ -34,7 +34,6 @@ import piniaManifest from "../../features/vue/pinia/manifest.ts";
 import routerManifest from "../../features/vue/router/manifest.ts";
 import vueuseManifest from "../../features/vue/vueuse/manifest.ts";
 import vueuseRouterManifest from "../../features/vue/vueuse-router/manifest.ts";
-import i18nManifest from "../../features/vue/i18n/manifest.ts";
 import queryManifest from "../../features/vue/query/manifest.ts";
 import coladaManifest from "../../features/vue/colada/manifest.ts";
 import alovaManifest from "../../features/vue/alova/manifest.ts";
@@ -43,6 +42,7 @@ import tailwindManifest from "../../features/vue/tailwind/manifest.ts";
 import unocssManifest from "../../features/vue/unocss/manifest.ts";
 import naiveUiManifest from "../../features/vue/naive-ui/manifest.ts";
 import elementPlusManifest from "../../features/vue/element-plus/manifest.ts";
+import rekaUiManifest from "../../features/vue/reka-ui/manifest.ts";
 import shadcnVueManifest from "../../features/vue/shadcn-vue/manifest.ts";
 import builderManifest from "../../features/electron/builder/manifest.ts";
 
@@ -61,7 +61,6 @@ const FEATURE_MANIFESTS: FeatureManifest[] = [
   routerManifest,
   vueuseManifest,
   vueuseRouterManifest,
-  i18nManifest,
   queryManifest,
   coladaManifest,
   alovaManifest,
@@ -70,6 +69,7 @@ const FEATURE_MANIFESTS: FeatureManifest[] = [
   unocssManifest,
   naiveUiManifest,
   elementPlusManifest,
+  rekaUiManifest,
   shadcnVueManifest,
   builderManifest,
 ];
@@ -164,48 +164,27 @@ export function loadRegistry(
     "vue-full": {
       id: "vue-full",
       framework: "vue",
-      features: ["vue/router", "vue/pinia", "vue/vueuse", "vue/i18n", "vue/query", "vue/testing"],
+      features: ["vue/router", "vue/pinia", "vue/vueuse", "vue/query", "vue/testing"],
     },
     "vue-standard": {
       id: "vue-standard",
       framework: "vue",
-      features: ["vue/router", "vue/pinia", "vue/vueuse", "vue/i18n"],
+      features: ["vue/router", "vue/pinia", "vue/vueuse"],
     },
     "vue-naive-tw": {
       id: "vue-naive-tw",
       framework: "vue",
-      features: [
-        "vue/router",
-        "vue/pinia",
-        "vue/vueuse",
-        "vue/i18n",
-        "vue/naive-ui",
-        "vue/tailwind",
-      ],
+      features: ["vue/router", "vue/pinia", "vue/vueuse", "vue/naive-ui", "vue/tailwind"],
     },
     "vue-element-tw": {
       id: "vue-element-tw",
       framework: "vue",
-      features: [
-        "vue/router",
-        "vue/pinia",
-        "vue/vueuse",
-        "vue/i18n",
-        "vue/element-plus",
-        "vue/tailwind",
-      ],
+      features: ["vue/router", "vue/pinia", "vue/vueuse", "vue/element-plus", "vue/tailwind"],
     },
     "vue-shadcn-tw": {
       id: "vue-shadcn-tw",
       framework: "vue",
-      features: [
-        "vue/router",
-        "vue/pinia",
-        "vue/vueuse",
-        "vue/i18n",
-        "vue/tailwind",
-        "vue/shadcn-vue",
-      ],
+      features: ["vue/router", "vue/pinia", "vue/vueuse", "vue/tailwind", "vue/shadcn-vue"],
     },
     "vue-unocss-min": {
       id: "vue-unocss-min",

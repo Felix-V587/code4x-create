@@ -1,7 +1,7 @@
 import type { FeatureManifest } from "../../../src/domain/types.ts";
 
 /**
- * `vue/naive-ui` — naive-ui (default UI kit, docs/06 §4.2 / OQ-13).
+ * `vue/naive-ui` — naive-ui (optional UI kit, docs/06 §4.2 / OQ-13).
  *
  * On-demand components/APIs via `unplugin-vue-components` +
  * `unplugin-auto-import` with `NaiveUiResolver`. The generated declaration files
@@ -19,7 +19,6 @@ const naiveUiManifest: FeatureManifest = {
   description: "Component library (naive-ui, auto-imported)",
   promptSection: "ui",
   requires: [{ kind: "framework", id: "vue" }],
-  defaults: true,
   group: "vue/ui",
   targets: {
     vue: {

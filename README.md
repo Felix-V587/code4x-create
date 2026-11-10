@@ -1,8 +1,8 @@
 # code4x-create
 
-通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档 / `env`（zod 校验配置）/ `testing`（Vitest 示例）/ `logging`（pino）/ `http-hardening`（timeout + body-limit + compress）；Vue（vp 原生 dev/build/check + 官方 `vue-ts` 基线：`@vue/tsconfig` project references + `vue-tsc -b`）：`pinia` / `vue-router` / `vueuse` / `vueuse-router` / `i18n`（vue-i18n）/ 请求策略 `query`（TanStack Query）⟂ `colada`（Pinia Colada）⟂ `alova`（alova 3，类型化 client + `useRequest`）/ `testing`（Vitest + @vue/test-utils）/ CSS 引擎 `tailwind` ⟂ `unocss` / UI 套件 `naive-ui`（默认）⟂ `element-plus` ⟂ `shadcn-vue`（copy-paste 组件栈，vendored、需 tailwind）；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：类型化 IPC（`src/shared/ipc.ts` 共享 zod channel 表 + 三端派生类型 + 仅 `message` 的错误信封）+ 生产 `app://` 自定义协议加载（SPA 回退）；`electron/builder`（经 electron-builder 打包安装包）。
+通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档 / `env`（zod 校验配置）/ `testing`（Vitest 示例）/ `logging`（pino）/ `http-hardening`（timeout + body-limit + compress）；Vue（vp 原生 dev/build/check + 官方 `vue-ts` 基线：`@vue/tsconfig` project references + `vue-tsc -b`）：`pinia` / `vue-router` / `vueuse` / `vueuse-router` / 请求策略 `query`（TanStack Query）⟂ `colada`（Pinia Colada）⟂ `alova`（alova 3，类型化 client + `useRequest`）/ `testing`（Vite+ 内置 runner + @vue/test-utils）/ CSS 引擎 `tailwind` ⟂ `unocss` / UI 套件 `reka-ui`（默认，无样式可访问原语）⟂ `naive-ui` ⟂ `element-plus` ⟂ `shadcn-vue`（copy-paste 组件栈，vendored、需 tailwind）；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：类型化 IPC（`src/shared/ipc.ts` 共享 zod channel 表 + 三端派生类型 + 仅 `message` 的错误信封）+ 生产 `app://` 自定义协议加载（SPA 回退）；`electron/builder`（经 electron-builder 打包安装包）。
 
-**实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；交互式新增「项目类型（Standard / Monorepo）」与 Vue 分步能力选择（Vue ecosystem → Request strategy → UI framework/CSS）；**M12 单仓库整仓生成 + Vue 引导式提问已完成**；**M6 机制扩展 + M7 Hono 标准化 + M8a Vue 全家桶 + M8b shadcn-vue + M9 Electron 加固已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening；Vue 基座升级（`@/` 别名、`src/style.css` 组装、`css-imports` 锚点）+ vueuse/i18n/query/colada/alova/testing + tailwind/unocss + naive-ui/element-plus + shadcn-vue（vendored 组件 + `app-script` 锚点）+ 预设 `vue-standard`/`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min`/`vue-shadcn-tw`/`vue-full`；Electron 类型化 IPC（共享 zod 表）+ `protocol.handle` `app://` 加载 + `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 已接入 GitHub Actions；发布流程就绪（`repository` 已补，待 npm 凭据后实际发布）。设计与决策文档见 [docs/](./docs/README.md)。
+**实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；交互式支持「项目类型（Standard / Monorepo / Full-stack）」与 Vue 分步能力选择（Vue ecosystem → Request strategy → UI framework/CSS）；**M12 单仓库整仓生成 + Vue 引导式提问已完成**；**M14 全栈快捷模式（Hono + Vue + Electron 单仓库）与 Vue 能力调整（移除 i18n、reka-ui 默认）已完成**；**M6 机制扩展 + M7 Hono 标准化 + M8a Vue 全家桶 + M8b shadcn-vue + M9 Electron 加固已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening；Vue 基座升级（`@/` 别名、`src/style.css` 组装、`css-imports` 锚点）+ vueuse/query/colada/alova/testing + tailwind/unocss + reka-ui/naive-ui/element-plus + shadcn-vue（vendored 组件 + `app-script` 锚点）+ 预设 `vue-standard`/`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min`/`vue-shadcn-tw`/`vue-full`；Electron 类型化 IPC（共享 zod 表）+ `protocol.handle` `app://` 加载 + `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 已接入 GitHub Actions；发布流程就绪（`repository` 已补，待 npm 凭据后实际发布）。设计与决策文档见 [docs/](./docs/README.md)。
 
 ## 快速开始（仓库内）
 
@@ -22,8 +22,8 @@ node packages/cli/dist/cli.mjs my-api -f hono --features zod -y   # + zod 校验
 node packages/cli/dist/cli.mjs my-api -p hono-api -y              # 预设：api-guard + zod + swagger-openapi
 node packages/cli/dist/cli.mjs my-api -p hono-standard -y         # 预设：api-guard + zod + testing
 node packages/cli/dist/cli.mjs my-api -p hono-full -y             # 预设：standard + swagger-openapi + logging + http-hardening
-node packages/cli/dist/cli.mjs my-vue -p vue-standard -y          # 预设：Vue + router + pinia + vueuse + i18n
-node packages/cli/dist/cli.mjs my-vue -p vue-naive-tw -y          # 预设（默认推荐）：standard + naive-ui + tailwind
+node packages/cli/dist/cli.mjs my-vue -p vue-standard -y          # 预设：Vue + router + pinia + vueuse
+node packages/cli/dist/cli.mjs my-vue -p vue-naive-tw -y          # 预设（常用推荐）：standard + naive-ui + tailwind
 node packages/cli/dist/cli.mjs my-vue -p vue-element-tw -y        # 预设：standard + element-plus + tailwind
 node packages/cli/dist/cli.mjs my-vue -p vue-unocss-min -y        # 预设：router + pinia + unocss
 node packages/cli/dist/cli.mjs my-vue -p vue-shadcn-tw -y         # 预设：standard + tailwind + shadcn-vue（vendored 组件）
@@ -31,9 +31,10 @@ node packages/cli/dist/cli.mjs my-vue -p vue-full -y              # 预设：sta
 node packages/cli/dist/cli.mjs my-app -f electron -y             # Electron（Vue 渲染层 + vp pack 主/预加载）
 node packages/cli/dist/cli.mjs my-app -f electron --features electron/builder -y   # + electron-builder 打包（dist / dist:dir）
 node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-naive-tw -y   # 单仓库：workspace 根 + apps/web
+node packages/cli/dist/cli.mjs my-stack --fullstack -y            # 全栈：apps/api + apps/web + apps/desktop
 ```
 
-交互式运行时，第一个问题选择 **Standard project** 或 **Monorepo project**；若当前目录已在 workspace 内，目标文件夹会扫描 `packages` / `workspaces` 配置并给出 `apps/`、`packages/` 等选项（含 **Custom folder…** 自定义输入），再询问项目名。选中 Vue 后按 **Vue ecosystem**（pinia/router/vueuse/i18n/testing）→ **Request strategy**（alova/colada/query）→ **UI framework**（naive-ui/element-plus/shadcn-vue）→ **CSS engine**（tailwind/unocss）分步选择。
+交互式运行时，第一个问题选择 **Standard project** / **Monorepo project** / **Full-stack project**；若当前目录已在 workspace 内，目标文件夹会扫描 `packages` / `workspaces` 配置并给出 `apps/`、`packages/` 等选项（含 **Custom folder…** 自定义输入），再询问项目名。选中 Vue 后按 **Vue ecosystem**（pinia/router/vueuse/vueuse-router/testing）→ **Request strategy**（alova/colada/query）→ **UI framework**（reka-ui 默认 / naive-ui / element-plus / shadcn-vue）→ **CSS engine**（tailwind/unocss）分步选择。
 
 发布后形态（尚未发布到 npm）：`pnpm dlx @code4x/cli my-api`（等价 `npx @code4x/cli@latest my-api`）。
 
@@ -60,6 +61,20 @@ node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-n
 ```
 
 生成根 `package.json`（脚本转发到应用）、根 `pnpm-workspace.yaml`（`apps/*` + `packages/*` + `allowBuilds`）、`.gitignore`、`README.md`、根 `.code4xrc.json`，应用位于 `apps/web/`（不写应用级 `pnpm-workspace.yaml`，Tailwind 使用 `source('../')`）。Monorepo 固定 pnpm；安装与 `git init` 在根执行。详见 [website/guide/workspace.md](./website/guide/workspace.md)。
+
+### 全栈快捷模式
+
+N0 选择 **Full-stack project**（或 `--fullstack`）会一次生成标准全栈单仓库：
+
+```bash
+node packages/cli/dist/cli.mjs my-stack --fullstack -y
+```
+
+- `apps/api`：Hono + api-guard + zod + testing
+- `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175
+- `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173
+- 根 `pnpm dev` 并行启动三端；`pnpm build` / `pnpm check` / `pnpm test` 递归执行
+- 固定 pnpm；安装与 `git init` 在根执行；`.code4xrc.json` 的 `stack.apps` 记录三端计划
 
 通过 Vite+ 统一入口（发布后）：在 `vite.config.ts` 的 `create.templates` 中以**全名** `@code4x/cli` 注册条目（全名 run as-is，不做 `create-` 简写展开），再用 `vp create <name> -- my-api -f hono --features zod -y` 调用（参数化；CI 同此写法——vp 不透传 `--no-interactive`，参数放 `--` 后）。旧的 `vp create code4x` 简写会展开成 `create-code4x`，**已不再映射本包**。本地未发布期的集成验证走 `create.templates` harness，见 [docs/05](./docs/05-vp-integration.md)。
 
@@ -139,7 +154,7 @@ packages/cli/   发布包（name = @code4x/cli；bin = create-code4x）
   src/domain/   纯函数层：types / errors / registry / resolve / render（锚点组装、确定性、幂等）
   src/io/       副作用薄层：staging 落盘、rc、PM 探测、git、install
   templates/    框架骨架与静态文件（hono/vue/electron）
-  features/     可选能力（hono/zod、hono/api-guard、hono/swagger-openapi、hono/env、hono/testing、hono/logging、hono/http-hardening、vue/pinia、vue/router、vue/vueuse、vue/vueuse-router、vue/i18n、vue/query、vue/colada、vue/alova、vue/testing、vue/tailwind、vue/unocss、vue/naive-ui、vue/element-plus、vue/shadcn-vue、electron/builder）
+  features/     可选能力（hono/zod、hono/api-guard、hono/swagger-openapi、hono/env、hono/testing、hono/logging、hono/http-hardening、vue/pinia、vue/router、vue/vueuse、vue/vueuse-router、vue/query、vue/colada、vue/alova、vue/testing、vue/tailwind、vue/unocss、vue/reka-ui、vue/naive-ui、vue/element-plus、vue/shadcn-vue、electron/builder）
   tests/        单测与 CLI e2e
 docs/           设计文档：生态调研 / 架构决策 / wiring 规格 / prompt 流
 fixtures/       vp 集成 harness（本地 `vp create code4x` 端到端验证）

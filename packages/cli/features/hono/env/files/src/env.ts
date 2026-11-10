@@ -1,9 +1,8 @@
 import { z } from 'zod'
 
 /**
- * Runtime configuration, validated once at import time. Declare required
- * variables here so a missing or malformed value fails fast at startup instead
- * of surfacing later as `undefined` deep inside a handler.
+ * 运行时配置，在导入时校验一次。在此声明必需变量，这样缺失或格式错误的值
+ * 会在启动时快速失败，而不是稍后以 `undefined` 的形式在处理器深处浮现。
  */
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
