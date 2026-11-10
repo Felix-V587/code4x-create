@@ -26,6 +26,7 @@ interface Tier2Combo {
   preset?: string;
   features?: string[];
   monorepo?: boolean;
+  fullstack?: boolean;
 }
 
 interface Tier2Catalog {
@@ -61,6 +62,7 @@ const M11_NIGHTLY_ONLY = [
   "vue-colada",
   "vue-alova",
   "electron-base",
+  "fullstack",
 ];
 
 describe("Tier-2 combo list stays in sync with the registry", () => {
@@ -76,6 +78,12 @@ describe("Tier-2 combo list stays in sync with the registry", () => {
 
   test("every framework id exists in the registry", () => {
     for (const combo of allCombos) {
+      if (combo.fullstack) {
+        for (const framework of ["hono", "vue", "electron"]) {
+          expect(registry.frameworks[framework], `unknown framework: ${framework}`).toBeDefined();
+        }
+        continue;
+      }
       expect(
         registry.frameworks[combo.framework],
         `unknown framework: ${combo.framework}`,

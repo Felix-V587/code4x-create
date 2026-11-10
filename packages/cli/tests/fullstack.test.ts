@@ -205,3 +205,76 @@ describe("fullstack / render", () => {
     expect((pkg(files, "package.json") as { name: string }).name).toBe("web-workspace");
   });
 });
+
+describe("fullstack / scaffold", () => {
+  test("generates packages/shared-types and wires it into all three apps", () => {
+    const { files } = build();
+    const shared = pkg(files, "packages/shared-types/package.json") as {
+      name: string;
+      scripts: Record<string, string>;
+      exports: Record<string, unknown>;
+    };
+    expect(shared.name).toBe("@my-fullstack/shared-types");
+    expect(shared.scripts.build).toBe("vp pack");
+    expect(shared.exports).toBeDefined();
+    expect(file(files, "packages/shared-types/src/index.ts").contents).toContain(
+      "export interface Todo",
+    );
+
+    for (const app of ["api", "web", "desktop"]) {
+      const deps = (
+        pkg(files, `apps/${app}/package.json`) as {
+          dependencies: Record<string, string>;
+        }
+      ).dependencies;
+      expect(deps["@my-fullstack/shared-types"]).toBe("workspace:*");
+    }
+  });
+
+  test("ships runnable sample code in api / web / desktop", () => {
+    const { files } = build();
+    const apiIndex = file(files, "apps/api/src/index.ts").contents;
+    expect(apiIndex).toContain("import { todos } from './routes/todos'");
+    expect(apiIndex).toContain("app.route('/todos', todos)");
+    expect(file(files, "apps/api/src/routes/todos.ts").contents).toContain(
+      "import type { CreateTodoInput, Todo } from '@my-fullstack/shared-types'",
+    );
+    expect(file(files, "apps/api/src/routes/todos.test.ts").contents).toContain(
+      "POST /todos validates and appends",
+    );
+
+    expect(file(files, "apps/web/src/api/todos.ts").contents).toContain(
+      "import type { Todo } from '@my-fullstack/shared-types'",
+    );
+    expect(file(files, "apps/web/src/views/Home.vue").contents).toContain("useTodos()");
+    expect(file(files, "apps/web/vite.config.ts").contents).toContain(
+      "target: 'http://localhost:3000'",
+    );
+
+    const ipc = file(files, "apps/desktop/src/shared/ipc.ts").contents;
+    expect(ipc).toContain("const SampleTodoSchema: z.ZodType<Todo>");
+    expect(ipc).toContain("'app:todo': { args: z.tuple([]), result: SampleTodoSchema }");
+    expect(file(files, "apps/desktop/src/main/index.ts").contents).toContain("register('app:todo'");
+    expect(file(files, "apps/desktop/src/renderer/src/App.vue").contents).toContain("api.todo()");
+  });
+
+  test("generates root and per-project AGENTS.md with stack llms.txt links", () => {
+    const { files } = build();
+    const root = file(files, "AGENTS.md").contents;
+    expect(root).toContain("# my-fullstack — AGENTS");
+    expect(root).toContain("https://viteplus.dev/llms.txt");
+    expect(root).toContain("pnpm check");
+
+    expect(file(files, "apps/api/AGENTS.md").contents).toContain("https://hono.dev/llms.txt");
+    expect(file(files, "apps/api/AGENTS.md").contents).toContain("https://zod.dev/llms.txt");
+    expect(file(files, "apps/web/AGENTS.md").contents).toContain("https://vuejs.org/llms.txt");
+    expect(file(files, "apps/web/AGENTS.md").contents).toContain("https://alova.js.org/llms.txt");
+    expect(file(files, "apps/web/AGENTS.md").contents).toContain("https://unocss.dev/llms.txt");
+    expect(file(files, "apps/desktop/AGENTS.md").contents).toContain(
+      "https://www.electronjs.org/docs/latest/",
+    );
+    expect(file(files, "packages/shared-types/AGENTS.md").contents).toContain(
+      "https://www.typescriptlang.org/docs/",
+    );
+  });
+});

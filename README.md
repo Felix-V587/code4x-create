@@ -70,10 +70,12 @@ N0 选择 **Full-stack project**（或 `--fullstack`）会一次生成标准全�
 node packages/cli/dist/cli.mjs my-stack --fullstack -y
 ```
 
-- `apps/api`：Hono + api-guard + zod + testing
-- `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175
-- `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173
-- 根 `pnpm dev`（`vp run -r --parallel dev`）并行启动三端；`pnpm build` / `pnpm test` 递归执行，`pnpm check` 对整仓一次执行（`vp check`）
+- `apps/api`：Hono + api-guard + zod + testing（示例 `GET/POST /todos`）
+- `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175（`Home.vue` 经 Alova 调 `/api/todos`）
+- `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173（示例 `app:todo` IPC）
+- `packages/shared-types`：共享领域类型（`Todo` / `CreateTodoInput` / `ApiError` / `HealthStatus`），三端以 `workspace:*` 引用
+- 根 `AGENTS.md` + 各子项目 `AGENTS.md`：按技术栈写入官方 `llms.txt` 链接（Electron / TypeScript 等无 llms.txt 的给官方文档）
+- 根 `pnpm dev`（`vp run -r --parallel dev`）并行启动三端 + 共享类型 watch；`pnpm build` / `pnpm test` 递归执行，`pnpm check` 对整仓一次执行（`vp check`）
 - 固定 pnpm；安装与 `git init` 在根执行；`.code4xrc.json` 的 `stack.apps` 记录三端计划
 
 通过 Vite+ 统一入口（发布后）：在 `vite.config.ts` 的 `create.templates` 中以**全名** `@code4x/cli` 注册条目（全名 run as-is，不做 `create-` 简写展开），再用 `vp create <name> -- my-api -f hono --features zod -y` 调用（参数化；CI 同此写法——vp 不透传 `--no-interactive`，参数放 `--` 后）。旧的 `vp create code4x` 简写会展开成 `create-code4x`，**已不再映射本包**。本地未发布期的集成验证走 `create.templates` harness，见 [docs/05](./docs/05-vp-integration.md)。

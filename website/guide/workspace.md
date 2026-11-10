@@ -157,19 +157,24 @@ my-stack/
 ├── package.json            # dev/build/typecheck/check/test + dev:api/dev:web/dev:desktop
 ├── pnpm-workspace.yaml     # apps/* + packages/* + allowBuilds + peerDependencyRules
 ├── vite.config.ts          # run.cache + 共享 lint/fmt（三应用共用）
+├── AGENTS.md               # workspace 级 AI 协作规则 + llms.txt 索引
 ├── .gitignore
 ├── README.md
 ├── .code4xrc.json          # stack.apps 记录三端
-└── apps/
-    ├── api/                # Hono + api-guard + zod + testing（dev 3000）
-    ├── web/                # Vue 全家桶 + reka-ui + alova + unocss（dev 5175）
-    └── desktop/            # Electron + electron-builder（渲染器 dev 5173）
+├── apps/
+│   ├── api/                # Hono + api-guard + zod + testing（dev 3000）+ AGENTS.md
+│   ├── web/                # Vue 全家桶 + reka-ui + alova + unocss（dev 5175）+ AGENTS.md
+│   └── desktop/            # Electron + electron-builder（渲染器 dev 5173）+ AGENTS.md
+└── packages/
+    └── shared-types/       # 共享领域类型（Todo / ApiError 等）+ AGENTS.md
 ```
 
 - 根脚本经 Vite+ 任务运行器执行：`pnpm build` → `vp run -r build`，`pnpm test` → `vp run -r test`，`pnpm check` → `vp check`（整仓一次），`pnpm dev` → `vp run -r --parallel dev`。
-- `pnpm dev` 并行启动三端；Web 使用 5175，避免与 Electron 渲染器 5173 冲突。
+- `pnpm dev` 并行启动三端 + 共享类型 watch；Web 使用 5175，避免与 Electron 渲染器 5173 冲突。
+- 自带一条可运行的纵向样板链路：`apps/api` 的 `GET/POST /todos` → `apps/web` 的 `Home.vue` 经 Alova 调用（开发期 `/api` 代理到 3000）→ `apps/desktop` 的 `app:todo` IPC 通道；类型统一来自 `packages/shared-types`。
+- 根与每个子项目都生成 `AGENTS.md`，按技术栈列出官方 `llms.txt` 链接（Electron / electron-builder / TypeScript 等暂无 llms.txt 的给出官方文档入口）。
 - 固定 pnpm；不接受 `--framework` / `--features` / `--preset` / `--app`。
-- 三个应用都按嵌套 workspace 渲染；`packages/*` 已声明，可放共享代码。
+- 三个应用都按嵌套 workspace 渲染；`packages/*` 可继续放共享代码。
 
 ## 已知边界
 

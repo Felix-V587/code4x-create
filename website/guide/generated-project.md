@@ -60,7 +60,7 @@
 
 应用本身位于 `apps/<app>/`，文件树与 standalone 生成一致；不会写应用级 `pnpm-workspace.yaml`，Tailwind 使用 `source('../')`。依赖安装与 `git init` 都在根目录执行。`vp` 来自根 `node_modules`，无需全局安装。
 
-全栈模式（`--fullstack`）是 Monorepo 的固定三应用特例：`apps/api`、`apps/web`、`apps/desktop`，根 `vite.config.ts` 只保留 `run.cache` 与共享 `lint` / `fmt`（多应用不设 `defaultPackage`），`.code4xrc.json` 额外记录 `stack.apps`。
+全栈模式（`--fullstack`）是 Monorepo 的固定三应用特例：`apps/api`、`apps/web`、`apps/desktop` + `packages/shared-types`，根 `vite.config.ts` 只保留 `run.cache` 与共享 `lint` / `fmt`（多应用不设 `defaultPackage`），`.code4xrc.json` 额外记录 `stack.apps`。全栈生成物还带一条可运行样板链路（API `/todos` → Web Alova → Desktop `app:todo` IPC），以及根/子项目 `AGENTS.md`（含各技术栈 `llms.txt` 链接）。
 
 ## 常用脚本
 

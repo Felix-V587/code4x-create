@@ -96,9 +96,11 @@ node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-n
 node packages/cli/dist/cli.mjs my-stack --fullstack -y
 ```
 
-- 固定生成 `apps/api`（Hono + api-guard + zod + testing）、`apps/web`（Vue router/pinia/vueuse/vueuse-router/testing + reka-ui + alova + unocss）、`apps/desktop`（Electron + electron-builder）。
+- 固定生成 `apps/api`（Hono + api-guard + zod + testing）、`apps/web`（Vue router/pinia/vueuse/vueuse-router/testing + reka-ui + alova + unocss）、`apps/desktop`（Electron + electron-builder）与 `packages/shared-types`（共享 `Todo` / `ApiError` 等类型）。
+- 自带可运行样板链路：API `GET/POST /todos` → Web `Home.vue` 经 Alova 调用 → Desktop `app:todo` IPC；三端类型统一来自 `packages/shared-types`。
 - 根 `package.json` 提供 `dev` / `build` / `typecheck` / `check` / `test` / `preview` 与 `dev:api` / `dev:web` / `dev:desktop`，经项目内 Vite+ 任务运行器执行（`build` = `vp run -r build`，`check` = `vp check`）。
-- `pnpm dev`（`vp run -r --parallel dev`）并行启动三端：API 3000、Web 5175、Electron 渲染器 5173。
+- `pnpm dev`（`vp run -r --parallel dev`）并行启动三端 + 共享类型 watch：API 3000、Web 5175、Electron 渲染器 5173。
+- 根与各子项目生成 `AGENTS.md`，按技术栈列出官方 `llms.txt` 链接（无 llms.txt 的给出官方文档入口）。
 - 固定 pnpm；`--framework` / `--features` / `--preset` / `--app` 会报 `E-CONFLICT`。
 - `.code4xrc.json` 的 `stack.apps` 记录三端计划。
 

@@ -15,6 +15,7 @@
     { "id": "vue-shadcn-tw", "framework": "vue", "preset": "vue-shadcn-tw" },
     { "id": "vue-colada", "framework": "vue", "features": ["vue/colada"] },
     { "id": "vue-alova", "framework": "vue", "features": ["vue/alova"] },
-    { "id": "electron-base", "framework": "electron" }
+    { "id": "electron-base", "framework": "electron" },
+    { "id": "fullstack", "fullstack": true }
   ]
 }

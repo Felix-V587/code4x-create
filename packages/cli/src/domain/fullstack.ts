@@ -7,6 +7,7 @@
 
 import { basename } from "node:path";
 
+import { applyFullstackScaffold, sharedTypesPackageName } from "./fullstackScaffold.ts";
 import { normalizePackageName, resolve } from "./resolve.ts";
 import {
   collectAllowBuilds,
@@ -160,6 +161,10 @@ export function renderFullstack(
   // 的严格端口，避免 `pnpm dev` 并行启动时冲突。
   patchWebDevPort(files);
 
+  // 共享类型包 + 三端示例接线 + 根/子项目 AGENTS.md。
+  const vitePlus = highestVitePlusRange(files);
+  applyFullstackScaffold(files, { workspaceName, vitePlus });
+
   files.push(
     {
       path: WORKSPACE_YAML_PATH,
@@ -171,7 +176,7 @@ export function renderFullstack(
     },
     {
       path: "package.json",
-      contents: renderFullstackPackageJson(workspaceName, highestVitePlusRange(files)),
+      contents: renderFullstackPackageJson(workspaceName, vitePlus),
       source: "fullstack",
     },
     {
@@ -299,6 +304,7 @@ function renderFullstackPackageJson(workspaceName: string, vitePlus: string): st
 }
 
 function renderFullstackReadme(workspaceName: string): string {
+  const shared = sharedTypesPackageName(workspaceName);
   return `# ${workspaceName}
 
 由 **create-code4x** 生成的标准全栈单仓库（Vite+ 生态）。
@@ -308,6 +314,16 @@ function renderFullstackReadme(workspaceName: string): string {
 - \`apps/api\` —— Hono 后端（api-guard + zod + testing）
 - \`apps/web\` —— Vue 前端（router / pinia / vueuse / vueuse-router / testing + reka-ui / alova / unocss）
 - \`apps/desktop\` —— Electron 桌面壳（electron-builder）
+- \`packages/shared-types\` —— 共享领域类型（\`${shared}\`）
+
+根 \`AGENTS.md\` 汇总 workspace 规则；每个子项目另有自己的 \`AGENTS.md\`（含技术栈 llms.txt 链接）。
+
+## 样板代码
+
+- API：\`GET /todos\` / \`POST /todos\`（内存存储，zod 校验，\`src/routes/todos.ts\`）
+- Web：\`Home.vue\` 经 Alova 调用 \`/api/todos\`（开发期代理到 API）
+- Desktop：\`app:todo\` IPC 通道，返回 \`${shared}\` 的 \`Todo\` 形状
+- Shared：\`Todo\` / \`CreateTodoInput\` / \`ApiError\` / \`HealthStatus\`
 
 ## 快速开始
 
@@ -323,7 +339,7 @@ pnpm dev
 - \`pnpm build\` → \`vp run -r build\`：按依赖顺序构建所有应用
 - \`pnpm check\` → \`vp check\`：对整个 workspace 做格式化 + lint + 类型检查
 - \`pnpm test\` → \`vp run -r test\`：递归执行各应用测试
-- \`pnpm dev\` → \`vp run -r --parallel dev\`：并行启动三端
+- \`pnpm dev\` → \`vp run -r --parallel dev\`：并行启动三端 + 共享类型 watch
 - \`pnpm dev:api\`（3000）/ \`pnpm dev:web\`（5175）/ \`pnpm dev:desktop\`（Electron 窗口）：单独启动某个应用
 - \`pnpm preview\`：预览前端构建产物
 

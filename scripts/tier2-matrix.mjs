@@ -75,6 +75,12 @@ function resolveStoreDir() {
 /** Validate a combo against the registry; returns a list of human problems. */
 export function validateCombo(combo, registry) {
   const problems = [];
+  if (combo.fullstack) {
+    for (const id of ["hono", "vue", "electron"]) {
+      if (!registry.frameworks[id]) problems.push(`unknown framework "${id}"`);
+    }
+    return problems;
+  }
   if (!registry.frameworks[combo.framework]) {
     problems.push(`unknown framework "${combo.framework}"`);
   }
@@ -103,7 +109,12 @@ export function validateCombo(combo, registry) {
 
 /** The CLI argv that materialises one combo (generation only, no install/git). */
 export function cliArgsFor(combo, target, cli = distCli) {
-  const args = [cli, target, "-f", combo.framework, "-y", "--no-install", "--no-git"];
+  const args = [cli, target, "-y", "--no-install", "--no-git"];
+  if (combo.fullstack) {
+    args.push("--fullstack");
+    return args;
+  }
+  args.push("-f", combo.framework);
   if (combo.preset !== undefined) args.push("-p", combo.preset);
   if (combo.features?.length) args.push("--features", combo.features.join(","));
   if (combo.monorepo) args.push("--monorepo");
@@ -141,7 +152,7 @@ function runCombo(combo, ctx) {
   const logFd = openSync(logPath, "a");
 
   process.stdout.write(
-    `\n=== [${combo.id}] ${combo.framework}${combo.preset ? ` preset=${combo.preset}` : ""}${combo.features?.length ? ` features=${combo.features.join(",")}` : ""}${combo.monorepo ? " monorepo" : ""}\n`,
+    `\n=== [${combo.id}] ${combo.fullstack ? "fullstack" : combo.framework}${combo.preset ? ` preset=${combo.preset}` : ""}${combo.features?.length ? ` features=${combo.features.join(",")}` : ""}${combo.monorepo ? " monorepo" : ""}\n`,
   );
 
   const steps = [
