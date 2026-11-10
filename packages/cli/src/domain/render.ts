@@ -15,6 +15,7 @@ import type {
   FeatureContribution,
   FeatureId,
   PackageJsonPatch,
+  PeerDependencyRules,
   Plan,
   ProjectContext,
   ScriptEdit,
@@ -97,7 +98,10 @@ function renderMonorepo(
   files.push(
     {
       path: WORKSPACE_YAML_PATH,
-      contents: renderMonorepoWorkspaceYaml(collectAllowBuilds(plan, reg)),
+      contents: renderMonorepoWorkspaceYaml(
+        collectAllowBuilds(plan, reg),
+        collectPeerDependencyRules(plan, reg),
+      ),
       source: "base",
     },
     {
@@ -197,8 +201,9 @@ function renderApp(plan: Plan, reg: Registry, context: ProjectContext | undefine
   // 3. structured workspace policy (`pnpm-workspace.yaml`). Emitted only for
   //    standalone projects: a nested workspace owns the build policy.
   const allowBuilds = collectAllowBuilds(plan, reg);
-  if (allowBuilds.length > 0 && !context?.nestedWorkspace) {
-    addFile(outputs, WORKSPACE_YAML_PATH, renderWorkspaceYaml(allowBuilds), "base");
+  const peerRules = collectPeerDependencyRules(plan, reg);
+  if ((allowBuilds.length > 0 || peerRules !== undefined) && !context?.nestedWorkspace) {
+    addFile(outputs, WORKSPACE_YAML_PATH, renderWorkspaceYaml(allowBuilds, peerRules), "base");
   }
 
   return [...outputs.values()]
@@ -232,17 +237,81 @@ export function collectAllowBuilds(plan: Plan, reg: Registry): string[] {
 }
 
 /**
- * Hand-rolled emitter for the single modelled `pnpm-workspace.yaml` shape:
+ * Union of `workspaceYaml.peerDependencyRules` across contributions. Keys are
+ * sorted so the emitted YAML is deterministic regardless of feature order.
+ */
+export function collectPeerDependencyRules(
+  plan: Plan,
+  reg: Registry,
+): PeerDependencyRules | undefined {
+  const contributions: FeatureContribution[] = [
+    reg.frameworks[plan.framework]?.static ?? {},
+    ...plan.features.map((id) => contributionFor(reg.features[id], plan.framework)),
+  ];
+  const allowedVersions = new Map<string, string>();
+  const allowAny = new Set<string>();
+  for (const contribution of contributions) {
+    const rules = contribution.workspaceYaml?.peerDependencyRules;
+    if (!rules) continue;
+    for (const [name, range] of Object.entries(rules.allowedVersions ?? {})) {
+      if (!allowedVersions.has(name)) allowedVersions.set(name, range);
+    }
+    for (const name of rules.allowAny ?? []) allowAny.add(name);
+  }
+  if (allowedVersions.size === 0 && allowAny.size === 0) return undefined;
+  return {
+    ...(allowedVersions.size > 0
+      ? {
+          allowedVersions: Object.fromEntries(
+            [...allowedVersions.entries()].sort(([a], [b]) => (a < b ? -1 : 1)),
+          ),
+        }
+      : {}),
+    ...(allowAny.size > 0 ? { allowAny: [...allowAny].sort() } : {}),
+  };
+}
+
+/**
+ * Hand-rolled emitter for the modelled `pnpm-workspace.yaml` sections:
  *
  *   allowBuilds:
  *     <key>: true
+ *   peerDependencyRules:
+ *     allowedVersions:
+ *       <name>: "<range>"
  *
- * Two-space indent, `: true`, trailing newline — the exact bytes the three
- * templates shipped as static files. No YAML dependency is added.
+ * Two-space indent, deterministic section order, trailing newline. No YAML
+ * dependency is added.
  */
-export function renderWorkspaceYaml(allowBuilds: string[]): string {
-  const lines = allowBuilds.map((key) => `  ${key}: true`);
-  return `allowBuilds:\n${lines.join("\n")}\n`;
+export function renderWorkspaceYaml(
+  allowBuilds: string[],
+  peerRules?: PeerDependencyRules,
+): string {
+  const sections: string[] = [];
+  if (allowBuilds.length > 0) {
+    sections.push(`allowBuilds:\n${allowBuilds.map((key) => `  ${key}: true`).join("\n")}`);
+  }
+  if (peerRules) sections.push(renderPeerDependencyRules(peerRules));
+  return sections.length > 0 ? `${sections.join("\n\n")}\n` : "";
+}
+
+function renderPeerDependencyRules(rules: PeerDependencyRules): string {
+  const lines = ["peerDependencyRules:"];
+  const versions = Object.entries(rules.allowedVersions ?? {});
+  if (versions.length > 0) {
+    lines.push("  allowedVersions:");
+    for (const [name, range] of versions) lines.push(`    ${name}: ${yamlQuote(range)}`);
+  }
+  if (rules.allowAny && rules.allowAny.length > 0) {
+    lines.push("  allowAny:");
+    for (const name of rules.allowAny) lines.push(`    - ${name}`);
+  }
+  return lines.join("\n");
+}
+
+/** Single-quoted YAML scalar (the form oxfmt produces for `*` / npm specs). */
+function yamlQuote(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
 }
 
 const MONOREPO_GITIGNORE = "node_modules\ndist\n*.local\n.DS_Store\n";
@@ -253,11 +322,16 @@ const MONOREPO_GITIGNORE = "node_modules\ndist\n*.local\n.DS_Store\n";
  * deterministic union the standalone emitter uses. No allowBuilds → no section
  * and no blank line.
  */
-export function renderMonorepoWorkspaceYaml(allowBuilds: string[]): string {
-  const packages = "packages:\n  - apps/*\n  - packages/*\n";
-  if (allowBuilds.length === 0) return packages;
-  const lines = allowBuilds.map((key) => `  ${key}: true`);
-  return `${packages}\nallowBuilds:\n${lines.join("\n")}\n`;
+export function renderMonorepoWorkspaceYaml(
+  allowBuilds: string[],
+  peerRules?: PeerDependencyRules,
+): string {
+  const sections = ["packages:\n  - apps/*\n  - packages/*"];
+  if (allowBuilds.length > 0) {
+    sections.push(`allowBuilds:\n${allowBuilds.map((key) => `  ${key}: true`).join("\n")}`);
+  }
+  if (peerRules) sections.push(renderPeerDependencyRules(peerRules));
+  return `${sections.join("\n\n")}\n`;
 }
 
 function renderMonorepoPackageJson(workspaceName: string, scripts: Record<string, string>): string {

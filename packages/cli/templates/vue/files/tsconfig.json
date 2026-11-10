@@ -1,26 +1,4 @@
 {
-  "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "paths": { "@/*": ["./src/*"] },
-    "lib": ["es2023", "dom", "dom.iterable"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "resolveJsonModule": true,
-    "jsx": "preserve",
-    "useDefineForClassFields": true
-  },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "src/**/*.vue",
-    "vite.config.ts",
-    "auto-imports.d.ts",
-    "components.d.ts"
-  ]
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }

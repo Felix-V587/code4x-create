@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { run, type CliIO } from "../src/cli.ts";
+import { CUSTOM_FOLDER } from "../src/domain/flow.ts";
 import { scriptedPrompter } from "./prompter.ts";
 
 const roots: string[] = [];
@@ -304,6 +305,46 @@ describe("cli e2e", () => {
     expect(flagRc).toBe(interactiveRc);
   });
 
+  test("interactive inside a workspace offers scanned package folders", async () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - apps/*\n  - packages/*\n");
+    const prompter = scriptedPrompter({
+      text: ["my-api"],
+      select: ["standalone", "apps", "hono", "npm"],
+      multiselect: [[]],
+      confirm: [false, false],
+    });
+    const { code } = await invoke([], root, { isTTY: true, createPrompter: () => prompter });
+    expect(code).toBe(0);
+
+    const target = join(root, "apps", "my-api");
+    expect(existsSync(join(target, "package.json"))).toBe(true);
+    expect(existsSync(join(target, "pnpm-workspace.yaml"))).toBe(false);
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { targetDir: string };
+      context: { nestedWorkspace: boolean };
+    };
+    expect(rc.answers.targetDir).toBe("apps/my-api");
+    expect(rc.context.nestedWorkspace).toBe(true);
+    expect(
+      prompter.log.some((line) => line.startsWith("select:Where should we create your project?")),
+    ).toBe(true);
+  });
+
+  test("interactive workspace custom folder creates outside the scanned patterns", async () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - apps/*\n");
+    const prompter = scriptedPrompter({
+      text: ["tools", "my-api"],
+      select: ["standalone", CUSTOM_FOLDER, "hono", "npm"],
+      multiselect: [[]],
+      confirm: [false, false],
+    });
+    const { code } = await invoke([], root, { isTTY: true, createPrompter: () => prompter });
+    expect(code).toBe(0);
+    expect(existsSync(join(root, "tools", "my-api", "package.json"))).toBe(true);
+  });
+
   test("nested workspace suppresses pnpm-workspace.yaml and records context", async () => {
     const root = tempRoot();
     writeFileSync(join(root, "pnpm-workspace.yaml"), "packages: []\n");
@@ -374,7 +415,7 @@ describe("cli e2e", () => {
     };
     expect(pkgJson.dependencies.vue).toBe("catalog:");
     expect(pkgJson.devDependencies.vite).toBe("catalog:");
-    expect(pkgJson.devDependencies["@vitejs/plugin-vue"]).toBe("^6.0.0");
+    expect(pkgJson.devDependencies["@vitejs/plugin-vue"]).toBe("^6.0.10");
 
     const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
       workspace?: {
@@ -520,7 +561,7 @@ describe("cli e2e", () => {
     const pkgJson = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
       dependencies: Record<string, string>;
     };
-    expect(pkgJson.dependencies.vue).toBe("^3.5.0");
+    expect(pkgJson.dependencies.vue).toBe("^3.5.44");
   });
 
   test("-f vue --features pinia,router generates a complete vue project", async () => {
@@ -562,7 +603,7 @@ describe("cli e2e", () => {
       dependencies: Record<string, string>;
     };
     expect(pkg.dependencies).toEqual({
-      vue: "^3.5.0",
+      vue: "^3.5.44",
       pinia: "^4.0.0",
       "vue-router": "^5.0.0",
     });

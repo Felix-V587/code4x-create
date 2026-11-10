@@ -115,8 +115,16 @@ export interface FeatureContribution {
   workspaceYaml?: WorkspaceYamlContribution;
 }
 
+export interface PeerDependencyRules {
+  /** Package name -> accepted version range (pnpm `allowedVersions`). */
+  allowedVersions?: Record<string, string>;
+  /** Package names whose peer version is ignored entirely. */
+  allowAny?: string[];
+}
+
 export interface WorkspaceYamlContribution {
   allowBuilds?: Record<string, true>;
+  peerDependencyRules?: PeerDependencyRules;
 }
 
 export interface FeatureManifest {

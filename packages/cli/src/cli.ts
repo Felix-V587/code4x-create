@@ -35,7 +35,7 @@ import {
 import { sha256, buildRc, rcVirtualFile, RC_FILENAME, type RcFile } from "./io/rc.ts";
 import { loadRegistry } from "./io/loadRegistry.ts";
 import { detectPackageManagerWithSource } from "./io/pm.ts";
-import { detectNestedWorkspace, readHostWorkspace } from "./io/workspace.ts";
+import { detectNestedWorkspace, readHostWorkspace, readWorkspaceLayout } from "./io/workspace.ts";
 import { findRepoRoot, initGit } from "./io/git.ts";
 import { createClackPrompter } from "./io/prompts.ts";
 import { runInstall } from "./io/install.ts";
@@ -272,6 +272,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
       answers = await collectAnswers(partial, prompter, registry, {
         detectPm: (dir) => detectPackageManagerWithSource(io.env, resolve(io.cwd, dir)),
         nestedGitRepo: (dir) => findRepoRoot(dirname(resolve(io.cwd, dir))) !== null,
+        workspaceLayout: () => readWorkspaceLayout(io.cwd),
       });
     } catch (error) {
       if (error instanceof CancelledError) {
@@ -429,7 +430,9 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     io.out(JSON.stringify(buildJsonOutput(answers, plan, files, nextSteps), null, 2));
   }
 
-  const written = writeProject(files, answers.targetDir, { overwrite, dryRun });
+  // Resolve against the injected cwd (production: process.cwd()) so relative
+  // interactive targets behave the same in tests and embedded callers.
+  const written = writeProject(files, resolve(io.cwd, answers.targetDir), { overwrite, dryRun });
   if (dryRun) {
     if (!json) io.out(`dry run: ${written.length} files would be written to ${answers.targetDir}`);
     return 0;

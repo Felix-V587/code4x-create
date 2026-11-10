@@ -13,6 +13,7 @@ export type {
   Hook,
   PackageJsonPatch,
   PackageManager,
+  PeerDependencyRules,
   Plan,
   PmSource,
   ProjectContext,
@@ -39,10 +40,23 @@ export {
 } from "./domain/resolve.ts";
 export type { GroupConflict } from "./domain/resolve.ts";
 export { collectAllowBuilds, render, renderWorkspaceYaml } from "./domain/render.ts";
-export { CancelledError, collectAnswers, isCIEnv, resolveInteractive } from "./domain/flow.ts";
-export type { FlowDeps, Prompter, SelectOption } from "./domain/flow.ts";
+export {
+  CUSTOM_FOLDER,
+  CancelledError,
+  collectAnswers,
+  isCIEnv,
+  resolveInteractive,
+} from "./domain/flow.ts";
+export type {
+  FlowDeps,
+  Prompter,
+  SelectOption,
+  WorkspaceFolderOption,
+  WorkspaceLayoutInfo,
+} from "./domain/flow.ts";
 export { findFeaturesRoot, findTemplatesRoot, loadRegistry } from "./io/loadRegistry.ts";
 export { createClackPrompter } from "./io/prompts.ts";
-export { detectNestedWorkspace } from "./io/workspace.ts";
+export { detectNestedWorkspace, readWorkspaceLayout } from "./io/workspace.ts";
+export type { WorkspaceFolder, WorkspaceLayout } from "./io/workspace.ts";
 export { detectPackageManager, detectPackageManagerWithSource } from "./io/pm.ts";
 export type { PmDetection } from "./io/pm.ts";

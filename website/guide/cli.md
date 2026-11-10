@@ -85,7 +85,7 @@ node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-n
 - 根 `pnpm-workspace.yaml` 声明 `apps/*`、`packages/*` 并写入应用所需的 `allowBuilds`。
 - 包管理器固定 pnpm；`--pm npm` 等会报 `E-INVALID-VALUE`。
 - 安装与 `git init` 在 workspace 根执行；`.code4xrc.json` 也位于根，`plan.sources` 路径带 `apps/<appName>/` 前缀。
-- 交互式只需在第一个问题选择 **Monorepo project**，应用名随后单独提问。
+- 交互式只需在第一个问题选择 **Monorepo project**，目标文件夹与应用名随后分别提问。
 
 详见 [在 workspace 中使用](/guide/workspace)。
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 
 import {
+  CUSTOM_FOLDER,
   CancelledError,
   collectAnswers,
   resolveInteractive,
@@ -274,6 +275,83 @@ describe("collectAnswers", () => {
     const answers = await collectAnswers({ framework: "vue" }, prompter, registry, deps());
     expect(answers.appName).toBe("web");
     expect(answers.workspaceName).toBe("web-workspace");
+  });
+
+  test("existing workspace -> folder select + project name", async () => {
+    const prompter = scriptedPrompter({
+      text: ["my-api"],
+      select: ["standalone", "apps", "hono", "npm"],
+      multiselect: [[]],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers(
+      {},
+      prompter,
+      registry,
+      deps({
+        workspaceLayout: () => ({
+          root: "/repo",
+          cwd: "/repo",
+          packages: ["apps/*", "packages/*"],
+          folders: [
+            { dir: "apps", relativeDir: "apps", patterns: ["apps/*"] },
+            { dir: "packages", relativeDir: "packages", patterns: ["packages/*"] },
+          ],
+        }),
+      }),
+    );
+
+    expect(answers.targetDir).toBe("apps/my-api");
+    expect(answers.projectName).toBe("my-api");
+    expect(prompter.log.some((line) => line.startsWith("info:Workspace detected: /repo"))).toBe(
+      true,
+    );
+    expect(
+      prompter.log.some((line) => line.startsWith("select:Where should we create your project?")),
+    ).toBe(true);
+  });
+
+  test("existing workspace -> custom folder is resolved from the workspace root", async () => {
+    const prompter = scriptedPrompter({
+      text: ["extras", "my-api"],
+      select: ["standalone", CUSTOM_FOLDER, "hono", "npm"],
+      multiselect: [[]],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers(
+      {},
+      prompter,
+      registry,
+      deps({
+        workspaceLayout: () => ({
+          root: "/repo",
+          cwd: "/repo",
+          packages: ["apps/*"],
+          folders: [{ dir: "apps", relativeDir: "apps", patterns: ["apps/*"] }],
+        }),
+      }),
+    );
+
+    expect(answers.targetDir).toBe("extras/my-api");
+    expect(
+      prompter.log.some((line) =>
+        line.startsWith("text:Custom folder (relative to workspace root)"),
+      ),
+    ).toBe(true);
+  });
+
+  test("no workspace keeps the single free-form directory prompt", async () => {
+    const prompter = scriptedPrompter({
+      text: ["./plain-app"],
+      select: ["standalone", "hono", "npm"],
+      multiselect: [[]],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers({}, prompter, registry, deps());
+    expect(answers.targetDir).toBe("./plain-app");
+    expect(
+      prompter.log.some((line) => line.startsWith("select:Where should we create your project?")),
+    ).toBe(false);
   });
 
   test("monorepo rejects a non-pnpm package manager", async () => {

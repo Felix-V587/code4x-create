@@ -72,12 +72,20 @@ const vueBlueprint: FrameworkBlueprint = {
     files: [
       { src: "files/package.json", dest: "package.json" },
       { src: "files/tsconfig.json", dest: "tsconfig.json" },
+      { src: "files/tsconfig.app.json", dest: "tsconfig.app.json" },
+      { src: "files/tsconfig.node.json", dest: "tsconfig.node.json" },
       { src: "files/index.html", dest: "index.html" },
       { src: "files/src/env.d.ts", dest: "src/env.d.ts" },
       { src: "files/_gitignore", dest: ".gitignore" },
+      { src: "files/.vscode/extensions.json", dest: ".vscode/extensions.json" },
       { src: "files/README.md", dest: "README.md" },
     ],
-    workspaceYaml: { allowBuilds: { esbuild: true } },
+    workspaceYaml: {
+      allowBuilds: { esbuild: true },
+      // `vite` is installed as an alias of `@voidzero-dev/vite-plus-core`; the
+      // plugin/vitest peer ranges advertise Vite 8, so accept the alias.
+      peerDependencyRules: { allowedVersions: { vite: "*" } },
+    },
     wiring: [
       {
         anchor: "vite-plugins",

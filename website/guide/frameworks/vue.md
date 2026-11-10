@@ -1,6 +1,6 @@
 # Vue
 
-生成一个 Vue 3 + Vite 的 SPA，默认带 `@/` 别名与可组装的 `src/style.css`，生成后 `vp check`（含 `vue-tsc`）开箱通过。
+生成一个 Vue 3 + Vite 的 SPA，配置基线对齐 Vite+ 官方 `vue-ts` 模板：`@vue/tsconfig` + project references、`vue-tsc -b`、`lazyPlugins`，并保留 `@/` 别名与可组装的 `src/style.css`。生成后 `vp check`（含 `vue-tsc`）开箱通过。
 
 ## 生成结构
 
@@ -17,11 +17,22 @@ my-web/
 ├── index.html
 ├── vite.config.ts
 ├── package.json
-├── tsconfig.json
+├── tsconfig.json          # files: [] + references
+├── tsconfig.app.json      # extends @vue/tsconfig/tsconfig.dom.json
+├── tsconfig.node.json     # vite.config.ts
+├── .vscode/extensions.json
 └── .gitignore
 ```
 
-`@/` 指向 `src/`：`tsconfig` 的 `paths`（无 `baseUrl`）+ `vite.config` 的 `resolve.alias`。
+`@/` 指向 `src/`：`tsconfig.app.json` 的 `paths`（无 `baseUrl`）+ `vite.config` 的 `resolve.alias`。
+
+## Vite+ 基座（对齐官方 vue-ts 模板）
+
+- `tsconfig.json` 只做 project references；应用侧 `tsconfig.app.json` extends `@vue/tsconfig/tsconfig.dom.json`（`types: ["vite/client"]`、`paths`、auto-import dts），Vite 配置侧独立 `tsconfig.node.json`。
+- `build` 为 `vue-tsc -b && vp build`，`typecheck` 为 `vue-tsc -b`；`dev` / `preview` 走 `vp dev` / `vp preview`。
+- `vite.config.ts` 使用 `vite-plus` 的 `lazyPlugins(() => [...])`，feature 插件注入在回调内；metadata-only 的 `vp check` / `vp fmt` 不会执行插件工厂。
+- `vite` 通过 `npm:@voidzero-dev/vite-plus-core@^1.5.0` 别名与 `vite-plus` 同版本锁定；npm/Bun 用 `overrides`、Yarn 用 `resolutions` 固定同一 alias（嵌套 workspace 命中宿主 catalog 时会自动改写为 `"catalog:"`）。
+- 生成物 `pnpm-workspace.yaml` 写入 `peerDependencyRules.allowedVersions.vite: "*"`，避免 alias 版本号（1.5.x）与插件声明的 Vite 8 peer 范围产生告警（pnpm `peers check` 通过）。
 
 ## 核心能力
 
@@ -93,9 +104,10 @@ UI 套件三选一（`group: vue/ui`）：
 ## 常用命令
 
 ```bash
-pnpm dev          # vite
-pnpm build        # vue-tsc --noEmit && vite build
-pnpm preview      # vite preview
+pnpm dev          # vp dev
+pnpm build        # vue-tsc -b && vp build
+pnpm preview      # vp preview
+pnpm typecheck    # vue-tsc -b
 pnpm check        # vp check
 pnpm test         # 仅当选择 vue/testing 时存在
 ```

@@ -69,7 +69,7 @@ vp create code4x -- my-api -f hono --features zod -y    # 参数化（CI 同此�
 | `vue/tailwind` ⟂ `vue/unocss`                          | CSS 引擎二选一（`group: vue/css`）                                                                                              |
 | `vue/naive-ui` ⟂ `vue/element-plus` ⟂ `vue/shadcn-vue` | UI 套件三选一（`group: vue/ui`；`vue/shadcn-vue` requires `vue/tailwind`，为 vendored copy-paste 组件栈）                       |
 
-基座自带：`@/` 路径别名、`src/style.css` 组装（`css-imports` 锚点）、`vue-tsc` 类型检查。
+基座自带：`@/` 路径别名、`src/style.css` 组装（`css-imports` 锚点）、Vite+ 官方 `vue-ts` 基线（`@vue/tsconfig` project references + `vue-tsc -b` + `lazyPlugins`；`vite` 通过 npm alias 对齐 `@voidzero-dev/vite-plus-core`）。
 
 ### Electron（桌面应用，Vue 3 渲染层）
 

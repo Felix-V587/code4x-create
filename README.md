@@ -1,6 +1,6 @@
 # code4x-create
 
-通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档 / `env`（zod 校验配置）/ `testing`（Vitest 示例）/ `logging`（pino）/ `http-hardening`（timeout + body-limit + compress）；Vue（vp 原生 dev/build/check + `vue-tsc`）：`pinia` / `vue-router` / `vueuse` / `vueuse-router` / `i18n`（vue-i18n）/ 请求策略 `query`（TanStack Query）⟂ `colada`（Pinia Colada）⟂ `alova`（alova 3，类型化 client + `useRequest`）/ `testing`（Vitest + @vue/test-utils）/ CSS 引擎 `tailwind` ⟂ `unocss` / UI 套件 `naive-ui`（默认）⟂ `element-plus` ⟂ `shadcn-vue`（copy-paste 组件栈，vendored、需 tailwind）；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：类型化 IPC（`src/shared/ipc.ts` 共享 zod channel 表 + 三端派生类型 + 仅 `message` 的错误信封）+ 生产 `app://` 自定义协议加载（SPA 回退）；`electron/builder`（经 electron-builder 打包安装包）。
+通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档 / `env`（zod 校验配置）/ `testing`（Vitest 示例）/ `logging`（pino）/ `http-hardening`（timeout + body-limit + compress）；Vue（vp 原生 dev/build/check + 官方 `vue-ts` 基线：`@vue/tsconfig` project references + `vue-tsc -b`）：`pinia` / `vue-router` / `vueuse` / `vueuse-router` / `i18n`（vue-i18n）/ 请求策略 `query`（TanStack Query）⟂ `colada`（Pinia Colada）⟂ `alova`（alova 3，类型化 client + `useRequest`）/ `testing`（Vitest + @vue/test-utils）/ CSS 引擎 `tailwind` ⟂ `unocss` / UI 套件 `naive-ui`（默认）⟂ `element-plus` ⟂ `shadcn-vue`（copy-paste 组件栈，vendored、需 tailwind）；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：类型化 IPC（`src/shared/ipc.ts` 共享 zod channel 表 + 三端派生类型 + 仅 `message` 的错误信封）+ 生产 `app://` 自定义协议加载（SPA 回退）；`electron/builder`（经 electron-builder 打包安装包）。
 
 **实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；交互式新增「项目类型（Standard / Monorepo）」与 Vue 分步能力选择（Vue ecosystem → Request strategy → UI framework/CSS）；**M12 单仓库整仓生成 + Vue 引导式提问已完成**；**M6 机制扩展 + M7 Hono 标准化 + M8a Vue 全家桶 + M8b shadcn-vue + M9 Electron 加固已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening；Vue 基座升级（`@/` 别名、`src/style.css` 组装、`css-imports` 锚点）+ vueuse/i18n/query/colada/alova/testing + tailwind/unocss + naive-ui/element-plus + shadcn-vue（vendored 组件 + `app-script` 锚点）+ 预设 `vue-standard`/`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min`/`vue-shadcn-tw`/`vue-full`；Electron 类型化 IPC（共享 zod 表）+ `protocol.handle` `app://` 加载 + `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 已接入 GitHub Actions；发布流程就绪（`repository` 已补，待 npm 凭据后实际发布）。设计与决策文档见 [docs/](./docs/README.md)。
 
@@ -33,7 +33,7 @@ node packages/cli/dist/cli.mjs my-app -f electron --features electron/builder -y
 node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-naive-tw -y   # 单仓库：workspace 根 + apps/web
 ```
 
-交互式运行时，第一个问题选择 **Standard project** 或 **Monorepo project**；选中 Vue 后按 **Vue ecosystem**（pinia/router/vueuse/i18n/testing）→ **Request strategy**（alova/colada/query）→ **UI framework**（naive-ui/element-plus/shadcn-vue）→ **CSS engine**（tailwind/unocss）分步选择。
+交互式运行时，第一个问题选择 **Standard project** 或 **Monorepo project**；若当前目录已在 workspace 内，目标文件夹会扫描 `packages` / `workspaces` 配置并给出 `apps/`、`packages/` 等选项（含 **Custom folder…** 自定义输入），再询问项目名。选中 Vue 后按 **Vue ecosystem**（pinia/router/vueuse/i18n/testing）→ **Request strategy**（alova/colada/query）→ **UI framework**（naive-ui/element-plus/shadcn-vue）→ **CSS engine**（tailwind/unocss）分步选择。
 
 发布后形态（尚未发布到 npm）：`pnpm dlx @code4x/cli my-api`（等价 `npx @code4x/cli@latest my-api`）。
 
@@ -103,7 +103,7 @@ pnpm -C website build    # 构建到 website/.vitepress/dist
 
 - **Tier-1（每 PR，离线、秒级）**：离线枚举全组合，`resolve`+`render` 不报错、同组多选报 `E-CONFLICT`、同 combo 二次渲染字节一致（互斥规则与矩阵同源生成）。落点 `packages/cli/tests/matrix.test.ts`，随 `vp test` 运行。
 - **Tier-2（PR 子集 / nightly 全量）**：blessed 组合用**打包后的 CLI** 生成 → `pnpm install` → `pnpm run build` → `pnpm run check`。落点 `scripts/tier2-matrix.mjs`；组合清单 `scripts/tier2-combos.json` 与 registry 由 `packages/cli/tests/tier2-combos.test.ts` 防漂移。
-- **Tier-3（nightly / 发布前）**：冒烟——hono 起服务 curl `/healthz` 200 + 优雅 `SIGTERM`；vue `build` + `vite preview` 200；electron `electron-builder --dir` 后启动解包应用（无 `DISPLAY` 时自动 `xvfb-run -a`）。落点 `scripts/tier3-smoke.sh`。
+- **Tier-3（nightly / 发布前）**：冒烟——hono 起服务 curl `/healthz` 200 + 优雅 `SIGTERM`；vue `build` + `vp preview` 200；electron `electron-builder --dir` 后启动解包应用（无 `DISPLAY` 时自动 `xvfb-run -a`）。落点 `scripts/tier3-smoke.sh`。
 
 本地命令：
 

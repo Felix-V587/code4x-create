@@ -16,6 +16,19 @@ cd my-workspace
 node ../code4x-create/packages/cli/dist/cli.mjs apps/web -p vue-naive-tw -y
 ```
 
+交互式运行时不需要手写路径：生成器会向上查找 workspace 根，扫描 `pnpm-workspace.yaml#packages`（或 `package.json#workspaces`），给出 `apps/`、`packages/` 等父文件夹选项，并提供 `Custom folder…` 自定义输入，随后再问项目名。
+
+```text
+◆  Where should we create your project?
+│  ● apps/       — matches apps/*
+│  ○ packages/   — matches packages/*
+│  ○ Custom folder…
+└
+◆  Project name  (my-app)
+```
+
+选中 `apps/` + 项目名 `web` 等价于生成到 `apps/web`。若当前 cwd 位于 workspace 子目录，选项仍按 workspace 根识别，最终路径会换算成相对 cwd。
+
 生成器会向上查找 `pnpm-workspace.yaml`，并自动处理以下事项。
 
 ### 不写宿主配置

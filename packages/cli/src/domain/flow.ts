@@ -6,7 +6,7 @@
  * without a TTY and @clack/prompts stays a production-only detail.
  */
 
-import { basename, resolve } from "node:path";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 
 import type {
   Answers,
@@ -59,10 +59,33 @@ export interface PmDetection {
   source: PmSource;
 }
 
+/** A parent-folder choice derived from the current workspace configuration. */
+export interface WorkspaceFolderOption {
+  /** Workspace-root-relative display path (`"."` = root). */
+  dir: string;
+  /** cwd-relative path used to compose `targetDir`. */
+  relativeDir: string;
+  /** Raw workspace patterns that produced the option. */
+  patterns: string[];
+}
+
+/** Workspace data injected by the I/O layer for the "where?" prompt. */
+export interface WorkspaceLayoutInfo {
+  root: string;
+  cwd: string;
+  packages: string[];
+  folders: WorkspaceFolderOption[];
+}
+
+/** Sentinel value of the "Custom folder…" select option. */
+export const CUSTOM_FOLDER = "__custom__";
+
 /** Injected side-effect probes the flow needs (kept out of the pure layer). */
 export interface FlowDeps {
   detectPm(targetDir: string): PmDetection;
   nestedGitRepo(targetDir: string): boolean;
+  /** Optional: when the invocation cwd is inside a workspace, offer folders. */
+  workspaceLayout?(): WorkspaceLayoutInfo | undefined;
 }
 
 /**
@@ -122,21 +145,73 @@ export async function collectAnswers(
       ],
     })) as ProjectType);
 
-  // N1 — target directory.
+  // N1 — target directory. Inside an existing workspace, scan the `packages`
+  // patterns and offer parent folders (plus a custom path), then ask for the
+  // project name; otherwise keep the single free-form path prompt.
   let targetDir = partial.targetDir;
   if (targetDir === undefined) {
-    const placeholder =
-      projectType === "monorepo"
-        ? "./my-workspace"
-        : partial.framework
-          ? `./${partial.framework}-api`
-          : "./my-app";
-    const answer = await prompter.text({
-      message: "Where should we create your project?",
-      placeholder,
-      defaultValue: placeholder,
-    });
-    targetDir = answer.trim() === "" ? placeholder : answer.trim();
+    const layout = deps.workspaceLayout?.();
+    if (layout && layout.folders.length > 0) {
+      prompter.info(`Workspace detected: ${layout.root}`);
+      const choice = await prompter.select({
+        message: "Where should we create your project?",
+        initialValue: layout.folders[0]?.relativeDir,
+        options: [
+          ...layout.folders.map((folder) => ({
+            value: folder.relativeDir,
+            label: folder.dir === "." ? "Workspace root" : `${folder.dir}/`,
+            hint: `matches ${folder.patterns.join(", ")}`,
+          })),
+          {
+            value: CUSTOM_FOLDER,
+            label: "Custom folder…",
+            hint: "enter a path relative to the workspace root",
+          },
+        ],
+      });
+
+      let baseDir = choice;
+      if (choice === CUSTOM_FOLDER) {
+        const fallback = layout.folders[0]?.dir ?? "apps";
+        const answer = (
+          await prompter.text({
+            message: "Custom folder (relative to workspace root)",
+            placeholder: fallback,
+            defaultValue: fallback,
+          })
+        ).trim();
+        const input = answer === "" ? fallback : answer;
+        const absolute = isAbsolute(input) ? input : resolve(layout.root, input);
+        baseDir = relative(resolve(layout.cwd), absolute) || ".";
+      }
+
+      let name = partial.projectName;
+      if (name === undefined) {
+        const defaultName = projectType === "monorepo" ? "my-workspace" : "my-app";
+        const answer = (
+          await prompter.text({
+            message: "Project name",
+            placeholder: defaultName,
+            defaultValue: defaultName,
+          })
+        ).trim();
+        name = answer === "" ? defaultName : answer;
+      }
+      targetDir = baseDir === "." ? name : join(baseDir, name);
+    } else {
+      const placeholder =
+        projectType === "monorepo"
+          ? "./my-workspace"
+          : partial.framework
+            ? `./${partial.framework}-api`
+            : "./my-app";
+      const answer = await prompter.text({
+        message: "Where should we create your project?",
+        placeholder,
+        defaultValue: placeholder,
+      });
+      targetDir = answer.trim() === "" ? placeholder : answer.trim();
+    }
   }
 
   // N2 — framework (dynamic from the registry, no preselection).

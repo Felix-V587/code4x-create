@@ -108,6 +108,7 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 - ✅ **M9**：Electron 加固——基座（非新 feature）：`src/shared/ipc.ts` 单一 zod channel 表 + 三端派生类型（`IpcArgs`/`IpcResult`/错误信封 `IpcEnvelope`）；preload 由表驱动窄桥（每通道一函数，永不暴露 `ipcRenderer`/通用 `invoke`）；main 从表注册 + `safeParse` 双向校验 + 「仅 `message` 跨 IPC」信封；生产改 `protocol.registerSchemesAsPrivileged` + `protocol.handle('app', …)`（SPA 回退 + traversal guard）加载 `app://./index.html`，dev 分支加 `!app.isPackaged` 门闩；`zod` 进 `dependencies` 并以 `deps.alwaysBundle: ['zod']` 内联进 bundle（沙箱 preload 零外部 require、零 `node:*`，Electron 45 预适配）。
 - ✅ **M4 / M10–M11**：完整交互流程、工作区场景 A、Tier-2/3 CI、presets 均已完成；`0.1.0` 发布流程就绪，待 npm 凭据后实际发布。
 - ✅ **M12**：交互式项目类型（Standard / Monorepo）+ Vue 引导式分步（`promptSections`）+ 整仓生成（`--monorepo` / `--app`：根 package.json / pnpm-workspace.yaml + allowBuilds / .gitignore / README / rc，应用位于 `apps/<app>`；monorepo 固定 pnpm，install/git 在根执行）。
+- ✅ **M13**：Vue 基座对齐 Vite+ 官方 `vue-ts` 模板——`@vue/tsconfig` + project references（`tsconfig.app.json` / `tsconfig.node.json`）、`vue-tsc -b`、`lazyPlugins`、`vite` → `@voidzero-dev/vite-plus-core` alias；六组 Vue 生成物 install→build→check 通过。
 - **Defer**：react（低风险增量）、add-to-existing、远程模板、第三方插件、Bun/Deno 变体。
 
 ## 8. 风险与缓解

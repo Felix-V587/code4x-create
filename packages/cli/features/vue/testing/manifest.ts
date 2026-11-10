@@ -28,7 +28,6 @@ const testingManifest: FeatureManifest = {
         devDependencies: {
           "@vue/test-utils": "^2.5.0",
           "happy-dom": "^21.0.0",
-          vitest: "^5.0.0",
         },
       },
     },

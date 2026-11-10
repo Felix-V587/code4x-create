@@ -238,7 +238,7 @@ Vue blueprint（M8a）锚点（全部全局唯一）：
 补充说明：
 
 - **无 `vite-plugins-pre` 锚点**：基座保留经典 `createRouter`（非 `vue-router/vite` 文件路由），没有任何随 M8a 发布的插件必须先于 `vue()`；因此不引入该锚点。
-- **`@/` 别名**：`tsconfig.json` 用 `paths`（**无 `baseUrl`**——TS7/tsgolint 已移除；`paths` 自 TS 4.1 起相对 tsconfig 解析）声明 `@/* -> ./src/*`，`vite.config.ts` 用 `resolve.alias`（`fileURLToPath(new URL('./src', import.meta.url))`）在打包期对齐；模板 devDependencies 增 `@types/node`。
+- **`@/` 别名**：`tsconfig.app.json` 用 `paths`（**无 `baseUrl`**——TS7/tsgolint 已移除；`paths` 自 TS 4.1 起相对 tsconfig 解析）声明 `@/* -> ./src/*`，`vite.config.ts` 用 `resolve.alias`（`fileURLToPath(new URL('./src', import.meta.url))`）在打包期对齐；模板 devDependencies 增 `@types/node`。
 - **`src/style.css` 升 assembly**：静态文件改为 `files/src/style.skeleton.css`（顶部 `/* @code4x:begin css-imports */` … `/* @code4x:end css-imports */` 区域），零 CSS 引擎时渲染结果与升级前字节一致；`@import` 必须位于文件最前，区域置于顶部。
 - **`E-STMT-DUP` 语义收敛**：只在**不同贡献块之间**判重；单个贡献的多行 `raw` 块内允许重复行（`vue/element-plus` 的 `AutoImport`/`Components` 各有一行相同的 `ElementPlusResolver({ importStyle: 'css' })`，属合法形态，`render.ts` 的 `list` 渲染为此保留局部去重）。
 - **裸 token 的框架优先解析**：`qualifyFeature(token, known, framework)` 在裸 token 跨框架共用时（如 `testing` = `hono/testing` | `vue/testing`）优先选中 `--framework` 对应项；仍在同框架内多重命中时才 `E-AMBIGUOUS-LIST`。

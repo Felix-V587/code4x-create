@@ -5,7 +5,7 @@
 # Per framework, using the *packed* CLI:
 #   hono     : generate `hono-standard` → install → build (PORT baked) → start →
 #              curl `/healthz` == 200 → graceful SIGTERM (exit 0).
-#   vue      : generate `vue-naive-tw` → install → build → `vite preview` on a
+#   vue      : generate `vue-naive-tw` → install → build → `vp preview` on a
 #              free port → curl == 200.
 #   electron : generate `--features electron/builder` → install → build →
 #              `electron-builder --dir` → launch the unpacked binary; uses
@@ -141,9 +141,9 @@ smoke_vue() {
 
   port="$(free_port)"
   log "  port: $port"
-  # `--host 127.0.0.1` pins the IPv4 loopback: `vite preview` otherwise binds
+  # `--host 127.0.0.1` pins the IPv4 loopback: `vp preview` otherwise binds
   # `localhost` (often `::1` only), which a `127.0.0.1` health check misses.
-  ( cd "$dir" && exec pnpm exec vite preview --host 127.0.0.1 --port "$port" --strictPort ) >>"$log" 2>&1 &
+  ( cd "$dir" && exec pnpm exec vp preview --host 127.0.0.1 --port "$port" --strictPort ) >>"$log" 2>&1 &
   pid=$!; PIDS+=("$pid")
 
   code="$(wait_http "http://127.0.0.1:$port/" 40)" || { log "  ✘ preview never answered"; return 1; }

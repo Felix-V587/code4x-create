@@ -9,9 +9,9 @@ pnpm install
 pnpm dev
 ```
 
-Build for production with `pnpm build`.
+Build for production with `pnpm build` (`vue-tsc -b` + `vp build`).
 
-`pnpm typecheck` runs `vue-tsc --noEmit`; `pnpm check` runs `vp check` (format + lint + type check).
+`pnpm typecheck` runs `vue-tsc -b`; `pnpm check` runs `vp check` (format + lint + type check). TypeScript is split into `tsconfig.app.json` (application, extends `@vue/tsconfig/tsconfig.dom.json`) and `tsconfig.node.json` (Vite config), wired through project references in `tsconfig.json`.
 
 ## `.code4xrc.json`
 

@@ -6,7 +6,11 @@ import { join } from "node:path";
 import { resolve } from "../src/domain/resolve.ts";
 import { catalogCandidates, catalogRewriteNames, render } from "../src/domain/render.ts";
 import { loadRegistry } from "../src/io/loadRegistry.ts";
-import { detectNestedWorkspace, readHostWorkspace } from "../src/io/workspace.ts";
+import {
+  detectNestedWorkspace,
+  readHostWorkspace,
+  readWorkspaceLayout,
+} from "../src/io/workspace.ts";
 import type { Answers, ProjectContext, VirtualFile } from "../src/domain/types.ts";
 
 const roots: string[] = [];
@@ -109,6 +113,84 @@ describe("readHostWorkspace / parsing", () => {
   });
 });
 
+describe("readWorkspaceLayout / folder options", () => {
+  test("derives parent folders from pnpm-workspace.yaml packages", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "pnpm-workspace.yaml"),
+      ["packages:", "  - apps/*", "  - packages/**", "  - '!**/test/**'", ""].join("\n"),
+    );
+    const layout = readWorkspaceLayout(root);
+    expect(layout?.root).toBe(root);
+    expect(layout?.packages).toEqual(["apps/*", "packages/**", "!**/test/**"]);
+    expect(layout?.folders).toEqual([
+      { dir: "apps", relativeDir: "apps", patterns: ["apps/*"] },
+      { dir: "packages", relativeDir: "packages", patterns: ["packages/**"] },
+    ]);
+  });
+
+  test("root-level glob offers the workspace root", () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - '*'\n");
+    const layout = readWorkspaceLayout(root);
+    expect(layout?.folders).toEqual([{ dir: ".", relativeDir: ".", patterns: ["*"] }]);
+  });
+
+  test("skips exact, negated and complex glob patterns", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "pnpm-workspace.yaml"),
+      [
+        "packages:",
+        "  - apps/web",
+        "  - tools/*/packages/*",
+        "  - '!**/test/**'",
+        "  - apps/*",
+        "",
+      ].join("\n"),
+    );
+    const layout = readWorkspaceLayout(root);
+    expect(layout?.folders.map((folder) => folder.dir)).toEqual(["apps"]);
+  });
+
+  test("computes cwd-relative base dirs from a nested cwd", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "apps", "web"), { recursive: true });
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - apps/*\n  - packages/*\n");
+    const layout = readWorkspaceLayout(join(root, "apps", "web"));
+    expect(layout?.root).toBe(root);
+    expect(layout?.folders).toEqual([
+      { dir: "apps", relativeDir: "..", patterns: ["apps/*"] },
+      { dir: "packages", relativeDir: "../../packages", patterns: ["packages/*"] },
+    ]);
+  });
+
+  test("falls back to package.json workspaces (array and object forms)", () => {
+    const arrayRoot = tempRoot();
+    writeFileSync(join(arrayRoot, "package.json"), JSON.stringify({ workspaces: ["apps/*"] }));
+    expect(readWorkspaceLayout(arrayRoot)?.folders.map((folder) => folder.dir)).toEqual(["apps"]);
+
+    const objectRoot = tempRoot();
+    writeFileSync(
+      join(objectRoot, "package.json"),
+      JSON.stringify({ workspaces: { packages: ["libs/*"] } }),
+    );
+    expect(readWorkspaceLayout(objectRoot)?.folders.map((folder) => folder.dir)).toEqual(["libs"]);
+  });
+
+  test("malformed pnpm-workspace.yaml falls back to package.json", () => {
+    const root = tempRoot();
+    writeFileSync(join(root, "pnpm-workspace.yaml"), "packages: [unclosed\n  : :\n");
+    writeFileSync(join(root, "package.json"), JSON.stringify({ workspaces: ["apps/*"] }));
+    expect(readWorkspaceLayout(root)?.folders.map((folder) => folder.dir)).toEqual(["apps"]);
+  });
+
+  test("no workspace -> undefined", () => {
+    const root = tempRoot();
+    expect(readWorkspaceLayout(root)).toBeUndefined();
+  });
+});
+
 describe("render / catalog-aware versions", () => {
   const HOST: ProjectContext = {
     nestedWorkspace: true,
@@ -138,7 +220,7 @@ describe("render / catalog-aware versions", () => {
   test("standalone (no host) keeps caret versions", () => {
     const plan = resolve(VUE_ANSWERS, registry);
     const pkgJson = pkg(render(plan, registry));
-    expect(pkgJson.dependencies.vue).toBe("^3.5.0");
+    expect(pkgJson.dependencies.vue).toBe("^3.5.44");
     expect(Object.values(pkgJson.devDependencies)).not.toContain("catalog:");
   });
 
@@ -159,7 +241,7 @@ describe("render / catalog-aware versions", () => {
     const candidates = catalogCandidates(file(render(plan, registry), "package.json").contents);
     expect(candidates).not.toHaveProperty("vue");
     expect(Object.keys(candidates)).toEqual(Object.keys(candidates).sort());
-    expect(candidates["@vitejs/plugin-vue"]).toBe("^6.0.0");
+    expect(candidates["@vitejs/plugin-vue"]).toBe("^6.0.10");
   });
 });
 

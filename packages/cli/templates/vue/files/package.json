@@ -4,22 +4,29 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "typecheck": "vue-tsc --noEmit",
+    "dev": "vp dev",
+    "build": "vue-tsc -b && vp build",
+    "preview": "vp preview",
+    "typecheck": "vue-tsc -b",
     "check": "vp check"
   },
   "dependencies": {
-    "vue": "^3.5.0"
+    "vue": "^3.5.44"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "@vitejs/plugin-vue": "^6.0.0",
-    "typescript": "^5.9.0",
-    "vite": "^8.0.0",
-    "vite-plus": "^1.1.0",
-    "vue-tsc": "^3.0.0"
+    "@types/node": "^24.19.2",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/tsconfig": "^0.9.1",
+    "typescript": "~6.0.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^1.5.0",
+    "vite-plus": "^1.5.0",
+    "vue-tsc": "^3.3.14"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@^1.5.0"
+  },
+  "resolutions": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@^1.5.0"
   },
   "engines": {
     "node": ">=22"

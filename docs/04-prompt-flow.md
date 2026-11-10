@@ -31,7 +31,7 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 | # | 节点（Answers 字段） | 触发条件（要问） | 跳过条件（已绑定） | 默认值 | 绑定来源 |
 |---|---|---|---|---|---|
 | N0 | projectType | 未绑定 | `--monorepo` / `--no-monorepo` / config `monorepo` | `standalone` | flag > config；交互内选择 |
-| N1 | targetDir（→ projectName 派生） | 无 positional | positional 已给 | placeholder `./my-app`；若 framework 已绑定则升级为 `./hono-api` 式；monorepo 为 `./my-workspace` | 仅 positional |
+| N1 | targetDir（→ projectName 派生） | 无 positional | positional 已给 | 普通目录：placeholder `./my-app`（framework 已绑定则 `./hono-api`；monorepo 为 `./my-workspace`）；workspace 内：扫描 packages 的父目录选项 + `Custom folder…`，再问项目名 | 仅 positional；workspace 选项来自 `readWorkspaceLayout` |
 | N2 | framework | 未绑定 | `--framework` 合法 / preset 隐含 / features 单框架可推断 | 选项序 [Hono, Vue]，非交互默认 Hono | flag > config > preset > feature 推断 |
 | N2b | appName（仅 monorepo，→ projectName/workspaceName） | monorepo 且未绑定 | `--app` / config `appName` | 按框架取 `api` / `web` / `desktop` / `app` | flag > config；交互内输入 |
 | N3 | variant | **v1 不存在此问题**（见 1.4） | — | — | Answers 预留 `variant?: "ts"` |
@@ -52,6 +52,8 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 
 ### N1 目录
 
+普通目录：
+
 ```text
 ┌  Project directory
 ◆  Where should we create your project?
@@ -61,6 +63,22 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 ```
 
 默认值策略：框架未知时中性 `./my-app`；若 `--framework`/preset 已绑定再进入交互，placeholder 升级为 `./hono-api`。不用序号后缀——目录存在性走 §5 冲突流程，不赌文件系统。
+
+**当前目录位于 workspace 内**（`readWorkspaceLayout(io.cwd)` 向上找到 `pnpm-workspace.yaml` 或 `package.json#workspaces`）：
+
+```text
+◆  Where should we create your project?
+│  ● apps/       — matches apps/*
+│  ○ packages/   — matches packages/*
+│  ○ Custom folder… — enter a path relative to the workspace root
+└
+◆  Project name  (my-app)
+```
+
+- 选项只从「glob 为最后一段」的 pattern 派生（`apps/*`、`packages/**`、根级 `*`）；精确路径与复杂 glob 走 `Custom folder…`。
+- 选项的 `relativeDir` 由 `relative(cwd, resolve(workspaceRoot, dir))` 计算，因此 cwd 位于 workspace 子目录时仍生成正确路径。
+- 自定义输入相对 workspace 根解析（也接受绝对路径）；空输入回落第一个选项目录。
+- `partial.projectName` 已绑定时跳过项目名提问；否则目录名 = 项目名原始输入，package name 仍按 §5④ 归一化。
 
 ### N2 框架
 

@@ -89,16 +89,41 @@ describe("render / vue base upgrade (M8a)", () => {
     expect(style.contents).not.toContain("@code4x");
   });
 
-  test("tsconfig.json declares the @/ alias and the auto-import dts", () => {
-    const tsconfig = JSON.parse(file(generate([]).files, "tsconfig.json").contents) as {
-      compilerOptions: { paths: Record<string, string[]> };
+  test("tsconfig project references split app and node configs", () => {
+    const files = generate([]).files;
+    const root = JSON.parse(file(files, "tsconfig.json").contents) as {
+      files: string[];
+      references: Array<{ path: string }>;
+    };
+    expect(root.files).toEqual([]);
+    expect(root.references).toEqual([
+      { path: "./tsconfig.app.json" },
+      { path: "./tsconfig.node.json" },
+    ]);
+
+    const app = JSON.parse(file(files, "tsconfig.app.json").contents) as {
+      extends: string;
+      compilerOptions: {
+        paths: Record<string, string[]>;
+        types: string[];
+      };
       include: string[];
     };
+    expect(app.extends).toBe("@vue/tsconfig/tsconfig.dom.json");
+    expect(app.compilerOptions.types).toEqual(["vite/client"]);
     // `baseUrl` is intentionally omitted: TypeScript 7 (tsgolint) removed it;
     // `paths` resolves relative to the tsconfig since TS 4.1.
-    expect(tsconfig.compilerOptions.paths["@/*"]).toEqual(["./src/*"]);
-    expect(tsconfig.include).toContain("auto-imports.d.ts");
-    expect(tsconfig.include).toContain("components.d.ts");
+    expect(app.compilerOptions.paths["@/*"]).toEqual(["./src/*"]);
+    expect(app.include).toContain("auto-imports.d.ts");
+    expect(app.include).toContain("components.d.ts");
+
+    const node = JSON.parse(file(files, "tsconfig.node.json").contents) as {
+      compilerOptions: { types: string[]; module: string };
+      include: string[];
+    };
+    expect(node.compilerOptions.types).toEqual(["node"]);
+    expect(node.compilerOptions.module).toBe("nodenext");
+    expect(node.include).toEqual(["vite.config.ts"]);
   });
 
   test("vite.config.ts resolves @/ to src and ignores the generated dts", () => {
@@ -109,7 +134,7 @@ describe("render / vue base upgrade (M8a)", () => {
   });
 
   test("base package.json gains @types/node and .gitignore the generated dts", () => {
-    expect(pkg(generate([]).files).devDependencies["@types/node"]).toBe("^24.0.0");
+    expect(pkg(generate([]).files).devDependencies["@types/node"]).toBe("^24.19.2");
     const gitignore = file(generate([]).files, ".gitignore").contents;
     expect(gitignore).toContain("auto-imports.d.ts");
     expect(gitignore).toContain("components.d.ts");
@@ -226,10 +251,10 @@ describe("render / vue/data (query ⟂ colada ⟂ alova)", () => {
 });
 
 describe("render / vue/testing", () => {
-  test("adds vitest + @vue/test-utils + happy-dom, a test script and an example", () => {
+  test("uses the bundled vite-plus/test runner with @vue/test-utils + happy-dom", () => {
     const { files } = generate(["testing"]);
     const deps = pkg(files);
-    expect(deps.devDependencies.vitest).toBe("^5.0.0");
+    expect(deps.devDependencies.vitest).toBeUndefined();
     expect(deps.devDependencies["@vue/test-utils"]).toBe("^2.5.0");
     expect(deps.devDependencies["happy-dom"]).toBe("^21.0.0");
     expect(deps.scripts.test).toBe("vp test");
@@ -239,6 +264,7 @@ describe("render / vue/testing", () => {
     // (Build the annotation string at runtime so vitest's own per-file
     // environment scanner does not pick it up from *this* test file.)
     expect(spec.contents).toContain(["@vitest-environment", "happy-dom"].join(" "));
+    expect(spec.contents).toContain("from 'vite-plus/test'");
     expect(spec.contents).toContain("from '@vue/test-utils'");
     expect(spec.contents).toContain("mount(");
     expect(spec.contents).not.toContain("./App.vue");

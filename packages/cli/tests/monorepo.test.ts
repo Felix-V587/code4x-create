@@ -115,7 +115,7 @@ describe("render / monorepo", () => {
   test("root pnpm-workspace.yaml has the exact packages + allowBuilds bytes", () => {
     const { files } = generate([], MONOREPO);
     expect(file(files, "pnpm-workspace.yaml").contents).toBe(
-      "packages:\n  - apps/*\n  - packages/*\n\nallowBuilds:\n  esbuild: true\n",
+      "packages:\n  - apps/*\n  - packages/*\n\nallowBuilds:\n  esbuild: true\n\npeerDependencyRules:\n  allowedVersions:\n    vite: '*'\n",
     );
     expect(file(files, "pnpm-workspace.yaml").source).toBe("base");
   });
@@ -155,7 +155,7 @@ describe("render / monorepo", () => {
   test("root workspace yaml unions feature allowBuilds in plan order", () => {
     const { files } = generate(["vue/query"], MONOREPO);
     expect(file(files, "pnpm-workspace.yaml").contents).toBe(
-      "packages:\n  - apps/*\n  - packages/*\n\nallowBuilds:\n  esbuild: true\n  vue-demi: true\n",
+      "packages:\n  - apps/*\n  - packages/*\n\nallowBuilds:\n  esbuild: true\n  vue-demi: true\n\npeerDependencyRules:\n  allowedVersions:\n    vite: '*'\n",
     );
   });
 
@@ -195,6 +195,7 @@ describe("render / standalone is unchanged", () => {
     const { files } = generate([]);
     expect(files.map((entry) => entry.path)).toEqual([
       ".gitignore",
+      ".vscode/extensions.json",
       "README.md",
       "index.html",
       "package.json",
@@ -203,11 +204,13 @@ describe("render / standalone is unchanged", () => {
       "src/env.d.ts",
       "src/main.ts",
       "src/style.css",
+      "tsconfig.app.json",
       "tsconfig.json",
+      "tsconfig.node.json",
       "vite.config.ts",
     ]);
     expect(file(files, "package.json").contents).toContain('"name": "my-app"');
-    expect(file(files, "package.json").contents).toContain('"dev": "vite"');
+    expect(file(files, "package.json").contents).toContain('"dev": "vp dev"');
     expect(file(files, "src/style.css").contents).not.toContain("source('../')");
   });
 
@@ -216,7 +219,7 @@ describe("render / standalone is unchanged", () => {
     const paths = files.map((entry) => entry.path);
     expect(paths.some((path) => path.startsWith("apps/"))).toBe(false);
     expect(file(files, "pnpm-workspace.yaml").contents).toBe(
-      "allowBuilds:\n  esbuild: true\n  vue-demi: true\n",
+      "allowBuilds:\n  esbuild: true\n  vue-demi: true\n\npeerDependencyRules:\n  allowedVersions:\n    vite: '*'\n",
     );
   });
 });

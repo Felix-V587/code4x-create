@@ -66,7 +66,7 @@
 | Vue | `dev` / `build` / `preview` / `typecheck` / `check`（+ `test`） |
 | Electron | `dev` / `build` / `start` / `typecheck` / `check`（+ `dist` / `dist:dir`） |
 
-`check` 统一是 `vp check`（格式化 + lint + 类型检查）；Hono/Vue 的 `build` 分别是 `vp build` 与 `vue-tsc --noEmit && vite build`。
+`check` 统一是 `vp check`（格式化 + lint + 类型检查）；Hono 的 `build` 是 `vp build`，Vue 是 `vue-tsc -b && vp build`（`vue-tsc -b` 走 `@vue/tsconfig` project references）。
 
 ## 重新生成 / 覆盖
 

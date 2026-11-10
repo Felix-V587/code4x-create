@@ -90,5 +90,24 @@ function mergeWorkspaceYaml(
 ): FeatureContribution["workspaceYaml"] {
   if (!a) return b;
   if (!b) return a;
-  return { allowBuilds: { ...a.allowBuilds, ...b.allowBuilds } };
+  const allowAny = [
+    ...new Set([
+      ...(a.peerDependencyRules?.allowAny ?? []),
+      ...(b.peerDependencyRules?.allowAny ?? []),
+    ]),
+  ];
+  return {
+    allowBuilds: { ...a.allowBuilds, ...b.allowBuilds },
+    ...(a.peerDependencyRules || b.peerDependencyRules
+      ? {
+          peerDependencyRules: {
+            allowedVersions: {
+              ...a.peerDependencyRules?.allowedVersions,
+              ...b.peerDependencyRules?.allowedVersions,
+            },
+            ...(allowAny.length > 0 ? { allowAny } : {}),
+          },
+        }
+      : {}),
+  };
 }

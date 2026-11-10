@@ -6,7 +6,7 @@
 
 ```text
 N0 项目类型（Standard project / Monorepo project）
-N1 目标目录
+N1 目标文件夹（workspace 内：扫描 packages 后选择 + 项目名）
 N2 框架（Hono / Vue / Electron）
 N2b 应用名（仅 Monorepo；默认 api / web / desktop）
 N4 可选能力（见下）
@@ -23,6 +23,23 @@ N7 是否初始化 git（默认 Yes）
 | Monorepo project | 在目标目录生成 pnpm workspace 根，应用位于 `apps/<应用名>/` |
 
 Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 workspace 根执行。生成物的根 `pnpm-workspace.yaml` 会带上应用所需的 `allowBuilds`。
+
+### 目标文件夹
+
+- **普通目录**：直接输入项目目录（等价于原来的 N1）。
+- **当前目录已在 workspace 内**：向上查找 `pnpm-workspace.yaml` 或 `package.json#workspaces`，扫描 `packages` 配置并给出父文件夹选项，例如：
+  ```text
+  ◆  Where should we create your project?
+  │  ● apps/       — matches apps/*
+  │  ○ packages/   — matches packages/*
+  │  ○ Custom folder… — enter a path relative to the workspace root
+  └
+  ◆  Project name  (my-app)
+  ```
+  - 选择选项后生成到 `<文件夹>/<项目名>`（例如 `apps/my-api`）。
+  - `Custom folder…` 会再询问一个相对 workspace 根的路径，也接受绝对路径。
+  - 只有以 `*` / `**` 结尾的 glob（`apps/*`、`packages/**`、根级 `*`）会生成选项；精确路径与复杂 glob 走自定义输入。
+  - 若 cwd 位于 workspace 子目录，选项仍相对 workspace 根识别，最终 `targetDir` 会换算成相对 cwd 的路径。
 
 ### Vue 的分步选择
 

@@ -752,7 +752,12 @@ describe("render / workspace yaml (allowBuilds)", () => {
 
   test("emitter is stable and independent of the object key order", () => {
     expect(renderWorkspaceYaml(["esbuild"])).toBe("allowBuilds:\n  esbuild: true\n");
-    expect(renderWorkspaceYaml([])).toBe("allowBuilds:\n\n");
+    expect(renderWorkspaceYaml([])).toBe("");
+    expect(
+      renderWorkspaceYaml(["esbuild"], { allowedVersions: { vite: "*" }, allowAny: ["vite"] }),
+    ).toBe(
+      "allowBuilds:\n  esbuild: true\n\npeerDependencyRules:\n  allowedVersions:\n    vite: '*'\n  allowAny:\n    - vite\n",
+    );
   });
 });
 

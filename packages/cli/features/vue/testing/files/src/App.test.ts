@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { mount } from '@vue/test-utils'
 import { defineComponent, h, ref } from 'vue'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vite-plus/test'
 
 // Self-contained: an inline component that only depends on `vue`, so this test
 // stays green whatever optional plugins (router / i18n / UI kit) the project

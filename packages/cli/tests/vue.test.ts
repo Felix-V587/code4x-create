@@ -72,23 +72,22 @@ app.mount('#app')
 `;
 
 const VITE_CONFIG = `import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite-plus'
 import vue from '@vitejs/plugin-vue'
+import { defineConfig, lazyPlugins } from 'vite-plus'
 
-// The cast keeps \`tsc\`/\`vue-tsc\` happy: \`@vitejs/plugin-vue\` returns \`vite\`'s
-// plugin type while \`vite-plus\`'s config expects its own; a plain object literal
-// also trips a TS 5.9 overload-resolution bug.
+// \`lazyPlugins\` lets Vite+ skip plugin factories during metadata-only passes
+// (\`vp check\` / \`vp fmt\`); feature plugins are wired inside the callback.
 export default defineConfig({
   resolve: {
-    // \`@/…\` maps to \`src/…\` (kept in sync with \`tsconfig.json\` \`paths\`).
+    // \`@/…\` maps to \`src/…\` (kept in sync with \`tsconfig.app.json\` \`paths\`).
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  plugins: [
+  plugins: lazyPlugins(() => [
     // Vite plugins.
     vue(),
-  ],
+  ]),
   lint: {
     // UI-kit unplugins generate these at build time; never lint/format them.
     ignorePatterns: ['dist/**', 'auto-imports.d.ts', 'components.d.ts'],
@@ -103,7 +102,7 @@ export default defineConfig({
     sortPackageJson: false,
     ignorePatterns: ['dist/**', '.code4xrc.json', 'auto-imports.d.ts', 'components.d.ts'],
   },
-} as Parameters<typeof defineConfig>[0])
+})
 `;
 
 const APP_BASE = `<script setup lang="ts">
@@ -133,6 +132,7 @@ describe("render / vue base", () => {
   test("file manifest", () => {
     expect(generate([]).files.map((entry) => entry.path)).toEqual([
       ".gitignore",
+      ".vscode/extensions.json",
       "README.md",
       "index.html",
       "package.json",
@@ -141,7 +141,9 @@ describe("render / vue base", () => {
       "src/env.d.ts",
       "src/main.ts",
       "src/style.css",
+      "tsconfig.app.json",
       "tsconfig.json",
+      "tsconfig.node.json",
       "vite.config.ts",
     ]);
   });
@@ -163,17 +165,31 @@ describe("render / vue base", () => {
     const pkg = JSON.parse(file(generate([]).files, "package.json").contents) as {
       dependencies: Record<string, string>;
       devDependencies: Record<string, string>;
+      overrides: Record<string, string>;
+      resolutions: Record<string, string>;
       scripts: Record<string, string>;
     };
-    expect(pkg.dependencies).toEqual({ vue: "^3.5.0" });
+    expect(pkg.dependencies).toEqual({ vue: "^3.5.44" });
     expect(pkg.devDependencies).toMatchObject({
-      vite: "^8.0.0",
-      "vite-plus": "^1.1.0",
-      "@vitejs/plugin-vue": "^6.0.0",
-      "vue-tsc": "^3.0.0",
+      "@types/node": "^24.19.2",
+      "@vitejs/plugin-vue": "^6.0.10",
+      "@vue/tsconfig": "^0.9.1",
+      typescript: "~6.0.3",
+      vite: "npm:@voidzero-dev/vite-plus-core@^1.5.0",
+      "vite-plus": "^1.5.0",
+      "vue-tsc": "^3.3.14",
     });
-    expect(pkg.scripts.build).toBe("vue-tsc --noEmit && vite build");
-    expect(pkg.scripts.check).toBe("vp check");
+    expect(pkg.scripts).toMatchObject({
+      dev: "vp dev",
+      build: "vue-tsc -b && vp build",
+      preview: "vp preview",
+      typecheck: "vue-tsc -b",
+      check: "vp check",
+    });
+    // npm/Bun (`overrides`) and Yarn (`resolutions`) need the same Vite+ core
+    // alias as pnpm; pnpm itself is covered by `peerDependencyRules`.
+    expect(pkg.overrides.vite).toBe("npm:@voidzero-dev/vite-plus-core@^1.5.0");
+    expect(pkg.resolutions.vite).toBe("npm:@voidzero-dev/vite-plus-core@^1.5.0");
   });
 
   test("no markers leak", () => {
@@ -219,7 +235,7 @@ describe("render / vue features", () => {
       dependencies: Record<string, string>;
     };
     expect(pkg.dependencies).toEqual({
-      vue: "^3.5.0",
+      vue: "^3.5.44",
       pinia: "^4.0.0",
       "vue-router": "^5.0.0",
     });
