@@ -104,6 +104,7 @@ describe("collectAnswers", () => {
     const answers = await collectAnswers(
       {
         targetDir: "./app",
+        projectType: "standalone",
         framework: "hono",
         features: [],
         packageManager: "pnpm",
@@ -118,6 +119,7 @@ describe("collectAnswers", () => {
       targetDir: "./app",
       projectName: "app",
       framework: "hono",
+      projectType: "standalone",
       features: [],
       packageManager: "pnpm",
       install: false,
@@ -129,7 +131,7 @@ describe("collectAnswers", () => {
   test("asks only unbound fields and normalizes the package name", async () => {
     const prompter = scriptedPrompter({
       text: ["./My App"],
-      select: ["hono", "npm"],
+      select: ["standalone", "hono", "npm"],
       multiselect: [[]],
       confirm: [false, false],
     });
@@ -150,7 +152,7 @@ describe("collectAnswers", () => {
     const prompter = scriptedPrompter({
       text: ["./app"],
       multiselect: [["hono/zod"]],
-      select: ["npm"],
+      select: ["standalone", "npm"],
       confirm: [false, false],
     });
     const answers = await collectAnswers({ framework: "hono" }, prompter, registry, deps());
@@ -161,7 +163,7 @@ describe("collectAnswers", () => {
   test("nested git repo -> no git question, auto-no + note", async () => {
     const prompter = scriptedPrompter({
       text: ["./app"],
-      select: ["hono", "npm"],
+      select: ["standalone", "hono", "npm"],
       multiselect: [[]],
       confirm: [false],
     });
@@ -209,7 +211,7 @@ describe("collectAnswers", () => {
     };
     const prompter = scriptedPrompter({
       text: ["./app"],
-      select: ["vue", "npm"],
+      select: ["standalone", "vue", "npm"],
       multiselect: [["vue/naive-ui", "vue/element-plus"], ["vue/naive-ui"]],
       confirm: [false, false],
     });
@@ -220,5 +222,77 @@ describe("collectAnswers", () => {
     ).toBe(true);
     // The initial multiselect plus one re-prompt.
     expect(prompter.log.filter((line) => line.startsWith("multiselect:"))).toHaveLength(2);
+  });
+
+  test("monorepo asks project type + app name, forces pnpm, keeps install/git", async () => {
+    const prompter = scriptedPrompter({
+      text: ["./My Workspace", "API App"],
+      select: ["monorepo"],
+      multiselect: [[]],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers({ framework: "hono" }, prompter, registry, deps());
+    expect(answers.projectType).toBe("monorepo");
+    expect(answers.appName).toBe("api-app");
+    expect(answers.workspaceName).toBe("my-workspace");
+    expect(answers.projectName).toBe("api-app");
+    expect(answers.packageManager).toBe("pnpm");
+    expect(answers.install).toBe(false);
+    expect(answers.git).toBe(false);
+    expect(prompter.log.some((line) => line.startsWith("select:Package manager"))).toBe(false);
+    expect(
+      prompter.log.some((line) => line.includes("Monorepo projects use pnpm workspaces.")),
+    ).toBe(true);
+    expect(prompter.log.some((line) => line.startsWith("info:") && line.includes("api-app"))).toBe(
+      true,
+    );
+  });
+
+  test("monorepo app name defaults per framework", async () => {
+    const prompter = scriptedPrompter({
+      text: ["./workspace", ""],
+      select: ["monorepo"],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers(
+      { framework: "vue", features: [] },
+      prompter,
+      registry,
+      deps(),
+    );
+    expect(answers.appName).toBe("web");
+    expect(answers.projectName).toBe("web");
+  });
+
+  test("monorepo root name stays distinct from the app package name", async () => {
+    const prompter = scriptedPrompter({
+      text: ["./web", ""],
+      select: ["monorepo", "none", "none", "none"],
+      multiselect: [[]],
+      confirm: [false, false],
+    });
+    const answers = await collectAnswers({ framework: "vue" }, prompter, registry, deps());
+    expect(answers.appName).toBe("web");
+    expect(answers.workspaceName).toBe("web-workspace");
+  });
+
+  test("monorepo rejects a non-pnpm package manager", async () => {
+    await expect(
+      collectAnswers(
+        {
+          targetDir: "./ws",
+          projectType: "monorepo",
+          framework: "hono",
+          appName: "api",
+          features: [],
+          packageManager: "npm",
+          install: false,
+          git: false,
+        },
+        scriptedPrompter({}),
+        registry,
+        deps(),
+      ),
+    ).rejects.toMatchObject({ code: "E-INVALID-VALUE" });
   });
 });

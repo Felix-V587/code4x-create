@@ -5,6 +5,7 @@ const vueuseManifest: FeatureManifest = {
   id: "vue/vueuse",
   title: "VueUse",
   description: "Collection of Vue composition utilities (@vueuse/core)",
+  promptSection: "ecosystem",
   requires: [{ kind: "framework", id: "vue" }],
   defaults: true,
   targets: {

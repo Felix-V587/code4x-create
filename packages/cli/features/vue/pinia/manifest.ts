@@ -5,6 +5,7 @@ const piniaManifest: FeatureManifest = {
   id: "vue/pinia",
   title: "Pinia",
   description: "State management (adds pinia)",
+  promptSection: "ecosystem",
   requires: [{ kind: "framework", id: "vue" }],
   targets: {
     vue: {

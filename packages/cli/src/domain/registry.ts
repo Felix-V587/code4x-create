@@ -13,6 +13,7 @@ import type {
   FeatureId,
   FeatureManifest,
   FrameworkId,
+  PromptSection,
 } from "./types.ts";
 
 /** An assembly spec whose `skeleton` field now holds the skeleton *text*. */
@@ -29,6 +30,8 @@ export interface RuntimeBlueprint {
   assembly: RuntimeAssembly[];
   /** Framework baseline contribution. */
   static: FeatureContribution;
+  /** Guided interactive flow (copied verbatim from the blueprint). */
+  promptSections?: PromptSection[];
 }
 
 /** Preset: a content bundle carrying `framework` + `features` only. */

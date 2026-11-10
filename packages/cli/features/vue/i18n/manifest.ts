@@ -12,6 +12,7 @@ const i18nManifest: FeatureManifest = {
   id: "vue/i18n",
   title: "i18n",
   description: "Internationalization (vue-i18n + @intlify/unplugin-vue-i18n)",
+  promptSection: "ecosystem",
   requires: [{ kind: "framework", id: "vue" }],
   defaults: true,
   targets: {

@@ -107,6 +107,7 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 - ✅ **M8b**：Vue shadcn-vue——`vue/shadcn-vue`（`group: vue/ui`、requires `vue/tailwind`；vendored `components.json` + `cn()` + `ui/button`/`ui/card`/`ui/input` + theme 块经 `css-imports` order 10；无 `shadcn-vue` npm 依赖、无生成期 CLI）+ 新锚点 `app-script`（`src/App.vue` `<script setup>` 的显式 import）+ 预设 `vue-shadcn-tw`。生成物 install→build→check（vue-tsc）→preview 200 开箱通过。
 - ✅ **M9**：Electron 加固——基座（非新 feature）：`src/shared/ipc.ts` 单一 zod channel 表 + 三端派生类型（`IpcArgs`/`IpcResult`/错误信封 `IpcEnvelope`）；preload 由表驱动窄桥（每通道一函数，永不暴露 `ipcRenderer`/通用 `invoke`）；main 从表注册 + `safeParse` 双向校验 + 「仅 `message` 跨 IPC」信封；生产改 `protocol.registerSchemesAsPrivileged` + `protocol.handle('app', …)`（SPA 回退 + traversal guard）加载 `app://./index.html`，dev 分支加 `!app.isPackaged` 门闩；`zod` 进 `dependencies` 并以 `deps.alwaysBundle: ['zod']` 内联进 bundle（沙箱 preload 零外部 require、零 `node:*`，Electron 45 预适配）。
 - ✅ **M4 / M10–M11**：完整交互流程、工作区场景 A、Tier-2/3 CI、presets 均已完成；`0.1.0` 发布流程就绪，待 npm 凭据后实际发布。
+- ✅ **M12**：交互式项目类型（Standard / Monorepo）+ Vue 引导式分步（`promptSections`）+ 整仓生成（`--monorepo` / `--app`：根 package.json / pnpm-workspace.yaml + allowBuilds / .gitignore / README / rc，应用位于 `apps/<app>`；monorepo 固定 pnpm，install/git 在根执行）。
 - **Defer**：react（低风险增量）、add-to-existing、远程模板、第三方插件、Bun/Deno 变体。
 
 ## 8. 风险与缓解
@@ -129,5 +130,6 @@ Metadata：.code4xrc.json（闭包 + 来源 + sha256）—— add-to-existing �
 | OQ-4 | 现在写 sha256 到 rc 文件？ | 写（add-to-existing 的唯一预埋件） |
 | OQ-5 | 骨架锚点 vs 整库 EJS？ | 骨架 + 锚点（EJS 不解决多贡献者组装） |
 | OQ-6 | `common/*` 跨框架通道？ | schema 进、真实例不进 v1（mock 验证） |
+| OQ-10 | 单仓库整仓生成形态 | 先落地「workspace 根 + 单个应用（`apps/<app>`）」，多应用工作区蓝图保留为后续方向 |
 | OQ-7 | single 槽 v1 启用？ | 机制保留；倾向中间件式 → 暂不启用。核实：`hono-openapi` 1.3.5（中间件式，"加行"模型）vs `@hono/zod-openapi` 1.6.3（包装类，"换基准块"模型） |
 | D-1 | 生成模板与 pnpm ≥10 ignored builds | 模板声明 `pnpm.onlyBuiltDependencies: ["esbuild"]`，规避 `ERR_PNPM_IGNORED_BUILDS` 导致的 install 退出码错误（npm/yarn 下无副作用） |

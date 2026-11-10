@@ -5,6 +5,7 @@ const routerManifest: FeatureManifest = {
   id: "vue/router",
   title: "Vue Router",
   description: "Client-side routing (adds vue-router)",
+  promptSection: "ecosystem",
   requires: [{ kind: "framework", id: "vue" }],
   targets: {
     vue: {

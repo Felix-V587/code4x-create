@@ -10,6 +10,7 @@ const queryManifest: FeatureManifest = {
   id: "vue/query",
   title: "TanStack Query",
   description: "Async state management (@tanstack/vue-query)",
+  promptSection: "data",
   requires: [{ kind: "framework", id: "vue" }],
   group: "vue/data",
   targets: {

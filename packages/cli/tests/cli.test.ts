@@ -290,7 +290,7 @@ describe("cli e2e", () => {
     const target = join(root, "parity-app");
     const prompter = scriptedPrompter({
       text: [target],
-      select: ["hono", "npm"],
+      select: ["standalone", "hono", "npm"],
       multiselect: [[]],
       confirm: [false, false],
     });
@@ -386,6 +386,126 @@ describe("cli e2e", () => {
     expect(rc.workspace?.catalogRewrites).toEqual(["vite", "vue"]);
     expect(rc.workspace?.missingAllowBuilds).toContain("vue-demi");
     expect(rc.workspace?.missingAllowBuilds).not.toContain("esbuild");
+  });
+
+  test("--monorepo -f vue -p vue-full generates a pnpm workspace with a nested app", async () => {
+    const root = tempRoot();
+    const target = join(root, "my-workspace");
+    const { code, stdout, stderr } = await invoke(
+      ["--monorepo", "--app", "web", "-f", "vue", "-p", "vue-full", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(0);
+    // The generated workspace root owns the build policy: no host hint at all.
+    expect(stderr).not.toContain("allowBuilds");
+    expect(stderr).not.toContain("nested workspace");
+
+    for (const relative of [
+      "package.json",
+      "pnpm-workspace.yaml",
+      ".gitignore",
+      "README.md",
+      ".code4xrc.json",
+    ]) {
+      expect(existsSync(join(target, relative)), relative).toBe(true);
+    }
+
+    const rootPkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
+      private: boolean;
+      scripts: Record<string, string>;
+    };
+    expect(rootPkg.private).toBe(true);
+    expect(rootPkg.scripts.dev).toContain("pnpm --filter ./apps/web");
+
+    const workspaceYaml = readFileSync(join(target, "pnpm-workspace.yaml"), "utf8");
+    expect(workspaceYaml).toContain("apps/*");
+    expect(workspaceYaml).toContain("packages/*");
+    expect(workspaceYaml).toContain("esbuild: true");
+    expect(workspaceYaml).toContain("vue-demi: true");
+
+    const appPkg = JSON.parse(readFileSync(join(target, "apps/web/package.json"), "utf8")) as {
+      name: string;
+    };
+    expect(appPkg.name).toBe("web");
+    expect(existsSync(join(target, "apps/web/src/main.ts"))).toBe(true);
+    expect(existsSync(join(target, "apps/web/pnpm-workspace.yaml"))).toBe(false);
+
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { projectType: string; appName: string; workspaceName: string };
+      context: unknown;
+      plan: { sources: Record<string, string> };
+    };
+    expect(rc.answers.projectType).toBe("monorepo");
+    expect(rc.answers.appName).toBe("web");
+    expect(rc.answers.workspaceName).toBe("my-workspace");
+    expect(rc.context).toEqual({
+      nestedWorkspace: true,
+      pmFrom: "default",
+      host: { catalog: {}, allowBuilds: [] },
+    });
+    expect(rc.plan.sources["apps/web/src/main.ts"]).toBeDefined();
+    expect(rc.plan.sources["package.json"]).toBeDefined();
+    expect(rc.plan.sources["pnpm-workspace.yaml"]).toBeDefined();
+    expect(rc.plan.sources[".gitignore"]).toBeDefined();
+
+    expect(stdout).toContain("(monorepo, app: apps/web; metadata: .code4xrc.json)");
+  });
+
+  test("monorepo vue tailwind app points the css at the workspace source root", async () => {
+    const root = tempRoot();
+    const target = join(root, "tw-workspace");
+    const { code } = await invoke(
+      ["--monorepo", "--app", "web", "-f", "vue", "-p", "vue-naive-tw", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(0);
+    const css = readFileSync(join(target, "apps/web/src/style.css"), "utf8");
+    expect(css).toContain("@import 'tailwindcss' source('../')");
+  });
+
+  test("monorepo root package name is deduped from the default app name", async () => {
+    const root = tempRoot();
+    const target = join(root, "web");
+    const { code } = await invoke(["--monorepo", "-f", "vue", "-y", "--no-git", target], root);
+    expect(code).toBe(0);
+    const rootPkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
+      name: string;
+    };
+    expect(rootPkg.name).toBe("web-workspace");
+    const appPkg = JSON.parse(readFileSync(join(target, "apps/web/package.json"), "utf8")) as {
+      name: string;
+    };
+    expect(appPkg.name).toBe("web");
+  });
+
+  test("--monorepo --pm npm -> E-INVALID-VALUE, exit 2", async () => {
+    const root = tempRoot();
+    const target = join(root, "npm-workspace");
+    const { code, stderr } = await invoke(
+      ["--monorepo", "--pm", "npm", "-f", "hono", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(2);
+    expect(stderr).toContain("E-INVALID-VALUE");
+    expect(stderr).toContain("pnpm");
+    expect(existsSync(target)).toBe(false);
+  });
+
+  test("--no-monorepo forces standalone even when config sets monorepo", async () => {
+    const root = tempRoot();
+    const config = join(root, "config.json");
+    writeFileSync(config, JSON.stringify({ monorepo: true, appName: "web" }));
+    const target = join(root, "standalone-app");
+    const { code } = await invoke(
+      ["--config", config, "--no-monorepo", "-f", "hono", "-y", "--no-git", target],
+      root,
+    );
+    expect(code).toBe(0);
+    expect(existsSync(join(target, "src/index.ts"))).toBe(true);
+    const rc = JSON.parse(readFileSync(join(target, ".code4xrc.json"), "utf8")) as {
+      answers: { projectType: string };
+    };
+    expect(rc.answers.projectType).toBe("standalone");
   });
 
   test("standalone vue preset -> caret versions and no hint", async () => {

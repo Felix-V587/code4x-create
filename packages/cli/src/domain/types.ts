@@ -21,12 +21,29 @@ export type Requirement =
 // ---------- answers ----------
 export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
 
+/**
+ * Project shape chosen in the interactive flow:
+ *   - `standalone`: one application generated directly in `targetDir`;
+ *   - `monorepo`: a pnpm workspace root in `targetDir`, with the application
+ *     generated under `apps/<appName>/`.
+ */
+export type ProjectType = "standalone" | "monorepo";
+
 export type Answers = {
   /** Project directory, kept verbatim (filesystem use only). */
   targetDir: string;
   /** Normalized package name (see `normalizePackageName`). */
   projectName: string;
   framework: FrameworkId;
+  /**
+   * Project shape. Missing means `"standalone"` (kept optional so existing
+   * programmatic callers and older rc files stay valid).
+   */
+  projectType?: ProjectType;
+  /** Monorepo only: normalized application directory name under `apps/`. */
+  appName?: string;
+  /** Monorepo only: normalized workspace-root package name. */
+  workspaceName?: string;
   /** User's explicit selection; `resolve()` completes the dependency closure. */
   features: FeatureId[];
   packageManager?: PackageManager;
@@ -111,6 +128,12 @@ export interface FeatureManifest {
   /** Default-checked in the prompt flow. */
   defaults?: boolean;
   /**
+   * Guided interactive section id (declared by the framework blueprint's
+   * `promptSections`). Features without one fall back to the generic
+   * multiselect ("Other integrations").
+   */
+  promptSection?: string;
+  /**
    * Mutual-exclusion key, e.g. `vue/ui` or `vue/css`. At most one feature per
    * non-empty group may be selected (resolve → `E-CONFLICT`, usage exit 2).
    */
@@ -130,6 +153,25 @@ export interface FrameworkBlueprint {
   assembly: AssemblySpec[];
   /** Framework baseline contribution (logger, default deps, ...). */
   static: FeatureContribution;
+  /**
+   * Guided interactive sections, rendered in declaration order. When present,
+   * features are asked section by section instead of one flat multiselect.
+   */
+  promptSections?: PromptSection[];
+}
+
+/**
+ * One step of a guided interactive flow. `multi` renders a multiselect (zero or
+ * more features); `single` renders a select with an explicit "none" option.
+ */
+export interface PromptSection {
+  /** Stable id referenced by `FeatureManifest.promptSection`. */
+  id: string;
+  /** Prompt message, e.g. "Vue ecosystem". */
+  title: string;
+  mode: "single" | "multi";
+  /** Label of the implicit none option (single mode only). */
+  noneLabel?: string;
 }
 
 export interface AssemblySpec {

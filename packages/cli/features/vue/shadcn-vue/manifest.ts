@@ -34,6 +34,7 @@ const shadcnVueManifest: FeatureManifest = {
   id: "vue/shadcn-vue",
   title: "shadcn-vue",
   description: "Copy-paste components (reka-ui + cva + Tailwind, vendored)",
+  promptSection: "ui",
   requires: [
     { kind: "framework", id: "vue" },
     { kind: "feature", id: "vue/tailwind" },

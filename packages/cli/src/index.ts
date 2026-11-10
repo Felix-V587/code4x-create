@@ -16,6 +16,8 @@ export type {
   Plan,
   PmSource,
   ProjectContext,
+  ProjectType,
+  PromptSection,
   Requirement,
   ScriptEdit,
   VirtualFile,

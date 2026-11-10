@@ -12,6 +12,7 @@ const coladaManifest: FeatureManifest = {
   id: "vue/colada",
   title: "Pinia Colada",
   description: "Async state management for Pinia (@pinia/colada)",
+  promptSection: "data",
   requires: [
     { kind: "framework", id: "vue" },
     { kind: "feature", id: "vue/pinia" },

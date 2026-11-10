@@ -14,6 +14,7 @@ const unocssManifest: FeatureManifest = {
   id: "vue/unocss",
   title: "UnoCSS",
   description: "Instant on-demand atomic CSS (unocss, presetWind4)",
+  promptSection: "css",
   requires: [{ kind: "framework", id: "vue" }],
   group: "vue/css",
   targets: {

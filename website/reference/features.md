@@ -35,6 +35,19 @@ Feature id 形如 `框架/能力`。命令行里可以写全限定名，也可�
 | `vue/element-plus` | Element Plus | `vue` | `vue/ui` |
 | `vue/shadcn-vue` | shadcn-vue | `vue`, `vue/tailwind` | `vue/ui` |
 
+### Vue 的交互式引导
+
+选中 Vue 后，交互式按以下章节提问（对应 `FrameworkBlueprint.promptSections`）：
+
+| 章节 | 形态 | 成员 |
+|---|---|---|
+| Vue ecosystem | 多选 | pinia / router / vueuse / vueuse-router / i18n / testing |
+| Request strategy | 单选 + None | alova / colada / query |
+| UI framework | 单选 + None | naive-ui / element-plus / shadcn-vue |
+| CSS engine | 单选 + None | tailwind / unocss |
+
+选择 shadcn-vue 会自动带入 tailwind 并跳过 CSS engine。未归组的 feature（未来新增且未标注 `promptSection`）会落到 `Other integrations` 多选。
+
 ## Electron（1）
 
 | id | 标题 | requires |

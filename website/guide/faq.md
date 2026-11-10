@@ -41,7 +41,12 @@ UI 套件共享同一个「主组件体系」槽位（`group: vue/ui`），混�
 
 ## 在 monorepo 里生成会写 `pnpm-workspace.yaml` 吗？
 
-不会。嵌套场景由宿主负责 workspace 配置，生成器只在 stderr 提示缺失的 `allowBuilds` 与可复用 catalog。见 [在 workspace 中使用](/guide/workspace)。
+分两种情况：
+
+- 在**既有** workspace 内生成（目标在宿主中）：不会，宿主负责 workspace 配置；生成器只在 stderr 提示缺失的 `allowBuilds` 与可复用 catalog。
+- 选择 **Monorepo project**（或 `--monorepo`）生成新单仓库：会写 workspace 根的 `pnpm-workspace.yaml`（`apps/*`、`packages/*` + 应用所需的 `allowBuilds`），但应用目录 `apps/<app>` 内不写。
+
+见 [在 workspace 中使用](/guide/workspace)。
 
 ## 如何报告问题或贡献？
 

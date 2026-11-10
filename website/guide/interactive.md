@@ -5,16 +5,44 @@
 ## 问题顺序
 
 ```text
+N0 项目类型（Standard project / Monorepo project）
 N1 目标目录
 N2 框架（Hono / Vue / Electron）
-N4 可选能力（多选，可全不选）
-N5 包管理器（默认 = 探测结果）
+N2b 应用名（仅 Monorepo；默认 api / web / desktop）
+N4 可选能力（见下）
+N5 包管理器（默认 = 探测结果；Monorepo 固定 pnpm）
 N6 是否安装依赖（默认 No）
 N7 是否初始化 git（默认 Yes）
 ```
 
-- `--framework vue` 只会跳过 N2，features 仍然会提问；想一次全定请用 `-y` 或 `-p`。
-- features 多选只反映你实际勾选的内容；依赖闭包在解析阶段补齐，并在摘要中标注 `<hono/zod (required by swagger-openapi)>`。
+### 项目类型
+
+| 选项 | 行为 |
+|---|---|
+| Standard project | 在目标目录直接生成单个应用（默认） |
+| Monorepo project | 在目标目录生成 pnpm workspace 根，应用位于 `apps/<应用名>/` |
+
+Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 workspace 根执行。生成物的根 `pnpm-workspace.yaml` 会带上应用所需的 `allowBuilds`。
+
+### Vue 的分步选择
+
+选中 Vue 后，可选能力按三步（UI 相关拆成两个问题）依次提问：
+
+```text
+1. Vue ecosystem    多选：Pinia / Vue Router / VueUse / VueUse Router / i18n / Testing
+2. Request strategy 单选：None / Alova / Pinia Colada / TanStack Query
+3. UI framework     单选：None / Naive UI / Element Plus / shadcn-vue
+   CSS engine       单选：None / Tailwind CSS / UnoCSS
+```
+
+- 默认勾选 VueUse、i18n；UI 默认 Naive UI，CSS 默认 Tailwind。
+- 选择 shadcn-vue 时 CSS 引擎自动锁定 Tailwind（该问题会跳过）。
+- Hono / Electron 以及没有分步配置的框架仍使用一次多选。
+
+其他规则：
+
+- `--framework vue` 只会跳过框架问题，能力问题仍然会提问；想一次全定请用 `-y` 或 `-p`。
+- 能力多选只反映你实际勾选的内容；依赖闭包在解析阶段补齐，并在摘要中标注 `<hono/zod (required by swagger-openapi)>`。
 - 交互语言为英文；参数与文档为中文。
 
 ## 目录冲突
@@ -34,6 +62,8 @@ N7 是否初始化 git（默认 Yes）
 目录名原样保留，`package.json#name` 会做归一化：小写、空格/下划线转 `-`、剥离非法字符与中文、压缩连续连字符；空结果回落 `my-app`。
 
 例如目录 `My_API` → 目录仍是 `My_API`，包名是 `my-api`。发生归一化时会显示一行提示，但不会额外要求确认。
+
+Monorepo 模式下应用名同样归一化后作为 `apps/<应用名>` 与应用的包名；workspace 根的包名由目标目录名归一化得到。
 
 ## 嵌套 git 仓库
 
@@ -60,6 +90,7 @@ note: inside existing repo, skipping git init
 
 - 非法值**不会**回退提问，而是硬错（`E-INVALID-VALUE`，退出码 2）；
 - 缺失字段取 [默认值](/guide/cli#yes-默认值)；
-- `targetDir` 缺失直接报 `E-DIR-REQUIRED`，不会静默选择 `./my-app`。
+- `targetDir` 缺失直接报 `E-DIR-REQUIRED`，不会静默选择 `./my-app`；
+- 用 `--monorepo` 进入单仓库模式，`--app <name>` 指定应用名。
 
 `--interactive` 可强制进入交互模式，适合在 CI 容器里手动调试。

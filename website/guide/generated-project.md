@@ -39,9 +39,24 @@
 | `plan.features` | **解析后的闭包**（显式勾选 + 依赖带入） |
 | `plan.sources` | 每个文件来自 assembly 还是哪个 feature |
 | `plan.hashes` | 文件内容的 sha256 |
-| `context` / `workspace` | 仅嵌套场景出现，见 [在 workspace 中使用](/guide/workspace) |
+| `answers.projectType` | `standalone`（默认）或 `monorepo` |
+| `answers.appName` / `workspaceName` | 仅 Monorepo：应用目录名与 workspace 根包名 |
+| `context` / `workspace` | 仅嵌套 / Monorepo 场景出现，见 [在 workspace 中使用](/guide/workspace) |
 
 保留这份文件有两个作用：复现生成参数，以及为将来「给已有项目增量添加 feature」预留比对依据。
+
+## Monorepo 生成物
+
+选择 **Monorepo project**（或 `--monorepo`）时，根目录额外包含：
+
+| 文件 | 内容 |
+|---|---|
+| `package.json` | private workspace 根；scripts 转发到 `apps/<app>`（`pnpm --filter ./apps/<app> <script>`） |
+| `pnpm-workspace.yaml` | `packages: apps/*, packages/*` + 应用所需的 `allowBuilds` |
+| `.gitignore` / `README.md` | 工作区级 |
+| `.code4xrc.json` | 工作区级元数据；`answers.projectType = "monorepo"`，`appName` / `workspaceName` 记录在案 |
+
+应用本身位于 `apps/<app>/`，文件树与 standalone 生成一致；不会写应用级 `pnpm-workspace.yaml`，Tailwind 使用 `source('../')`。依赖安装与 `git init` 都在根目录执行。
 
 ## 常用脚本
 

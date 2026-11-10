@@ -17,6 +17,7 @@ const naiveUiManifest: FeatureManifest = {
   id: "vue/naive-ui",
   title: "Naive UI",
   description: "Component library (naive-ui, auto-imported)",
+  promptSection: "ui",
   requires: [{ kind: "framework", id: "vue" }],
   defaults: true,
   group: "vue/ui",

@@ -1,6 +1,6 @@
 # 06 · vp 生态模板系统：最佳实践路线与实施方案
 
-> 状态：M6/M7/M8a/M8b/M9/M10/M11 已落地（2026-10-15）。版本核实日期 2026-10-14（M8b shadcn-vue 依赖集 2026-10-15 核实）。
+> 状态：M6/M7/M8a/M8b/M9/M10/M11/M12 已落地（M12：2026-11-10）。版本核实日期 2026-10-14（M8b shadcn-vue 依赖集 2026-10-15 核实）。
 > 上游依据：[02 架构与决策](./02-architecture.md)、[03 wiring 规格](./03-feature-wiring-spec.md)；本轮 Hono / Vue / Electron 三份外部调研 memo（结论内联在本文，关键来源附链接）。
 
 ## 0. 目标与验收口径
@@ -233,9 +233,29 @@
 - 扫描范围：`vue/tailwind`（v4）在 `nestedWorkspace` 时发出 `@import 'tailwindcss' source('../')`（CSS 位于 `src/`，`../` = 应用包根），**显式**把自动内容检测钉在应用目录内；standalone 保持 `@import 'tailwindcss';` 不变。注：Tailwind v4 默认基址已是 Vite 项目根（应用目录），故宿主文件通常本就不被扫描——`source()` 是「无论调用 cwd / 目录布局如何都保证应用内扫描」的显式兜底（对照实验：把基址指向宿主根即会把宿主文件纳入，见修订记录）。`vue/unocss` 无需处理：其扫描根即 Vite `root`（应用目录）。
 - 已验证：`nestedWorkspace` 条件化（不打 `pnpm-workspace.yaml`/`AGENTS.md`）与 harness 的 `<target>/apps/<pos>` 路径语义；catalog 改写 + 缺失提示 + 扫描范围见文末修订记录（含 marker-class 断言）。
 
-### 6.2 场景 B —— 整仓生成（P3，形态待定 OQ-10）
+### 6.2 场景 B —— 整仓生成（M12 ✅ 2026-11-10）
 
-候选形态：`create-code4x my-workspace --preset full-stack` → `apps/api`(hono) + `apps/web`(vue) + `apps/desktop`(electron) + `packages/shared`。需要新机制「工作区蓝图」（多 blueprint 组合、根级贡献、workspace 内依赖排序）；electron-builder × pnpm isolated store 需「全量 bundle」策略兜底。**在场景 A 落地并稳定前不展开设计**，仅保留为方向。
+交互式首问 **Project type**，或参数式 `--monorepo`；`--app <name>` 指定应用目录（缺省按框架取 `api` / `web` / `desktop`）。生成形态：
+
+```text
+my-workspace/
+├── package.json            # private：scripts 转发到 apps/<app>（pnpm --filter）
+├── pnpm-workspace.yaml     # packages: apps/*, packages/* + 应用所需 allowBuilds
+├── .gitignore
+├── README.md
+├── .code4xrc.json          # 工作区级元数据（projectType/appName/workspaceName）
+└── apps/<app>/             # 应用按 nestedWorkspace 渲染（不写应用级 workspace yaml）
+```
+
+实现口径：
+
+- `Answers` 增 `projectType?: "standalone" | "monorepo"`、`appName?`、`workspaceName?`；`render()` 在 monorepo 分支先按 `nestedWorkspace: true` 渲染应用树，再整体加 `apps/<app>/` 前缀，最后追加根文件。
+- 根 `pnpm-workspace.yaml` 由 `collectAllowBuilds(plan, registry)` 直接生成，因此 monorepo 模式不再输出「请宿主补 allowBuilds」提示；`catalog` 改写不生效（新根无 catalog）。
+- 根 `package.json` 的 scripts 从应用渲染后的 `package.json` 键派生，统一为 `pnpm --filter ./apps/<app> <script>`；无该脚本则不生成。
+- 包管理器固定 pnpm（`--pm npm` 等 → `E-INVALID-VALUE`）；install / git init 在根执行。
+- 应用仍走 `nestedWorkspace` 条件（Tailwind `source('../')`）。
+
+**与候选形态的偏差**：本轮先落地「workspace 根 + 单个应用」，不做多 blueprint 组合（api + web + desktop + shared 一次生成）；`packages/*` 仅声明 pattern，留给用户按需创建。多应用「工作区蓝图」仍保留为后续方向（OQ-10）。
 
 ## 7. 里程碑与排期（粗粒度）
 

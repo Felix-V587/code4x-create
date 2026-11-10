@@ -36,6 +36,7 @@ const tailwindManifest: FeatureManifest = {
   id: "vue/tailwind",
   title: "Tailwind CSS",
   description: "Utility-first CSS (tailwindcss + @tailwindcss/vite)",
+  promptSection: "css",
   requires: [{ kind: "framework", id: "vue" }],
   defaults: true,
   group: "vue/css",

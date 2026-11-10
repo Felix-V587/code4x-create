@@ -17,6 +17,17 @@ import type { FrameworkBlueprint } from "../../src/domain/types.ts";
 const vueBlueprint: FrameworkBlueprint = {
   id: "vue",
   title: "Vue",
+  promptSections: [
+    { id: "ecosystem", title: "Vue ecosystem", mode: "multi" },
+    {
+      id: "data",
+      title: "Request strategy",
+      mode: "single",
+      noneLabel: "None (no request library)",
+    },
+    { id: "ui", title: "UI framework", mode: "single", noneLabel: "None (no component library)" },
+    { id: "css", title: "CSS engine", mode: "single", noneLabel: "None (plain CSS)" },
+  ],
   assembly: [
     {
       path: "src/main.ts",

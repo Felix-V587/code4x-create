@@ -12,6 +12,7 @@ const vueuseRouterManifest: FeatureManifest = {
   id: "vue/vueuse-router",
   title: "VueUse Router",
   description: "VueUse composables for vue-router (@vueuse/router)",
+  promptSection: "ecosystem",
   requires: [
     { kind: "framework", id: "vue" },
     { kind: "feature", id: "vue/vueuse" },

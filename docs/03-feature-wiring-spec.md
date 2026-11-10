@@ -28,6 +28,9 @@ export type Answers = {
   projectName: string
   framework: FrameworkId
   features: FeatureId[]           // 用户显式勾选; resolve() 会补全依赖闭包
+  projectType?: "standalone" | "monorepo"  // 缺省 = standalone
+  appName?: string                // monorepo: apps/<appName>，同时作为应用包名
+  workspaceName?: string          // monorepo: 根 package.json#name
   packageManager?: "npm" | "pnpm" | "yarn" | "bun"
   install?: boolean
   git?: boolean
@@ -87,6 +90,7 @@ export interface FeatureManifest {
   requires?: Requirement[]
   defaults?: boolean              // prompt 里默认勾选
   group?: string                  // 互斥组(如 "vue/ui"); 同组多选 → E-CONFLICT
+  promptSection?: string          // 引导式交互章节 id(由 blueprint.promptSections 声明)
   exports?: Exports
   base?: FeatureContribution      // 框架无关(如纯 deps)
   targets?: Partial<Record<FrameworkId, FeatureContribution>>   // 分框架特化
@@ -98,6 +102,14 @@ export interface FrameworkBlueprint {
   title: string
   assembly: AssemblySpec[]        // 本框架所有会被组装的文件(入口、vite.config 等)
   static: FeatureContribution     // 框架基线贡献(如 logger、默认 deps), 与 feature 同一通道
+  // 引导式交互章节：按声明顺序渲染；feature 通过 promptSection 归组。
+  // mode: "single" 渲染 select + 显式 None；"multi" 渲染 multiselect。
+  promptSections?: Array<{
+    id: string
+    title: string
+    mode: "single" | "multi"
+    noneLabel?: string
+  }>
 }
 
 export interface AssemblySpec {

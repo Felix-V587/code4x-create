@@ -40,7 +40,14 @@ import { findRepoRoot, initGit } from "./io/git.ts";
 import { createClackPrompter } from "./io/prompts.ts";
 import { runInstall } from "./io/install.ts";
 import { writeProject } from "./io/write.ts";
-import type { Answers, PackageManager, Plan, ProjectContext, VirtualFile } from "./domain/types.ts";
+import type {
+  Answers,
+  PackageManager,
+  Plan,
+  ProjectContext,
+  ProjectType,
+  VirtualFile,
+} from "./domain/types.ts";
 import type { Registry } from "./domain/registry.ts";
 
 /**
@@ -102,6 +109,8 @@ const CONFIG_KEYS = new Set([
   "git",
   "preset",
   "variant",
+  "monorepo",
+  "appName",
 ]);
 
 export async function run(argv: string[], overrides: Partial<CliIO> = {}): Promise<number> {
@@ -116,7 +125,17 @@ export async function run(argv: string[], overrides: Partial<CliIO> = {}): Promi
 async function execute(argv: string[], io: CliIO): Promise<number> {
   const parsed = mri(argv, {
     alias: { f: "framework", p: "preset", y: "yes" },
-    boolean: ["yes", "install", "git", "json", "overwrite", "dry-run", "CI", "interactive"],
+    boolean: [
+      "yes",
+      "install",
+      "git",
+      "json",
+      "overwrite",
+      "dry-run",
+      "CI",
+      "interactive",
+      "monorepo",
+    ],
   });
 
   const registry = loadRegistry();
@@ -127,6 +146,8 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   const flagFramework = optionalString(parsed.framework);
   const flagPreset = optionalString(parsed.preset);
   const flagPm = optionalString(parsed.pm);
+  const flagApp = optionalString(parsed.app);
+  const flagMonorepo = optionalBoolean(parsed.monorepo, "--monorepo");
   const flagInstall = optionalBoolean(parsed.install, "--install");
   const flagGit = optionalBoolean(parsed.git, "--git");
   const flagFeatures = normaliseFeatures(parsed.features);
@@ -173,6 +194,8 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   // Merge (flag > config > template alias).
   const configFeatures = normaliseFeatures(config.features);
   const configProjectName = optionalString(config.projectName);
+  const configMonorepo = optionalBoolean(config.monorepo, "config.monorepo");
+  const configAppName = optionalString(config.appName);
   const targetDir = positionalTarget ?? optionalString(config.targetDir);
   if (positionalTarget !== undefined && config.projectName !== undefined) {
     throw usage(
@@ -188,6 +211,17 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   const packageManager = flagPm ?? optionalString(config.packageManager);
   const install = flagInstall ?? optionalBoolean(config.install, "install");
   const git = flagGit ?? optionalBoolean(config.git, "git");
+
+  // Project shape: explicit `--monorepo` / `--no-monorepo` beats config, and an
+  // absent value stays undefined so the interactive flow can ask (or the
+  // non-interactive path can fall back to `"standalone"`).
+  const monorepoFlag = flagMonorepo ?? configMonorepo;
+  const projectType: ProjectType | undefined =
+    monorepoFlag === undefined ? undefined : monorepoFlag ? "monorepo" : "standalone";
+  const appName =
+    flagApp === undefined && configAppName === undefined
+      ? undefined
+      : normalizePackageName(flagApp ?? configAppName ?? "");
 
   if (config.variant !== undefined && config.variant !== "ts") {
     throw usage("E-INVALID-VALUE", `invalid variant "${JSON.stringify(config.variant)}"`, {
@@ -226,6 +260,8 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   if (git !== undefined) partial.git = git;
   if (preset !== undefined) partial.preset = preset;
   if (configProjectName !== undefined) partial.projectName = configProjectName;
+  if (projectType !== undefined) partial.projectType = projectType;
+  if (appName !== undefined) partial.appName = appName;
   if (config.variant === "ts") partial.variant = "ts";
 
   let answers: Answers;
@@ -251,17 +287,68 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
       });
     }
     const detection = detectPackageManagerWithSource(io.env, resolve(io.cwd, targetDir));
-    answers = {
-      targetDir,
-      projectName: configProjectName ?? normalizePackageName(basename(resolve(io.cwd, targetDir))),
-      framework: framework ?? "hono",
-      features: features ?? [],
-      packageManager: (packageManager as PackageManager) ?? detection.pm,
-      install: install ?? false,
-      git: git ?? true,
-    };
+    const resolvedProjectType = projectType ?? "standalone";
+    if (resolvedProjectType === "monorepo") {
+      if (packageManager !== undefined && packageManager !== "pnpm") {
+        throw usage(
+          "E-INVALID-VALUE",
+          `monorepo workspaces require pnpm, but --pm "${packageManager}" was given`,
+          { fix: "remove --pm (pnpm is used), or pass --pm pnpm" },
+        );
+      }
+      const monorepoApp = appName ?? defaultAppName(framework ?? "hono");
+      answers = {
+        targetDir,
+        projectName: monorepoApp,
+        framework: framework ?? "hono",
+        projectType: "monorepo",
+        features: features ?? [],
+        packageManager: "pnpm",
+        install: install ?? false,
+        git: git ?? true,
+      };
+      answers.appName = monorepoApp;
+      answers.workspaceName = uniqueWorkspaceName(
+        normalizePackageName(basename(resolve(io.cwd, targetDir))),
+        monorepoApp,
+      );
+    } else {
+      answers = {
+        targetDir,
+        projectName:
+          configProjectName ?? normalizePackageName(basename(resolve(io.cwd, targetDir))),
+        framework: framework ?? "hono",
+        projectType: "standalone",
+        features: features ?? [],
+        packageManager: (packageManager as PackageManager) ?? detection.pm,
+        install: install ?? false,
+        git: git ?? true,
+      };
+    }
     if (preset !== undefined) answers.preset = preset;
     if (config.variant === "ts") answers.variant = "ts";
+  }
+
+  // The flow owns the prompts, but keep the programmatic path rc-identical:
+  // older flows may not set `projectType`, and monorepo answers need the
+  // derived workspace/app fields plus the pnpm invariant.
+  answers.projectType ??= "standalone";
+  const isMonorepo = answers.projectType === "monorepo";
+  if (isMonorepo) {
+    if (answers.packageManager !== undefined && answers.packageManager !== "pnpm") {
+      throw usage(
+        "E-INVALID-VALUE",
+        `monorepo workspaces require pnpm, but "${answers.packageManager}" was selected`,
+        { fix: "choose pnpm for a monorepo workspace" },
+      );
+    }
+    answers.packageManager = "pnpm";
+    answers.appName ??= defaultAppName(answers.framework);
+    answers.workspaceName ??= uniqueWorkspaceName(
+      normalizePackageName(basename(resolve(io.cwd, answers.targetDir))),
+      answers.appName,
+    );
+    answers.projectName = answers.appName;
   }
 
   if (!VALID_PACKAGE_MANAGERS.includes(answers.packageManager as PackageManager)) {
@@ -271,10 +358,15 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   }
 
   const detection = detectPackageManagerWithSource(io.env, resolve(io.cwd, answers.targetDir));
-  const nestedWorkspace = detectNestedWorkspace(answers.targetDir, io.cwd);
-  // Host data is read by the I/O layer and injected as pure data (M10); the
-  // pure `resolve`/`render` never touch the host filesystem.
-  const host = nestedWorkspace ? readHostWorkspace(answers.targetDir, io.cwd) : undefined;
+  // A generated monorepo is a workspace root of its own: the app is nested in
+  // the workspace we create, with an empty (pure-data) host policy. An existing
+  // host is still detected for the standalone/nested case.
+  const nestedWorkspace = isMonorepo || detectNestedWorkspace(answers.targetDir, io.cwd);
+  const host: { catalog: Record<string, string>; allowBuilds: string[] } | undefined = isMonorepo
+    ? { catalog: {}, allowBuilds: [] }
+    : nestedWorkspace
+      ? readHostWorkspace(answers.targetDir, io.cwd)
+      : undefined;
   const context: ProjectContext = {
     nestedWorkspace,
     pmFrom: detection.source,
@@ -291,26 +383,33 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   // (see render), so surface the required host-side entries on stderr — never on
   // stdout, where `--json` owns the stream — and record them in the rc. Only the
   // *missing* entries are listed; satisfiable catalog reuse is a soft suggestion.
-  const requiredAllowBuilds = nestedWorkspace ? collectAllowBuilds(plan, registry) : [];
+  //
+  // A generated monorepo is the exception: its workspace root — including
+  // `pnpm-workspace.yaml` with every allowBuilds entry — is written by us, so
+  // nothing is missing, no catalog rewrites apply, and no host hints are shown.
+  const requiredAllowBuilds =
+    isMonorepo || nestedWorkspace ? collectAllowBuilds(plan, registry) : [];
   const hostAllow = new Set(host?.allowBuilds ?? []);
-  const missingAllowBuilds = requiredAllowBuilds.filter((key) => !hostAllow.has(key));
+  const missingAllowBuilds = isMonorepo
+    ? []
+    : requiredAllowBuilds.filter((key) => !hostAllow.has(key));
 
   const packageJson = rendered.find((file) => file.path === "package.json");
   const catalogRewrites =
-    nestedWorkspace && packageJson ? catalogRewriteNames(packageJson.contents) : [];
+    !isMonorepo && nestedWorkspace && packageJson ? catalogRewriteNames(packageJson.contents) : [];
   const catalogSuggest =
-    nestedWorkspace && packageJson
+    !isMonorepo && nestedWorkspace && packageJson
       ? Object.entries(catalogCandidates(packageJson.contents)).filter(
           ([name]) => !host || !Object.prototype.hasOwnProperty.call(host.catalog, name),
         )
       : [];
 
-  if (missingAllowBuilds.length > 0) {
+  if (!isMonorepo && missingAllowBuilds.length > 0) {
     io.err("note: nested workspace detected; add to the host pnpm-workspace.yaml:");
     io.err("  allowBuilds:");
     for (const key of missingAllowBuilds) io.err(`    ${key}: true`);
   }
-  if (catalogSuggest.length > 0) {
+  if (!isMonorepo && catalogSuggest.length > 0) {
     io.err("note: optional — add to the host catalog for version reuse:");
     for (const [name, version] of catalogSuggest) io.err(`  ${name}: ${version}`);
   }
@@ -375,6 +474,28 @@ function inferFramework(features: string[], registry: Registry): string | undefi
   return frameworks.size === 1 ? [...frameworks][0] : undefined;
 }
 
+/**
+ * Root package names must differ from the app package name: two workspace
+ * packages sharing a name makes `pnpm --filter <name>` ambiguous.
+ */
+function uniqueWorkspaceName(workspaceName: string, appName: string): string {
+  return workspaceName === appName ? `${workspaceName}-workspace` : workspaceName;
+}
+
+/** Framework-specific `apps/<name>` default for a monorepo application. */
+function defaultAppName(framework: string): string {
+  switch (framework) {
+    case "hono":
+      return "api";
+    case "vue":
+      return "web";
+    case "electron":
+      return "desktop";
+    default:
+      return "app";
+  }
+}
+
 function buildJsonOutput(
   answers: Answers,
   plan: Plan,
@@ -409,6 +530,9 @@ function buildNextSteps(answers: Answers): string[] {
 
 function summaryLine(answers: Answers): string {
   const integrations = answers.features.length > 0 ? ` + ${answers.features.join(" + ")}` : "";
+  if (answers.projectType === "monorepo") {
+    return `✔ Scaffolded ${answers.framework}${integrations} in ${answers.targetDir} (monorepo, app: apps/${answers.appName}; metadata: ${RC_FILENAME})`;
+  }
   return `✔ Scaffolded ${answers.framework}${integrations} in ${answers.targetDir}  (metadata: ${RC_FILENAME})`;
 }
 
@@ -416,6 +540,10 @@ function printManifest(answers: Answers, io: CliIO): void {
   io.out("Scaffold plan:");
   io.out(`  targetDir:  ${answers.targetDir}`);
   io.out(`  package:    ${answers.projectName}`);
+  io.out(`  type:       ${answers.projectType ?? "standalone"}`);
+  if (answers.projectType === "monorepo" && answers.appName !== undefined) {
+    io.out(`  app:        apps/${answers.appName}`);
+  }
   io.out(`  framework:  ${answers.framework}`);
   io.out(`  features:   ${answers.features.length > 0 ? answers.features.join(", ") : "(none)"}`);
   io.out(`  preset:     ${answers.preset ?? "(none)"}`);

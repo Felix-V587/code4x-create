@@ -18,8 +18,8 @@ P0 预检（非交互层）
  ├─ 解析 argv → Partial<Answers> + 控制位（--yes/--CI/--interactive/--config/--preset/--overwrite/--dry-run）
  ├─ 配置文件、preset 展开、env 模式探测（CI / agent-detect / user-agent → PM 默认值）
  ├─ 未知 flag / 值非法 / 重复互斥 → 按 §3 规则处理
- ├─ TTY 且非 CI/agent 且未 -y → 进入交互节点流 N1..N7（仅未绑定字段）
- └─ CI/agent/-y → 跳过全部提问，缺失字段取默认
+ ├─ TTY 且非 CI/agent 且未 -y → 进入交互节点流 N0..N7（仅未绑定字段）
+ └─ CI/agent/-y → 跳过全部提问，缺失字段取默认（projectType = standalone）
 D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E-MISSING-REQ
  └─ 通过 → 打印一行 manifest → render → 写盘 → PM/安装/git → 收尾文案
 ```
@@ -30,11 +30,13 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 
 | # | 节点（Answers 字段） | 触发条件（要问） | 跳过条件（已绑定） | 默认值 | 绑定来源 |
 |---|---|---|---|---|---|
-| N1 | targetDir（→ projectName 派生） | 无 positional | positional 已给 | placeholder `./my-app`；若 framework 已绑定则升级为 `./hono-api` 式 | 仅 positional |
+| N0 | projectType | 未绑定 | `--monorepo` / `--no-monorepo` / config `monorepo` | `standalone` | flag > config；交互内选择 |
+| N1 | targetDir（→ projectName 派生） | 无 positional | positional 已给 | placeholder `./my-app`；若 framework 已绑定则升级为 `./hono-api` 式；monorepo 为 `./my-workspace` | 仅 positional |
 | N2 | framework | 未绑定 | `--framework` 合法 / preset 隐含 / features 单框架可推断 | 选项序 [Hono, Vue]，非交互默认 Hono | flag > config > preset > feature 推断 |
+| N2b | appName（仅 monorepo，→ projectName/workspaceName） | monorepo 且未绑定 | `--app` / config `appName` | 按框架取 `api` / `web` / `desktop` / `app` | flag > config；交互内输入 |
 | N3 | variant | **v1 不存在此问题**（见 1.4） | — | — | Answers 预留 `variant?: "ts"` |
-| N4 | features | framework 已定且该框架有可选 feature | `--features` 显式给出（含 `none`）/ preset 隐含 | 无预选（见 §2） | flag > config > preset |
-| N5 | packageManager | 未绑定 | `--pm` 合法 | user-agent 探测结果；失败默认 `npm` | flag > config；探测只产默认值 |
+| N4 | features | framework 已定且该框架有可选 feature | `--features` 显式给出（含 `none`）/ preset 隐含 | 无预选；Vue 分步见 §2.1 | flag > config > preset |
+| N5 | packageManager | 未绑定 | `--pm` 合法 | user-agent 探测结果；失败默认 `npm`；monorepo 固定 `pnpm`（不问） | flag > config；探测只产默认值 |
 | N6 | install | 未绑定 | `--install/--no-install` 或已 -y | false | flag |
 | N7 | git | 未绑定且未嵌于既有 git repo（嵌套时**不发问**，自动 no + 一行说明） | `--git/--no-git` 或已 -y | true | flag + 嵌套检测 |
 
@@ -69,6 +71,14 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 └  (交互强制显式选择，不设初始值；非交互/--yes 默认 = Hono)
 ```
 
+### N2b 应用名（仅 monorepo）
+
+```text
+◆  Application name (directory under apps/)
+│    placeholder: web
+└  归一化后 → package name；workspace 根包名由目标目录名归一化
+```
+
 ### N4 features（multiselect）
 
 ```text
@@ -78,6 +88,21 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 │  ○ [ ] OpenAPI docs   — spec + UI at /openapi.json  (includes Zod validation)
 └
 ```
+
+#### 2.1 Vue 引导式分步（`promptSections`）
+
+Vue blueprint 声明 `promptSections`，feature 通过 `promptSection` 归组；交互依次渲染：
+
+| 步骤 | 章节 | 形态 | 成员（含默认） |
+|---|---|---|---|
+| 1 | `Vue ecosystem` | multiselect | pinia / router / vueuse（默认）/ vueuse-router / i18n（默认）/ testing |
+| 2 | `Request strategy` | select + None | alova / colada / query |
+| 3 | `UI framework` | select + None | naive-ui（默认）/ element-plus / shadcn-vue |
+| 3 | `CSS engine` | select + None | tailwind（默认）/ unocss |
+
+- 选择 `shadcn-vue` 时自动带入 `vue/tailwind` 并跳过 CSS 问题（避免闭包与 unocss 冲突）。
+- 每步选择后立即检查 `group` 冲突；冲突则 note + 重问当前步骤。
+- 未归组的 feature 落到末尾 `Other integrations` 多选；无 `promptSections` 的框架保持单次多选。
 
 呈现决策：**不用 groupMultiselect**（框架已定，选项天然单组；超 ~7 项再考虑分组）；`required: false`；**不把 requires 闭包预填进 selection**——UI 只反映用户勾选，swagger 的 hint 写明 "includes Zod validation"，闭包在 resolve() 补齐并在 summary 行标注 `<hono/zod (required by swagger)>`。这保住「prompts 是 UI」：`Answers.features` = 用户原始勾选，`.code4xrc` 同时存 explicit 与 resolved 两份。
 
@@ -98,6 +123,8 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 | 字段 | flag | 短 | 取值 | 示例 |
 |---|---|---|---|---|
 | targetDir | 位置参数 | — | 相对/绝对路径 | `create-code4x my-api` |
+| projectType | `--monorepo` / `--no-monorepo` | — | boolean；config 键 `monorepo` | `--monorepo` |
+| appName | `--app` | — | monorepo 应用目录名 | `--app web` |
 | framework | `--framework` | `-f` | `hono\|vue` | `-f vue` |
 | features | `--features` | — | 逗号列；裸名或全限定名；`none` 清空 | `--features zod,swagger-openapi` |
 | preset | `--preset` | `-p` | `hono-api\|hono-standard\|hono-full\|vue-full` | `-p hono-standard` |
@@ -119,6 +146,8 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 | 字段 | --yes 默认 |
 |---|---|
 | targetDir | **必须给**（positional 缺失 → `E-DIR-REQUIRED`，绝不静默选 `./my-app`） |
+| projectType | `standalone` |
+| appName | monorepo 下按框架取 `api` / `web` / `desktop`；standalone 忽略 |
 | framework | `hono` |
 | features | **[]**（零 feature；"batteries" 路径走 preset） |
 | packageManager | user-agent 探测；失败 `npm` |

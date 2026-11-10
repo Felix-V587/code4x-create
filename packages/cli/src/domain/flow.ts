@@ -8,8 +8,17 @@
 
 import { basename, resolve } from "node:path";
 
-import type { Answers, PackageManager, PmSource } from "./types.ts";
+import type {
+  Answers,
+  FeatureId,
+  FeatureManifest,
+  FrameworkId,
+  PackageManager,
+  PmSource,
+  ProjectType,
+} from "./types.ts";
 import type { Registry } from "./registry.ts";
+import { fail } from "./errors.ts";
 import { groupConflicts, normalizePackageName } from "./resolve.ts";
 
 export class CancelledError extends Error {
@@ -79,6 +88,13 @@ export function isCIEnv(env: NodeJS.ProcessEnv): boolean {
 
 const PM_OPTIONS: readonly PackageManager[] = ["npm", "pnpm", "yarn", "bun"];
 
+/** Framework-specific default application directory name (monorepo only). */
+const APP_NAME_DEFAULTS: Record<FrameworkId, string> = {
+  hono: "api",
+  vue: "web",
+  electron: "desktop",
+};
+
 /** Fill the unbound fields of `partial` by asking, returning a complete `Answers`. */
 export async function collectAnswers(
   partial: Partial<Answers>,
@@ -86,21 +102,41 @@ export async function collectAnswers(
   registry: Registry,
   deps: FlowDeps,
 ): Promise<Answers> {
+  // N0 — project type (standalone vs monorepo).
+  const projectType: ProjectType =
+    partial.projectType ??
+    ((await prompter.select({
+      message: "Project type",
+      initialValue: "standalone",
+      options: [
+        {
+          value: "standalone",
+          label: "Standard project",
+          hint: "Create a single application in the target directory",
+        },
+        {
+          value: "monorepo",
+          label: "Monorepo project",
+          hint: "pnpm workspace with the application under apps/",
+        },
+      ],
+    })) as ProjectType);
+
   // N1 — target directory.
   let targetDir = partial.targetDir;
   if (targetDir === undefined) {
-    const placeholder = partial.framework ? `./${partial.framework}-api` : "./my-app";
+    const placeholder =
+      projectType === "monorepo"
+        ? "./my-workspace"
+        : partial.framework
+          ? `./${partial.framework}-api`
+          : "./my-app";
     const answer = await prompter.text({
       message: "Where should we create your project?",
       placeholder,
       defaultValue: placeholder,
     });
     targetDir = answer.trim() === "" ? placeholder : answer.trim();
-  }
-  const rawBase = basename(resolve(targetDir));
-  const projectName = partial.projectName ?? normalizePackageName(rawBase);
-  if (partial.projectName === undefined && projectName !== rawBase) {
-    prompter.info(`Project name (package.json): ${projectName}`);
   }
 
   // N2 — framework (dynamic from the registry, no preselection).
@@ -112,61 +148,84 @@ export async function collectAnswers(
     framework = await prompter.select({ message: "Which framework?", options });
   }
 
-  // N4 — features (implemented features of the chosen framework; closure not prefilled).
-  let features = partial.features;
-  if (features === undefined) {
-    const options = Object.values(registry.features)
-      .filter((manifest) => manifest.id.startsWith(`${framework}/`))
-      .map((manifest) => ({
-        value: manifest.id,
-        label: manifest.title,
-        hint: manifest.description,
-      }))
-      .sort((a, b) => (a.value < b.value ? -1 : 1));
-    if (options.length === 0) {
-      features = [];
-    } else {
-      const message = `Optional integrations for ${framework}`;
-      features = await prompter.multiselect({ message, options, required: false });
-      // A `group` means "pick at most one". Rather than build a distinct
-      // single-select UI, re-prompt the same multiselect with a clear message
-      // until the selection is conflict-free.
-      for (;;) {
-        const conflict = groupConflicts(features, registry)[0];
-        if (!conflict) break;
-        prompter.note(
-          `"${conflict.group}" allows only one of: ${conflict.members.join(", ")}`,
-          "group",
-        );
-        features = await prompter.multiselect({
-          message,
-          options,
-          initialValues: features,
-          required: false,
-        });
+  // Monorepo application name (directory under apps/) + workspace root name.
+  let appName: string | undefined;
+  let workspaceName: string | undefined;
+  let projectName: string;
+  if (projectType === "monorepo") {
+    if (partial.appName === undefined) {
+      const defaultAppName = APP_NAME_DEFAULTS[framework] ?? "app";
+      const raw = (
+        await prompter.text({
+          message: "Application name (directory under apps/)",
+          placeholder: defaultAppName,
+          defaultValue: defaultAppName,
+        })
+      ).trim();
+      const input = raw === "" ? defaultAppName : raw;
+      appName = normalizePackageName(input);
+      if (appName !== input) {
+        prompter.info(`Application name (package.json): ${appName}`);
       }
+    } else {
+      appName = partial.appName;
+    }
+    projectName = normalizePackageName(appName);
+    workspaceName = normalizePackageName(basename(resolve(targetDir)));
+    // pnpm package names must be unambiguous inside one workspace; keep the
+    // root distinct when the directory happens to match the app name.
+    if (workspaceName === projectName) workspaceName = `${workspaceName}-workspace`;
+  } else {
+    const rawBase = basename(resolve(targetDir));
+    projectName = partial.projectName ?? normalizePackageName(rawBase);
+    if (partial.projectName === undefined && projectName !== rawBase) {
+      prompter.info(`Project name (package.json): ${projectName}`);
     }
   }
 
-  // N5 — package manager (default = detection).
-  const detection = deps.detectPm(targetDir);
-  let packageManager = partial.packageManager;
-  if (packageManager === undefined) {
-    const options = PM_OPTIONS.map((value) => ({
-      value,
-      label: value,
-      hint:
-        value === detection.pm
-          ? detection.source === "default"
-            ? "detected: none"
-            : `detected via ${detection.source}`
-          : undefined,
-    }));
-    packageManager = (await prompter.select({
-      message: "Package manager",
-      options,
-      initialValue: detection.pm,
-    })) as PackageManager;
+  // N4 — features. Frameworks with guided sections ask them one by one; the
+  // rest keep the flat multiselect (closure is still not prefilled).
+  let features = partial.features;
+  if (features === undefined) {
+    const sections = registry.frameworks[framework]?.promptSections ?? [];
+    features =
+      sections.length > 0
+        ? await askGuidedFeatures(framework, prompter, registry)
+        : await askFlatFeatures(framework, prompter, registry);
+  }
+
+  // N5 — package manager. Monorepo projects always use pnpm workspaces.
+  let packageManager: PackageManager;
+  if (projectType === "monorepo") {
+    if (partial.packageManager !== undefined && partial.packageManager !== "pnpm") {
+      fail("E-INVALID-VALUE", "monorepo projects use pnpm workspaces", {
+        fix: "use --pm pnpm or drop --pm",
+      });
+    }
+    if (partial.packageManager === undefined) {
+      prompter.info("Monorepo projects use pnpm workspaces.");
+    }
+    packageManager = "pnpm";
+  } else {
+    const detection = deps.detectPm(targetDir);
+    packageManager = partial.packageManager ?? "npm";
+    if (partial.packageManager === undefined) {
+      const options = PM_OPTIONS.map((value) => ({
+        value,
+        label: value,
+        hint:
+          value === detection.pm
+            ? detection.source === "default"
+              ? "detected: none"
+              : `detected via ${detection.source}`
+            : undefined,
+      }));
+      packageManager = (await prompter.select({
+        message: "Package manager",
+        options,
+        initialValue: detection.pm,
+      })) as PackageManager;
+    }
   }
 
   // N6 — install (default No).
@@ -193,12 +252,196 @@ export async function collectAnswers(
     targetDir,
     projectName,
     framework,
+    projectType,
     features,
     packageManager,
     install,
     git,
   };
+  if (projectType === "monorepo") {
+    answers.appName = appName;
+    answers.workspaceName = workspaceName;
+  }
   if (partial.preset !== undefined) answers.preset = partial.preset;
   if (partial.variant !== undefined) answers.variant = partial.variant;
   return answers;
+}
+
+/** Framework-prefixed manifests, id-sorted (stable prompt ordering). */
+function frameworkManifests(framework: FrameworkId, registry: Registry): FeatureManifest[] {
+  return Object.values(registry.features)
+    .filter((manifest) => manifest.id.startsWith(`${framework}/`))
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
+}
+
+function toOptions(manifests: FeatureManifest[]): SelectOption[] {
+  return manifests.map((manifest) => ({
+    value: manifest.id,
+    label: manifest.title,
+    hint: manifest.description,
+  }));
+}
+
+function noteConflict(
+  prompter: Prompter,
+  conflict: ReturnType<typeof groupConflicts>[number],
+): void {
+  prompter.note(`"${conflict.group}" allows only one of: ${conflict.members.join(", ")}`, "group");
+}
+
+/** Flat multiselect + same-group re-prompt (frameworks without guided sections). */
+async function askFlatFeatures(
+  framework: FrameworkId,
+  prompter: Prompter,
+  registry: Registry,
+): Promise<FeatureId[]> {
+  const options = toOptions(frameworkManifests(framework, registry));
+  if (options.length === 0) return [];
+  const message = `Optional integrations for ${framework}`;
+  let features = await prompter.multiselect({ message, options, required: false });
+  for (;;) {
+    const conflict = groupConflicts(features, registry)[0];
+    if (!conflict) break;
+    noteConflict(prompter, conflict);
+    features = await prompter.multiselect({
+      message,
+      options,
+      initialValues: features,
+      required: false,
+    });
+  }
+  return features;
+}
+
+/** Guided sections in declaration order, then "Other integrations". */
+async function askGuidedFeatures(
+  framework: FrameworkId,
+  prompter: Prompter,
+  registry: Registry,
+): Promise<FeatureId[]> {
+  const manifests = frameworkManifests(framework, registry);
+  const sections = registry.frameworks[framework]?.promptSections ?? [];
+  const explicit: FeatureId[] = [];
+  const seen = new Set<FeatureId>();
+  const append = (ids: FeatureId[]): void => {
+    for (const id of ids) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      explicit.push(id);
+    }
+  };
+  const compose = (picked: FeatureId[]): FeatureId[] => {
+    const composed = [...explicit];
+    for (const id of picked) if (!composed.includes(id)) composed.push(id);
+    return composed;
+  };
+
+  const shadcnId = `${framework}/shadcn-vue`;
+  // Prompters normally return option values (qualified ids). Accept a bare
+  // token too, so scripted / custom prompters stay ergonomic.
+  const qualifyPick = (picked: string, candidates: FeatureManifest[]): FeatureId =>
+    candidates.find(
+      (manifest) => manifest.id === picked || manifest.id === `${framework}/${picked}`,
+    )?.id ?? picked;
+
+  for (const section of sections) {
+    // shadcn-vue is Tailwind-native: pin the CSS engine and skip the question
+    // instead of letting the closure pick a conflicting engine.
+    if (section.id === "css" && seen.has(shadcnId)) {
+      prompter.note(
+        "shadcn-vue locks the CSS engine to Tailwind; skipping the CSS engine question.",
+        "css",
+      );
+      append([`${framework}/tailwind`]);
+      continue;
+    }
+
+    const candidates = manifests.filter((manifest) => manifest.promptSection === section.id);
+    if (candidates.length === 0) continue;
+    const options = toOptions(candidates);
+
+    if (section.mode === "multi") {
+      let picked = (
+        await prompter.multiselect({
+          message: section.title,
+          options,
+          initialValues: candidates
+            .filter((manifest) => manifest.defaults === true)
+            .map((manifest) => manifest.id),
+          required: false,
+        })
+      ).map((value) => qualifyPick(value, candidates));
+      for (;;) {
+        const conflict = groupConflicts(compose(picked), registry)[0];
+        if (!conflict) break;
+        noteConflict(prompter, conflict);
+        picked = (
+          await prompter.multiselect({
+            message: section.title,
+            options,
+            initialValues: picked,
+            required: false,
+          })
+        ).map((value) => qualifyPick(value, candidates));
+      }
+      append(picked);
+    } else {
+      const noneOption: SelectOption = {
+        value: "none",
+        label: section.noneLabel ?? "None",
+      };
+      const selectOptions = [noneOption, ...options];
+      let picked = qualifyPick(
+        await prompter.select({
+          message: section.title,
+          options: selectOptions,
+          initialValue: candidates.find((manifest) => manifest.defaults === true)?.id ?? "none",
+        }),
+        candidates,
+      );
+      for (;;) {
+        const conflict = groupConflicts(compose(picked === "none" ? [] : [picked]), registry)[0];
+        if (!conflict) break;
+        noteConflict(prompter, conflict);
+        picked = qualifyPick(
+          await prompter.select({
+            message: section.title,
+            options: selectOptions,
+            initialValue: picked,
+          }),
+          candidates,
+        );
+      }
+      if (picked !== "none") append([picked]);
+    }
+  }
+
+  const other = manifests.filter((manifest) => manifest.promptSection === undefined);
+  if (other.length > 0) {
+    const options = toOptions(other);
+    let picked = await prompter.multiselect({
+      message: "Other integrations",
+      options,
+      required: false,
+    });
+    for (;;) {
+      const conflict = groupConflicts(compose(picked), registry)[0];
+      if (!conflict) break;
+      noteConflict(prompter, conflict);
+      picked = await prompter.multiselect({
+        message: "Other integrations",
+        options,
+        initialValues: picked,
+        required: false,
+      });
+    }
+    append(picked);
+  }
+
+  // Safety net: a shadcn selection always carries Tailwind explicitly.
+  if (seen.has(shadcnId) && !seen.has(`${framework}/tailwind`)) {
+    append([`${framework}/tailwind`]);
+  }
+
+  return explicit;
 }

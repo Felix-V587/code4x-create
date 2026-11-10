@@ -11,6 +11,7 @@ const alovaManifest: FeatureManifest = {
   id: "vue/alova",
   title: "Alova",
   description: "Request strategy library (alova 3, typed API + composables)",
+  promptSection: "data",
   requires: [{ kind: "framework", id: "vue" }],
   group: "vue/data",
   targets: {

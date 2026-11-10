@@ -14,6 +14,7 @@ const elementPlusManifest: FeatureManifest = {
   id: "vue/element-plus",
   title: "Element Plus",
   description: "Component library (element-plus, auto-imported, css styles)",
+  promptSection: "ui",
   requires: [{ kind: "framework", id: "vue" }],
   group: "vue/ui",
   targets: {

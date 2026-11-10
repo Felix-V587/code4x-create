@@ -123,6 +123,7 @@ export function loadRegistry(
       title: blueprint.title,
       assembly,
       static: blueprint.static,
+      ...(blueprint.promptSections ? { promptSections: blueprint.promptSections } : {}),
     };
   }
 

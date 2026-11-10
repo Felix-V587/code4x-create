@@ -13,7 +13,9 @@
 
 | 参数 | 取值 | 说明 |
 |---|---|---|
-| `<dir>` | 相对 / 绝对路径 | 目标目录（位置参数） |
+| `<dir>` | 相对 / 绝对路径 | 目标目录（位置参数；Monorepo 下为 workspace 根） |
+| `--monorepo` / `--no-monorepo` | boolean | 生成单仓库（pnpm workspace）项目；交互式默认询问项目类型 |
+| `--app <name>` | 目录名 | Monorepo 应用名（`apps/<name>`）；缺省按框架取 `api` / `web` / `desktop` |
 | `-f, --framework` | `hono` \| `vue` \| `electron` | 选择框架；未给且 features 同属一个框架时可自动推断 |
 | `--features` | 逗号分隔 | 全限定名或裸名；`none` 表示清空 |
 | `-p, --preset` | 预设 id | 见 [预设](/guide/presets) |
@@ -46,9 +48,11 @@ flag > config 文件 > preset > 交互中用户输入 > 内置默认
 | 字段 | 默认 |
 |---|---|
 | `targetDir` | **必须提供**（否则 `E-DIR-REQUIRED`） |
+| `projectType` | `standalone`；用 `--monorepo` 切换 |
+| `appName` | Monorepo 下按框架取 `api` / `web` / `desktop` |
 | `framework` | `hono` |
 | `features` | 空（要用 batteries 请显式给 `-p`） |
-| `packageManager` | 探测结果；失败为 `npm` |
+| `packageManager` | 探测结果；失败为 `npm`；Monorepo 固定 `pnpm` |
 | `install` | `false` |
 | `git` | `true` |
 
@@ -69,9 +73,25 @@ flag > config 文件 > preset > 交互中用户输入 > 内置默认
 
 依赖会自动补齐闭包，例如 `hono/swagger-openapi` 会带入 `hono/zod`；`vue/shadcn-vue` 会带入 `vue/tailwind`。
 
+## 单仓库（Monorepo）模式
+
+```bash
+node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-naive-tw -y
+```
+
+- 目标目录是 workspace 根，应用生成到 `apps/<appName>`（默认按框架取 `api` / `web` / `desktop`）。
+- 根包名默认取目标目录名；若与应用名相同则追加 `-workspace`，避免 `pnpm --filter` 歧义。
+- 根 `package.json` 的脚本转发到应用（`pnpm --filter ./apps/<appName> <script>`）。
+- 根 `pnpm-workspace.yaml` 声明 `apps/*`、`packages/*` 并写入应用所需的 `allowBuilds`。
+- 包管理器固定 pnpm；`--pm npm` 等会报 `E-INVALID-VALUE`。
+- 安装与 `git init` 在 workspace 根执行；`.code4xrc.json` 也位于根，`plan.sources` 路径带 `apps/<appName>/` 前缀。
+- 交互式只需在第一个问题选择 **Monorepo project**，应用名随后单独提问。
+
+详见 [在 workspace 中使用](/guide/workspace)。
+
 ## `--config`
 
-支持以下键：`targetDir`、`projectName`、`framework`、`features`、`packageManager`、`install`、`git`、`preset`、`variant`（仅 `"ts"`）。
+支持以下键：`targetDir`、`projectName`、`framework`、`features`、`packageManager`、`install`、`git`、`preset`、`variant`（仅 `"ts"`）、`monorepo`（boolean）、`appName`（string）。
 
 ```json
 {
@@ -99,6 +119,7 @@ create-code4x my-web --config ./scaffold.json -y
   "answers": {
     "targetDir": "my-api",
     "projectName": "my-api",
+    "projectType": "standalone",
     "framework": "hono",
     "features": ["hono/zod"],
     "packageManager": "pnpm",

@@ -18,6 +18,7 @@ const testingManifest: FeatureManifest = {
   id: "vue/testing",
   title: "Testing",
   description: "Vitest + @vue/test-utils example (happy-dom)",
+  promptSection: "ecosystem",
   requires: [{ kind: "framework", id: "vue" }],
   targets: {
     vue: {
