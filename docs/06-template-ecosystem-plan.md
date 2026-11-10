@@ -240,8 +240,9 @@
 
 ```text
 my-workspace/
-├── package.json            # private：scripts 转发到 apps/<app>（pnpm --filter）
+├── package.json            # private：vite-plus devDep + Vite+ 任务运行器 scripts
 ├── pnpm-workspace.yaml     # packages: apps/*, packages/* + 应用所需 allowBuilds
+├── vite.config.ts          # defaultPackage + run.cache.scripts + 共享 lint/fmt
 ├── .gitignore
 ├── README.md
 ├── .code4xrc.json          # 工作区级元数据（projectType/appName/workspaceName）
@@ -252,7 +253,9 @@ my-workspace/
 
 - `Answers` 增 `projectType?: "standalone" | "monorepo"`、`appName?`、`workspaceName?`；`render()` 在 monorepo 分支先按 `nestedWorkspace: true` 渲染应用树，再整体加 `apps/<app>/` 前缀，最后追加根文件。
 - 根 `pnpm-workspace.yaml` 由 `collectAllowBuilds(plan, registry)` 直接生成，因此 monorepo 模式不再输出「请宿主补 allowBuilds」提示；`catalog` 改写不生效（新根无 catalog）。
-- 根 `package.json` 的 scripts 从应用渲染后的 `package.json` 键派生，统一为 `pnpm --filter ./apps/<app> <script>`；无该脚本则不生成。
+- 根 `package.json` 增 `vite-plus` devDependency（复用应用渲染结果的 range），使根级 `vp` 来自 `node_modules/.bin`，不依赖全局安装。
+- 根 scripts 从应用渲染后的 `package.json` 键派生并映射到 Vite+ 任务运行器：`build`/`test`/`typecheck`/`dev` → `vp run -r <script>`；`check` → `vp check`（根配置一次覆盖整仓，避免并发 oxlint-tsgolint）；`preview`/`start`/`dist` 等应用专属脚本 → `vp run --filter ./apps/<app> <script>`。
+- 根 `vite.config.ts` 由 `renderMonorepoViteConfig()` 生成：`defaultPackage` 把裸 `vp dev/build/preview/pack` 固定到 `apps/<app>`，`run.cache.scripts` 开启脚本缓存，`lint`/`fmt` 镜像应用设置并以 `**/` 覆盖 workspace 内路径（含 Electron `release/`、unplugin dts、`.code4xrc.json`）。
 - 包管理器固定 pnpm（`--pm npm` 等 → `E-INVALID-VALUE`）；install / git init 在根执行。
 - 应用仍走 `nestedWorkspace` 条件（Tailwind `source('../')`）。
 
@@ -315,5 +318,6 @@ my-workspace/
 
 - **2026-11-10 Vue 基座对齐 Vite+ 官方 vue-ts 模板**：以 `vp create` 的 Vue TS 产物（`demos/demo-vue`）为参照，重构模板依赖与配置——`@vue/tsconfig ^0.9.1` + `tsconfig.json`（`files: []` + references）/`tsconfig.app.json`（extends `tsconfig.dom.json`、`types: ["vite/client"]`、`paths`、auto-import dts）/`tsconfig.node.json`（vite.config.ts）；`build: vue-tsc -b && vp build`、`typecheck: vue-tsc -b`、`dev/preview: vp dev`/`vp preview`；`vite.config.ts` 改用 `lazyPlugins(() => [...])`，feature 插件在回调内注入，去掉旧版插件类型 cast；`vue`/`@types/node`/`@vitejs/plugin-vue`/`typescript ~6.0.3`/`vue-tsc` 对齐官方版本；`vite` 使用 `npm:@voidzero-dev/vite-plus-core@^1.5.0` 显式 alias（与 `vite-plus ^1.5.0` 同版本；Vite+ 要求，嵌套 catalog 场景仍自动改写为 `catalog:`），package.json 同时写 npm/Bun `overrides` 与 Yarn `resolutions`（npm 直接 alias 会被 `@vitejs/plugin-vue` 的 Vite 8 peer 范围拒绝；overrides 后 npm install/build/check 实测通过），并在生成物 `pnpm-workspace.yaml` 写入 `peerDependencyRules.allowedVersions.vite: "*"` 消除 pnpm 告警（`pnpm peers check` 零问题），`vue/testing` 改用 `vite-plus/test`（移除独立 vitest 依赖，复用 Vite+ 内置 runner）；`src/env.d.ts` 改为官方形状，`.gitignore` 补官方条目，新增 `.vscode/extensions.json`（Volar）。生成物 `base` / `vue-naive-tw` / `vue-element-tw` / `vue-unocss-min` / `vue-full` / `vue-shadcn-tw` 六组均 `pnpm install` → `pnpm build`（`vue-tsc -b`）→ `pnpm check` 通过；`vue-full` 额外 `pnpm test` 绿。
 - **2026-11-06 Node 支持版本调整**：根与发布包 `engines.node` 由 `^20.19.0 || >=22.12.0` 收紧为 `>=22`；三个生成物模板补 `engines.node: ">=22"`；CI（`ci.yml` / `nightly.yml` / `docs.yml`）统一 `node-version: 26`；文档前置要求改为「Node ≥22（推荐 26+）」，并注明 Vite 8 / Vite+ 实际要求 22.18+。实测：`vp check` / `vp test` 全绿；三框架生成物均带 `engines`，Vue 生成物 install→build→check 通过。
+- **2026-11-10 单仓库产物构建切换到 Vite+ 任务运行器**：对齐 Vite+ [Monorepo](https://viteplus.dev/guide/monorepo) / [Run](https://viteplus.dev/guide/run) / [Task Caching](https://viteplus.dev/guide/cache) 文档——**根依赖**：monorepo/fullstack 根 `package.json` 增 `vite-plus` devDependency（monorepo 复用应用 range；fullstack 取三应用最高 range），修复此前根级 `vp run -r build` 报 “This project does not use vite-plus” 的问题，同时保持「不依赖全局 vp」。**根脚本**：`build`/`test`/`typecheck`/`dev` 改用 `vp run -r`（依赖排序 + 任务缓存；根脚本自引用自动剪枝），`check` 改为整仓一次 `vp check`（根 `vite.config.ts` 的 lint/fmt 覆盖全 workspace，避免并发 `oxlint-tsgolint` 的 EBUSY），`preview`/`start`/`dist` 等应用专属脚本走 `vp run --filter ./apps/<app>`；fullstack 新增 `typecheck`，`dev` 用 `vp run -r --parallel dev`。**根配置**：新增 `vite.config.ts`——monorepo `defaultPackage` 覆盖 `dev/build/preview/pack`（裸命令等价 `vp -C apps/<app>`）、`run.cache.scripts: true`、共享 lint/fmt（`**/dist/**`、`**/release/**`、unplugin dts、`.code4xrc.json`）；fullstack 不设 `defaultPackage`。**实测**：`vp check` / `vp test`（343 全绿）；monorepo Vue/Hono/Electron 与 fullstack 生成物均 `pnpm install` → `pnpm build` → `pnpm check` 通过；Vue/Hono 的 `test` 二跑命中缓存（fullstack 二跑 `4/5` 构建缓存命中，仅 Vue `vp build` 因 unplugin dts 读写而不缓存，与 Vite Task 的 read-write 规则一致）；Tier-2 子集新增 `vue-monorepo` 组合（`scripts/tier2-combos.json` + `cliArgsFor` 支持 `monorepo`），PR 档 **6/6 PASS**。文档同步 `website/guide/workspace.md` / `generated-project.md` / `cli.md` 与根 README。
 
 hono 4.13.13 · @hono/node-server **2.1.5（待升级）** · zod 4.6.7 · hono-openapi 1.3.5 · @hono/swagger-ui 0.6.1 · pino 10.4 · hono-pino 0.10.3 · drizzle-orm 0.45.4 · vue 3.5.44 · vue-router 5.4.0 · pinia 4.0.3 · @vueuse/core 15.0.0 · @tanstack/vue-query 5.104.2 · @pinia/colada 1.4.9 · alova 3.5.5 · naive-ui 2.45.3 · element-plus 2.14.7 · shadcn-vue 组件栈（reka-ui 2.11.0 · class-variance-authority 0.7.1 · clsx 2.1.1 · tailwind-merge 3.7.0 · lucide-vue-next 1.0.0 · tw-animate-css 1.4.0，2026-10-15 核实） · tailwindcss 4.3.3 · unocss 66.11.0 · electron 44.7.2 · electron-builder 26.15.3 · electron-updater 6.8.9 · electron-store 12.0.0 · vite 8.3.4（Rolldown）

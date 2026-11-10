@@ -65,12 +65,13 @@ describe("render / monorepo", () => {
     expect(paths).toContain("apps/web/vite.config.ts");
     expect(paths).not.toContain("apps/web/pnpm-workspace.yaml");
 
-    // Only the four root files live outside the app directory.
+    // Only the workspace-root files live outside the app directory.
     expect(paths.filter((path) => !path.startsWith("apps/web/"))).toEqual([
       ".gitignore",
       "README.md",
       "package.json",
       "pnpm-workspace.yaml",
+      "vite.config.ts",
     ]);
   });
 
@@ -80,10 +81,11 @@ describe("render / monorepo", () => {
     expect(pkg.name).toBe("my-app");
   });
 
-  test("root package.json is a private module workspace and mirrors app scripts", () => {
+  test("root package.json runs app scripts through the Vite+ task runner", () => {
     const { files } = generate([], MONOREPO);
     const appPkg = JSON.parse(file(files, "apps/web/package.json").contents) as {
       scripts: Record<string, string>;
+      devDependencies: Record<string, string>;
     };
     const rootPkg = JSON.parse(file(files, "package.json").contents) as {
       name: string;
@@ -91,6 +93,7 @@ describe("render / monorepo", () => {
       private: boolean;
       type: string;
       scripts: Record<string, string>;
+      devDependencies: Record<string, string>;
       engines: { node: string };
     };
 
@@ -100,16 +103,34 @@ describe("render / monorepo", () => {
       private: true,
       type: "module",
       scripts: {
-        dev: "pnpm --filter ./apps/web dev",
-        build: "pnpm --filter ./apps/web build",
-        preview: "pnpm --filter ./apps/web preview",
-        typecheck: "pnpm --filter ./apps/web typecheck",
-        check: "pnpm --filter ./apps/web check",
+        dev: "vp run -r dev",
+        build: "vp run -r build",
+        preview: "vp run --filter ./apps/web preview",
+        typecheck: "vp run -r typecheck",
+        check: "vp check",
       },
+      devDependencies: { "vite-plus": "^1.5.0" },
       engines: { node: ">=22" },
     });
-    // App key order is preserved.
+    // App key order is preserved, and the root reuses the app's toolchain range.
     expect(Object.keys(rootPkg.scripts)).toEqual(Object.keys(appPkg.scripts));
+    expect(rootPkg.devDependencies["vite-plus"]).toBe(appPkg.devDependencies["vite-plus"]);
+  });
+
+  test("root vite.config.ts wires defaultPackage, script cache and shared lint/fmt", () => {
+    const { files } = generate([], MONOREPO);
+    const config = file(files, "vite.config.ts");
+    expect(config.source).toBe("monorepo");
+    expect(config.contents).toContain("defaultPackage: {");
+    expect(config.contents).toContain("dev: './apps/web'");
+    expect(config.contents).toContain("build: './apps/web'");
+    expect(config.contents).toContain("preview: './apps/web'");
+    expect(config.contents).toContain("pack: './apps/web'");
+    expect(config.contents).toContain("cache: { scripts: true }");
+    expect(config.contents).toContain("singleQuote: true");
+    expect(config.contents).toContain("semi: false");
+    expect(config.contents).toContain("sortPackageJson: false");
+    expect(config.contents).toContain("'**/dist/**'");
   });
 
   test("root pnpm-workspace.yaml has the exact packages + allowBuilds bytes", () => {
@@ -135,7 +156,9 @@ describe("render / monorepo", () => {
     expect(readme.contents).toContain("`packages/*`");
     expect(readme.contents).toContain("pnpm install");
     expect(readme.contents).toContain("pnpm dev");
-    expect(readme.contents).toContain("pnpm --filter ./apps/web <script>");
+    expect(readme.contents).toContain("vp run -r build");
+    expect(readme.contents).toContain("vp check");
+    expect(readme.contents).toContain("vp run --filter ./apps/web <script>");
   });
 
   test("root package.json source is monorepo", () => {

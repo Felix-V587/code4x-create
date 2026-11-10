@@ -60,7 +60,7 @@ node ../code4x-create/packages/cli/dist/cli.mjs apps/web -p vue-naive-tw -y
 node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-naive-tw -y
 ```
 
-生成根 `package.json`（脚本转发到应用）、根 `pnpm-workspace.yaml`（`apps/*` + `packages/*` + `allowBuilds`）、`.gitignore`、`README.md`、根 `.code4xrc.json`，应用位于 `apps/web/`（不写应用级 `pnpm-workspace.yaml`，Tailwind 使用 `source('../')`）。Monorepo 固定 pnpm；安装与 `git init` 在根执行。详见 [website/guide/workspace.md](./website/guide/workspace.md)。
+生成根 `package.json`（含 `vite-plus`，脚本经 Vite+ 任务运行器执行：`build` = `vp run -r build`、`check` = `vp check`）、根 `vite.config.ts`（`defaultPackage` 指向 `apps/<app>` + `run.cache.scripts` + 共享 lint/fmt）、根 `pnpm-workspace.yaml`（`apps/*` + `packages/*` + `allowBuilds`）、`.gitignore`、`README.md`、根 `.code4xrc.json`，应用位于 `apps/web/`（不写应用级 `pnpm-workspace.yaml`，Tailwind 使用 `source('../')`）。Monorepo 固定 pnpm；安装与 `git init` 在根执行。详见 [website/guide/workspace.md](./website/guide/workspace.md)。
 
 ### 全栈快捷模式
 
@@ -73,7 +73,7 @@ node packages/cli/dist/cli.mjs my-stack --fullstack -y
 - `apps/api`：Hono + api-guard + zod + testing
 - `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175
 - `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173
-- 根 `pnpm dev` 并行启动三端；`pnpm build` / `pnpm check` / `pnpm test` 递归执行
+- 根 `pnpm dev`（`vp run -r --parallel dev`）并行启动三端；`pnpm build` / `pnpm test` 递归执行，`pnpm check` 对整仓一次执行（`vp check`）
 - 固定 pnpm；安装与 `git init` 在根执行；`.code4xrc.json` 的 `stack.apps` 记录三端计划
 
 通过 Vite+ 统一入口（发布后）：在 `vite.config.ts` 的 `create.templates` 中以**全名** `@code4x/cli` 注册条目（全名 run as-is，不做 `create-` 简写展开），再用 `vp create <name> -- my-api -f hono --features zod -y` 调用（参数化；CI 同此写法——vp 不透传 `--no-interactive`，参数放 `--` 后）。旧的 `vp create code4x` 简写会展开成 `create-code4x`，**已不再映射本包**。本地未发布期的集成验证走 `create.templates` harness，见 [docs/05](./docs/05-vp-integration.md)。

@@ -106,7 +106,16 @@ function renderMonorepo(
     },
     {
       path: "package.json",
-      contents: renderMonorepoPackageJson(workspaceName, scripts),
+      contents: renderMonorepoPackageJson(
+        workspaceName,
+        scripts,
+        vitePlusRange(appPackage?.contents),
+      ),
+      source: "monorepo",
+    },
+    {
+      path: "vite.config.ts",
+      contents: renderMonorepoViteConfig(appName),
       source: "monorepo",
     },
     {
@@ -334,7 +343,11 @@ export function renderMonorepoWorkspaceYaml(
   return `${sections.join("\n\n")}\n`;
 }
 
-function renderMonorepoPackageJson(workspaceName: string, scripts: Record<string, string>): string {
+function renderMonorepoPackageJson(
+  workspaceName: string,
+  scripts: Record<string, string>,
+  vitePlus: string,
+): string {
   return `${JSON.stringify(
     {
       name: workspaceName,
@@ -342,11 +355,74 @@ function renderMonorepoPackageJson(workspaceName: string, scripts: Record<string
       private: true,
       type: "module",
       scripts,
+      devDependencies: { "vite-plus": vitePlus },
       engines: { node: ">=22" },
     },
     null,
     2,
   )}\n`;
+}
+
+/**
+ * The app's `vite-plus` range, reused at the workspace root so root-level
+ * `vp run` / `vp check` resolve the same toolchain as the app. Vite+ is a
+ * project-local CLI here, so a generated workspace never depends on a globally
+ * installed `vp`.
+ */
+function vitePlusRange(appPackageJson: string | undefined): string {
+  if (appPackageJson === undefined) return "^1.5.0";
+  const pkg = parsePackageJson(appPackageJson);
+  const devDependencies = pkg.devDependencies as Record<string, string> | undefined;
+  return devDependencies?.["vite-plus"] ?? "^1.5.0";
+}
+
+/**
+ * Workspace-root `vite.config.ts`. Vite+ reads `defaultPackage` without
+ * executing the config, so bare `vp dev|build|preview|pack` at the root behave
+ * like `vp -C apps/<app>` (docs: Monorepo → `defaultPackage`). The lint/fmt
+ * blocks mirror the generated app settings so a root-level `vp check` covers
+ * every package instead of falling back to Vite+ defaults. `run.cache` is a
+ * workspace-root-only option; enabling scripts makes `vp run -r test` (and any
+ * other cacheable script) replay unchanged work.
+ */
+export function renderMonorepoViteConfig(appName?: string): string {
+  const defaultPackage =
+    appName === undefined
+      ? ""
+      : `  // 在 workspace 根直接执行 \`vp dev\` / \`vp build\` / \`vp preview\` / \`vp pack\`
+  // 时，默认作用到应用目录（等价于隐式 \`vp -C apps/${appName}\`）。
+  defaultPackage: {
+    dev: './apps/${appName}',
+    build: './apps/${appName}',
+    preview: './apps/${appName}',
+    pack: './apps/${appName}',
+  },
+`;
+  return `import { defineConfig } from 'vite-plus'
+
+export default defineConfig({
+${defaultPackage}  run: {
+    // 让 package.json scripts 也参与 Vite Task 缓存（Vite+ 任务默认已缓存）。
+    cache: { scripts: true },
+  },
+  lint: {
+    ignorePatterns: ['**/dist/**', '**/release/**', '**/auto-imports.d.ts', '**/components.d.ts'],
+    options: { typeAware: true, typeCheck: true },
+  },
+  fmt: {
+    singleQuote: true,
+    semi: false,
+    sortPackageJson: false,
+    ignorePatterns: [
+      '**/dist/**',
+      '**/release/**',
+      '**/.code4xrc.json',
+      '**/auto-imports.d.ts',
+      '**/components.d.ts',
+    ],
+  },
+})
+`;
 }
 
 function renderMonorepoReadme(
@@ -370,7 +446,13 @@ pnpm install
 pnpm dev
 \`\`\`
 
-App scripts run via \`pnpm --filter ./apps/${appName} <script>\` (for example \`pnpm --filter ./apps/${appName} build\`).
+Root scripts run through the project-local Vite+ task runner:
+
+- \`pnpm build\` → \`vp run -r build\` (every workspace package, dependency order)
+- \`pnpm check\` → \`vp check\` (format + lint + type check across the workspace)
+- \`pnpm dev\` → \`vp run -r dev\`
+
+Bare \`vp dev\` / \`vp build\` / \`vp preview\` at the workspace root target \`apps/${appName}\` via \`defaultPackage\`; use \`vp run --filter ./apps/${appName} <script>\` to run one app script explicitly.
 `;
 }
 
@@ -399,7 +481,13 @@ function validateWorkspaceName(value: string | undefined): string {
   return value;
 }
 
-/** Root scripts, mirroring the app's script keys in declaration order. */
+/**
+ * Root scripts, mirroring the app's script keys in declaration order. Scripts
+ * that describe workspace-wide work use the Vite+ task runner (`-r`), while
+ * long-running or app-specific ones stay pinned to `apps/<appName>`. `check`
+ * runs once at the root: `vp check` applies the root lint/fmt/type-check
+ * settings to every package, avoiding concurrent oxlint-tsgolint instances.
+ */
 function monorepoRootScripts(
   appPackageJson: string | undefined,
   appName: string,
@@ -409,7 +497,13 @@ function monorepoRootScripts(
   const appScripts = (pkg.scripts as Record<string, string> | undefined) ?? {};
   const scripts: Record<string, string> = {};
   for (const key of Object.keys(appScripts)) {
-    scripts[key] = `pnpm --filter ./apps/${appName} ${key}`;
+    if (key === "check") {
+      scripts[key] = "vp check";
+    } else if (key === "build" || key === "test" || key === "typecheck" || key === "dev") {
+      scripts[key] = `vp run -r ${key}`;
+    } else {
+      scripts[key] = `vp run --filter ./apps/${appName} ${key}`;
+    }
   }
   return scripts;
 }

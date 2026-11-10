@@ -52,14 +52,15 @@
 
 | 文件 | 内容 |
 |---|---|
-| `package.json` | private workspace 根；scripts 转发到 `apps/<app>`（`pnpm --filter ./apps/<app> <script>`） |
+| `package.json` | private workspace 根；`vite-plus` devDependency + 经 Vite+ 任务运行器执行的 scripts（`build` = `vp run -r build`，`check` = `vp check`，应用专属脚本走 `vp run --filter`） |
 | `pnpm-workspace.yaml` | `packages: apps/*, packages/*` + 应用所需的 `allowBuilds` |
+| `vite.config.ts` | 工作区根配置：`defaultPackage` 指向 `apps/<app>`、`run.cache.scripts`、共享 `lint` / `fmt` |
 | `.gitignore` / `README.md` | 工作区级 |
 | `.code4xrc.json` | 工作区级元数据；`answers.projectType = "monorepo"`，`appName` / `workspaceName` 记录在案 |
 
-应用本身位于 `apps/<app>/`，文件树与 standalone 生成一致；不会写应用级 `pnpm-workspace.yaml`，Tailwind 使用 `source('../')`。依赖安装与 `git init` 都在根目录执行。
+应用本身位于 `apps/<app>/`，文件树与 standalone 生成一致；不会写应用级 `pnpm-workspace.yaml`，Tailwind 使用 `source('../')`。依赖安装与 `git init` 都在根目录执行。`vp` 来自根 `node_modules`，无需全局安装。
 
-全栈模式（`--fullstack`）是 Monorepo 的固定三应用特例：`apps/api`、`apps/web`、`apps/desktop`，根脚本并行执行，`.code4xrc.json` 额外记录 `stack.apps`。
+全栈模式（`--fullstack`）是 Monorepo 的固定三应用特例：`apps/api`、`apps/web`、`apps/desktop`，根 `vite.config.ts` 只保留 `run.cache` 与共享 `lint` / `fmt`（多应用不设 `defaultPackage`），`.code4xrc.json` 额外记录 `stack.apps`。
 
 ## 常用脚本
 

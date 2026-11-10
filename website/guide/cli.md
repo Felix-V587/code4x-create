@@ -81,8 +81,8 @@ node packages/cli/dist/cli.mjs my-workspace --monorepo --app web -f vue -p vue-n
 ```
 
 - 目标目录是 workspace 根，应用生成到 `apps/<appName>`（默认按框架取 `api` / `web` / `desktop`）。
-- 根包名默认取目标目录名；若与应用名相同则追加 `-workspace`，避免 `pnpm --filter` 歧义。
-- 根 `package.json` 的脚本转发到应用（`pnpm --filter ./apps/<appName> <script>`）。
+- 根包名默认取目标目录名；若与应用名相同则追加 `-workspace`，避免 workspace 包名歧义。
+- 根 `package.json` 带 `vite-plus` devDependency，脚本经 Vite+ 任务运行器执行：`build` 为 `vp run -r build`，`check` 为 `vp check`，应用专属脚本走 `vp run --filter ./apps/<appName> <script>`；根 `vite.config.ts` 用 `defaultPackage` 把裸 `vp dev/build/preview/pack` 指向应用。
 - 根 `pnpm-workspace.yaml` 声明 `apps/*`、`packages/*` 并写入应用所需的 `allowBuilds`。
 - 包管理器固定 pnpm；`--pm npm` 等会报 `E-INVALID-VALUE`。
 - 安装与 `git init` 在 workspace 根执行；`.code4xrc.json` 也位于根，`plan.sources` 路径带 `apps/<appName>/` 前缀。
@@ -97,8 +97,8 @@ node packages/cli/dist/cli.mjs my-stack --fullstack -y
 ```
 
 - 固定生成 `apps/api`（Hono + api-guard + zod + testing）、`apps/web`（Vue router/pinia/vueuse/vueuse-router/testing + reka-ui + alova + unocss）、`apps/desktop`（Electron + electron-builder）。
-- 根 `package.json` 提供 `dev` / `build` / `check` / `test` / `preview` 与 `dev:api` / `dev:web` / `dev:desktop`。
-- `pnpm dev` 并行启动三端：API 3000、Web 5175、Electron 渲染器 5173。
+- 根 `package.json` 提供 `dev` / `build` / `typecheck` / `check` / `test` / `preview` 与 `dev:api` / `dev:web` / `dev:desktop`，经项目内 Vite+ 任务运行器执行（`build` = `vp run -r build`，`check` = `vp check`）。
+- `pnpm dev`（`vp run -r --parallel dev`）并行启动三端：API 3000、Web 5175、Electron 渲染器 5173。
 - 固定 pnpm；`--framework` / `--features` / `--preset` / `--app` 会报 `E-CONFLICT`。
 - `.code4xrc.json` 的 `stack.apps` 记录三端计划。
 

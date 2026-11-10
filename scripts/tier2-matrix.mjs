@@ -106,6 +106,7 @@ export function cliArgsFor(combo, target, cli = distCli) {
   const args = [cli, target, "-f", combo.framework, "-y", "--no-install", "--no-git"];
   if (combo.preset !== undefined) args.push("-p", combo.preset);
   if (combo.features?.length) args.push("--features", combo.features.join(","));
+  if (combo.monorepo) args.push("--monorepo");
   return args;
 }
 
@@ -140,7 +141,7 @@ function runCombo(combo, ctx) {
   const logFd = openSync(logPath, "a");
 
   process.stdout.write(
-    `\n=== [${combo.id}] ${combo.framework}${combo.preset ? ` preset=${combo.preset}` : ""}${combo.features?.length ? ` features=${combo.features.join(",")}` : ""}\n`,
+    `\n=== [${combo.id}] ${combo.framework}${combo.preset ? ` preset=${combo.preset}` : ""}${combo.features?.length ? ` features=${combo.features.join(",")}` : ""}${combo.monorepo ? " monorepo" : ""}\n`,
   );
 
   const steps = [

@@ -12,6 +12,7 @@ import {
   collectAllowBuilds,
   collectPeerDependencyRules,
   render,
+  renderMonorepoViteConfig,
   renderMonorepoWorkspaceYaml,
   WORKSPACE_YAML_PATH,
 } from "./render.ts";
@@ -170,7 +171,12 @@ export function renderFullstack(
     },
     {
       path: "package.json",
-      contents: renderFullstackPackageJson(workspaceName),
+      contents: renderFullstackPackageJson(workspaceName, highestVitePlusRange(files)),
+      source: "fullstack",
+    },
+    {
+      path: "vite.config.ts",
+      contents: renderMonorepoViteConfig(),
       source: "fullstack",
     },
     {
@@ -237,7 +243,36 @@ function patchWebDevPort(files: VirtualFile[]): void {
   file.contents = `${JSON.stringify(pkg, null, 2)}\n`;
 }
 
-function renderFullstackPackageJson(workspaceName: string): string {
+/**
+ * Root `vite-plus` range: the highest range used by the fixed apps. pnpm
+ * dedupes compatible ranges to one version; taking the highest keeps the root
+ * task runner at least as new as every app (all trailing `^` ranges).
+ */
+function highestVitePlusRange(files: VirtualFile[]): string {
+  const ranges = files
+    .filter((file) => /^apps\/[^/]+\/package\.json$/.test(file.path))
+    .map((file) => {
+      const pkg = JSON.parse(file.contents) as {
+        devDependencies?: Record<string, string>;
+      };
+      return pkg.devDependencies?.["vite-plus"];
+    })
+    .filter((range): range is string => typeof range === "string" && range.length > 0);
+
+  const parsed = ranges
+    .map((range) => ({ range, parts: /^\^?(\d+)\.(\d+)\.(\d+)/.exec(range)?.slice(1) }))
+    .filter((entry): entry is { range: string; parts: string[] } => entry.parts !== undefined)
+    .sort((a, b) => {
+      for (let index = 0; index < 3; index += 1) {
+        const diff = Number(b.parts[index]) - Number(a.parts[index]);
+        if (diff !== 0) return diff;
+      }
+      return 0;
+    });
+  return parsed[0]?.range ?? ranges[0] ?? "^1.5.0";
+}
+
+function renderFullstackPackageJson(workspaceName: string, vitePlus: string): string {
   return `${JSON.stringify(
     {
       name: workspaceName,
@@ -245,15 +280,17 @@ function renderFullstackPackageJson(workspaceName: string): string {
       private: true,
       type: "module",
       scripts: {
-        dev: "pnpm -r --parallel dev",
-        "dev:api": "pnpm --filter ./apps/api dev",
-        "dev:web": "pnpm --filter ./apps/web dev",
-        "dev:desktop": "pnpm --filter ./apps/desktop dev",
-        build: "pnpm -r build",
-        check: "pnpm -r check",
-        test: "pnpm -r test",
-        preview: "pnpm --filter ./apps/web preview",
+        dev: "vp run -r --parallel dev",
+        "dev:api": "vp run --filter ./apps/api dev",
+        "dev:web": "vp run --filter ./apps/web dev",
+        "dev:desktop": "vp run --filter ./apps/desktop dev",
+        build: "vp run -r build",
+        typecheck: "vp run -r typecheck",
+        check: "vp check",
+        test: "vp run -r test",
+        preview: "vp run --filter ./apps/web preview",
       },
+      devDependencies: { "vite-plus": vitePlus },
       engines: { node: ">=22" },
     },
     null,
@@ -281,10 +318,15 @@ pnpm dev
 
 ## 常用脚本
 
-- \`pnpm dev\` / \`pnpm build\` / \`pnpm check\` / \`pnpm test\`：并行执行所有应用
+根脚本经项目内 Vite+ 任务运行器执行（不需要全局安装 \`vp\`）：
+
+- \`pnpm build\` → \`vp run -r build\`：按依赖顺序构建所有应用
+- \`pnpm check\` → \`vp check\`：对整个 workspace 做格式化 + lint + 类型检查
+- \`pnpm test\` → \`vp run -r test\`：递归执行各应用测试
+- \`pnpm dev\` → \`vp run -r --parallel dev\`：并行启动三端
 - \`pnpm dev:api\`（3000）/ \`pnpm dev:web\`（5175）/ \`pnpm dev:desktop\`（Electron 窗口）：单独启动某个应用
 - \`pnpm preview\`：预览前端构建产物
 
-\`packages/*\` 已加入 workspace 配置，可按需放置共享代码。
+包管理器固定 pnpm；\`packages/*\` 已加入 workspace 配置，可按需放置共享代码。
 `;
 }

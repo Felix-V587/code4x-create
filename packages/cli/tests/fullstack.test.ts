@@ -125,19 +125,32 @@ describe("fullstack / render", () => {
       name: string;
       private: boolean;
       scripts: Record<string, string>;
+      devDependencies: Record<string, string>;
     };
     expect(root.name).toBe("my-fullstack");
     expect(root.private).toBe(true);
     expect(root.scripts).toEqual({
-      dev: "pnpm -r --parallel dev",
-      "dev:api": "pnpm --filter ./apps/api dev",
-      "dev:web": "pnpm --filter ./apps/web dev",
-      "dev:desktop": "pnpm --filter ./apps/desktop dev",
-      build: "pnpm -r build",
-      check: "pnpm -r check",
-      test: "pnpm -r test",
-      preview: "pnpm --filter ./apps/web preview",
+      dev: "vp run -r --parallel dev",
+      "dev:api": "vp run --filter ./apps/api dev",
+      "dev:web": "vp run --filter ./apps/web dev",
+      "dev:desktop": "vp run --filter ./apps/desktop dev",
+      build: "vp run -r build",
+      typecheck: "vp run -r typecheck",
+      check: "vp check",
+      test: "vp run -r test",
+      preview: "vp run --filter ./apps/web preview",
     });
+    expect(root.devDependencies["vite-plus"]).toBe("^1.5.0");
+  });
+
+  test("root vite.config.ts enables script caching and shared lint/fmt", () => {
+    const { files } = build();
+    const config = file(files, "vite.config.ts");
+    expect(config.source).toBe("fullstack");
+    expect(config.contents).not.toContain("defaultPackage");
+    expect(config.contents).toContain("cache: { scripts: true }");
+    expect(config.contents).toContain("singleQuote: true");
+    expect(config.contents).toContain("sortPackageJson: false");
   });
 
   test("root workspace yaml unions allowBuilds and peer rules", () => {

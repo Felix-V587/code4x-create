@@ -25,6 +25,7 @@ interface Tier2Combo {
   framework: string;
   preset?: string;
   features?: string[];
+  monorepo?: boolean;
 }
 
 interface Tier2Catalog {
@@ -43,7 +44,14 @@ const allCombos: Tier2Combo[] = [...catalog.subset, ...catalog.nightlyOnly];
 // The blessed list (docs/06 §7): subset is the PR lane, nightly adds the rest
 // (M11 plus later feature additions). Pinning the ids keeps an accidental
 // deletion from passing silently.
-const M11_SUBSET = ["hono-base", "hono-standard", "vue-base", "vue-naive-tw", "electron-builder"];
+const M11_SUBSET = [
+  "hono-base",
+  "hono-standard",
+  "vue-base",
+  "vue-naive-tw",
+  "vue-monorepo",
+  "electron-builder",
+];
 const M11_NIGHTLY_ONLY = [
   "hono-full",
   "vue-standard",

@@ -116,8 +116,9 @@ node packages/cli/dist/cli.mjs my-workspace \
 
 ```text
 my-workspace/
-├── package.json            # private workspace 根，脚本转发到 apps/web
+├── package.json            # private workspace 根，脚本经 Vite+ 任务运行器执行
 ├── pnpm-workspace.yaml     # packages: apps/*, packages/* + allowBuilds
+├── vite.config.ts          # defaultPackage + run.cache + 共享 lint/fmt
 ├── .gitignore
 ├── README.md
 ├── .code4xrc.json          # 工作区级生成元数据
@@ -131,8 +132,12 @@ my-workspace/
 要点：
 
 - 应用名来自 `--app`（缺省按框架取 `api` / `web` / `desktop`），写入 `apps/<应用名>`；应用包名同名。
-- 若目标目录名恰好与应用名相同（例如目录 `web` + 默认应用 `web`），根包名自动追加 `-workspace`（`web-workspace`），避免 `pnpm --filter` 歧义。
-- workspace 根 `package.json` 的脚本自动转发，例如 `pnpm dev` → `pnpm --filter ./apps/web dev`。
+- 根 `package.json` 增加 `vite-plus` devDependency（复用应用声明的版本），脚本通过项目内 Vite+ 任务运行器执行，**不要求全局安装 `vp`**：
+  - `pnpm build` → `vp run -r build`（递归构建，按 workspace 依赖排序）
+  - `pnpm check` → `vp check`（对整仓做格式化 + lint + 类型检查）
+  - `pnpm dev` → `vp run -r dev`；`preview` / `start` / `dist` 等应用专属脚本 → `vp run --filter ./apps/<app> <script>`
+- 根 `vite.config.ts` 用 `defaultPackage` 把裸 `vp dev` / `vp build` / `vp preview` / `vp pack` 固定到 `apps/<app>`（等价于隐式 `vp -C apps/<app>`），并开启 `run.cache.scripts`，让 `vp run -r test` 等可缓存脚本命中 Vite Task 缓存；`lint` / `fmt` 与生成应用保持一致，`vp check` 可直接在根执行。
+- 若目标目录名恰好与应用名相同（例如目录 `web` + 默认应用 `web`），根包名自动追加 `-workspace`（`web-workspace`），避免 workspace 包名歧义。
 - 根 `pnpm-workspace.yaml` 直接写入应用所需的 `allowBuilds`，因此**不会**再输出“请宿主补充 allowBuilds”的提示。
 - 包管理器固定为 pnpm；`--pm npm` 等会报 `E-INVALID-VALUE`。
 - 依赖安装与 `git init` 都在 workspace 根执行。
@@ -149,8 +154,9 @@ node packages/cli/dist/cli.mjs my-stack --fullstack -y
 
 ```text
 my-stack/
-├── package.json            # dev/build/check/test + dev:api/dev:web/dev:desktop
+├── package.json            # dev/build/typecheck/check/test + dev:api/dev:web/dev:desktop
 ├── pnpm-workspace.yaml     # apps/* + packages/* + allowBuilds + peerDependencyRules
+├── vite.config.ts          # run.cache + 共享 lint/fmt（三应用共用）
 ├── .gitignore
 ├── README.md
 ├── .code4xrc.json          # stack.apps 记录三端
@@ -160,6 +166,7 @@ my-stack/
     └── desktop/            # Electron + electron-builder（渲染器 dev 5173）
 ```
 
+- 根脚本经 Vite+ 任务运行器执行：`pnpm build` → `vp run -r build`，`pnpm test` → `vp run -r test`，`pnpm check` → `vp check`（整仓一次），`pnpm dev` → `vp run -r --parallel dev`。
 - `pnpm dev` 并行启动三端；Web 使用 5175，避免与 Electron 渲染器 5173 冲突。
 - 固定 pnpm；不接受 `--framework` / `--features` / `--preset` / `--app`。
 - 三个应用都按嵌套 workspace 渲染；`packages/*` 已声明，可放共享代码。

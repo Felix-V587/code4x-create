@@ -4,6 +4,7 @@
     { "id": "hono-standard", "framework": "hono", "preset": "hono-standard" },
     { "id": "vue-base", "framework": "vue" },
     { "id": "vue-naive-tw", "framework": "vue", "preset": "vue-naive-tw" },
+    { "id": "vue-monorepo", "framework": "vue", "preset": "vue-naive-tw", "monorepo": true },
     { "id": "electron-builder", "framework": "electron", "features": ["electron/builder"] }
   ],
   "nightlyOnly": [

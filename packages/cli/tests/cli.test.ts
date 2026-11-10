@@ -7,6 +7,12 @@ import { run, type CliIO } from "../src/cli.ts";
 import { CUSTOM_FOLDER } from "../src/domain/flow.ts";
 import { scriptedPrompter } from "./prompter.ts";
 
+const CLI_VERSION = (
+  JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+    version: string;
+  }
+).version;
+
 const roots: string[] = [];
 
 function tempRoot(): string {
@@ -72,7 +78,7 @@ describe("cli e2e", () => {
       plan: { features: string[]; sources: Record<string, string>; hashes: Record<string, string> };
       context: { nestedWorkspace: boolean; pmFrom: string };
     };
-    expect(rc.generator.cliVersion).toBe("0.1.0");
+    expect(rc.generator.cliVersion).toBe(CLI_VERSION);
     expect(rc.answers.framework).toBe("hono");
     expect(rc.answers.features).toEqual([]);
     expect(rc.plan.features).toEqual([]);
@@ -456,7 +462,9 @@ describe("cli e2e", () => {
       scripts: Record<string, string>;
     };
     expect(rootPkg.private).toBe(true);
-    expect(rootPkg.scripts.dev).toContain("pnpm --filter ./apps/web");
+    expect(rootPkg.scripts.dev).toBe("vp run -r dev");
+    expect(rootPkg.scripts.build).toBe("vp run -r build");
+    expect(rootPkg.scripts.check).toBe("vp check");
 
     const workspaceYaml = readFileSync(join(target, "pnpm-workspace.yaml"), "utf8");
     expect(workspaceYaml).toContain("apps/*");
@@ -575,8 +583,8 @@ describe("cli e2e", () => {
     const rootPkg = JSON.parse(readFileSync(join(target, "package.json"), "utf8")) as {
       scripts: Record<string, string>;
     };
-    expect(rootPkg.scripts.dev).toBe("pnpm -r --parallel dev");
-    expect(rootPkg.scripts.test).toBe("pnpm -r test");
+    expect(rootPkg.scripts.dev).toBe("vp run -r --parallel dev");
+    expect(rootPkg.scripts.test).toBe("vp run -r test");
 
     const workspace = readFileSync(join(target, "pnpm-workspace.yaml"), "utf8");
     expect(workspace).toContain("allowBuilds:");
