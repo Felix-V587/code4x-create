@@ -1,8 +1,11 @@
 # code4x-create
 
+[![CI](https://github.com/Felix-V587/code4x-create/actions/workflows/ci.yml/badge.svg)](https://github.com/Felix-V587/code4x-create/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@code4x/cli.svg)](https://www.npmjs.com/package/@code4x/cli)
+
 通用项目创建脚手架（对标 create-vite）：以**参数**或**交互式提问**创建多框架项目，并按框架可选集成常用能力——Hono（vp 原生：`vp dev` / `vp build` / `vp check`）：`zod` 校验 / `api-guard`（CORS + secure-headers）/ `swagger-openapi` 文档 / `env`（zod 校验配置）/ `testing`（Vitest 示例）/ `logging`（pino）/ `http-hardening`（timeout + body-limit + compress）；Vue（vp 原生 dev/build/check + 官方 `vue-ts` 基线：`@vue/tsconfig` project references + `vue-tsc -b`）：`pinia` / `vue-router` / `vueuse` / `vueuse-router` / 请求策略 `query`（TanStack Query）⟂ `colada`（Pinia Colada）⟂ `alova`（alova 3，类型化 client + `useRequest`）/ `testing`（Vite+ 内置 runner + @vue/test-utils）/ CSS 引擎 `tailwind` ⟂ `unocss` / UI 套件 `reka-ui`（默认，无样式可访问原语）⟂ `naive-ui` ⟂ `element-plus` ⟂ `shadcn-vue`（copy-paste 组件栈，vendored、需 tailwind）；Electron（vp 原生：`vp pack` 主/预加载 + `vp build` 渲染进程，Vue 3 渲染层）：类型化 IPC（`src/shared/ipc.ts` 共享 zod channel 表 + 三端派生类型 + 仅 `message` 的错误信封）+ 生产 `app://` 自定义协议加载（SPA 回退）；`electron/builder`（经 electron-builder 打包安装包）。
 
-**实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；交互式支持「项目类型（Standard / Monorepo / Full-stack）」与 Vue 分步能力选择（Vue ecosystem → Request strategy → UI framework/CSS）；**M12 单仓库整仓生成 + Vue 引导式提问已完成**；**M14 全栈快捷模式（Hono + Vue + Electron 单仓库）与 Vue 能力调整（移除 i18n、reka-ui 默认）已完成**；**M6 机制扩展 + M7 Hono 标准化 + M8a Vue 全家桶 + M8b shadcn-vue + M9 Electron 加固已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening；Vue 基座升级（`@/` 别名、`src/style.css` 组装、`css-imports` 锚点）+ vueuse/query/colada/alova/testing + tailwind/unocss + reka-ui/naive-ui/element-plus + shadcn-vue（vendored 组件 + `app-script` 锚点）+ 预设 `vue-standard`/`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min`/`vue-shadcn-tw`/`vue-full`；Electron 类型化 IPC（共享 zod 表）+ `protocol.handle` `app://` 加载 + `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 已接入 GitHub Actions；发布流程就绪（`repository` 已补，待 npm 凭据后实际发布）。设计与决策文档见 [docs/](./docs/README.md)。
+**实施状态**：M0–M4 已完成（Hono + Vue + Electron 三框架；参数式与交互式双模）；交互式支持「项目类型（Standard / Monorepo / Full-stack）」与 Vue 分步能力选择（Vue ecosystem → Request strategy → UI framework/CSS）；**M12 单仓库整仓生成 + Vue 引导式提问已完成**；**M14 全栈快捷模式（Hono + Vue + Electron 单仓库）与 Vue 能力调整（移除 i18n、reka-ui 默认）已完成**；**M6 机制扩展 + M7 Hono 标准化 + M8a Vue 全家桶 + M8b shadcn-vue + M9 Electron 加固已完成**（`group` 互斥 / `package.json#fields` / `workspaceYaml.allowBuilds` / Tier-1 组合矩阵；Hono 基座升级 + env/testing/logging/http-hardening；Vue 基座升级（`@/` 别名、`src/style.css` 组装、`css-imports` 锚点）+ vueuse/query/colada/alova/testing + tailwind/unocss + reka-ui/naive-ui/element-plus + shadcn-vue（vendored 组件 + `app-script` 锚点）+ 预设 `vue-standard`/`vue-naive-tw`/`vue-element-tw`/`vue-unocss-min`/`vue-shadcn-tw`/`vue-full`；Electron 类型化 IPC（共享 zod 表）+ `protocol.handle` `app://` 加载 + `!app.isPackaged` 门闩 + `deps.alwaysBundle: ['zod']`）；vp 集成 harness 已落地实测（`fixtures/vp-harness/`）；CI 与自动发布已接入 GitHub Actions（`ci.yml` / `nightly.yml` / `release.yml`）：`main` 上的 changeset 由 `changesets/action` 维护 release PR，合并后经 npm Trusted Publishing（OIDC）发布并创建 GitHub Release；`@code4x/cli` 已发布 `0.5.0`。设计与决策文档见 [docs/](./docs/README.md)。
 
 ## 快速开始（仓库内）
 
@@ -36,7 +39,7 @@ node packages/cli/dist/cli.mjs my-stack --fullstack -y            # 全栈：app
 
 交互式运行时，第一个问题选择 **Standard project** / **Monorepo project** / **Full-stack project**；若当前目录已在 workspace 内，目标文件夹会扫描 `packages` / `workspaces` 配置并给出 `apps/`、`packages/` 等选项（含 **Custom folder…** 自定义输入），再询问项目名。选中 Vue 后按 **Vue ecosystem**（pinia/router/vueuse/vueuse-router/testing）→ **Request strategy**（alova/colada/query）→ **UI framework**（reka-ui 默认 / naive-ui / element-plus / shadcn-vue）→ **CSS engine**（tailwind/unocss）分步选择。
 
-发布后形态（尚未发布到 npm）：`pnpm dlx @code4x/cli my-api`（等价 `npx @code4x/cli@latest my-api`）。
+发布形态（npm 最新 `0.5.0`）：`pnpm dlx @code4x/cli my-api`（等价 `npx @code4x/cli@latest my-api`）。
 
 ### 在既有 workspace 内生成（嵌套场景）
 
@@ -113,7 +116,7 @@ pnpm -C website dev      # 本地预览
 pnpm -C website build    # 构建到 website/.vitepress/dist
 ```
 
-根脚本 `pnpm docs:dev` / `pnpm docs:build` / `pnpm docs:preview` 为等价入口。GitHub Actions 在 `main` 分支的 `website/**` 变更时自动部署到 GitHub Pages（`.github/workflows/docs.yml`；需先在仓库 Settings → Pages 选择 GitHub Actions）。
+根脚本 `pnpm docs:dev` / `pnpm docs:build` / `pnpm docs:preview` 为等价入口。GitHub Actions 在 `main` 分支的 `website/**` 变更时自动部署到 GitHub Pages（`.github/workflows/docs.yml`；首次使用需先在仓库 Settings → Pages 选择 GitHub Actions）。
 
 ## 验证 / CI
 
@@ -132,22 +135,47 @@ pnpm run ci:tier2:all                          # Tier-2 全量（nightly 口径�
 pnpm run ci:tier3                              # Tier-3 冒烟
 ```
 
-CI：`.github/workflows/ci.yml`（`push`/`pull_request`：Tier-1 + Tier-2 子集）、`.github/workflows/nightly.yml`（`schedule`/`workflow_dispatch`：Tier-2 全量 + Tier-3 冒烟）。
+CI：`.github/workflows/ci.yml`（`push`/`pull_request`：Tier-1 + Tier-2 子集）、`.github/workflows/nightly.yml`（`schedule`/`workflow_dispatch`：Tier-2 全量 + Tier-3 冒烟）、`.github/workflows/release.yml`（`push main`/`workflow_dispatch`：维护 release PR，合并后发布 npm + GitHub Release）。
 
 ## 发布
 
-发布包为 `packages/cli`（包名 `@code4x/cli`，发布在 `code4x` npm scope 下；`publishConfig.access: public`）。版本与发布流程以 **changesets** 为单一入口：
+发布包为 `packages/cli`（包名 `@code4x/cli`，发布在 `code4x` npm scope 下；`publishConfig.access: public`）。版本与发布流程以 **changesets** 为单一入口，由 GitHub Actions 自动执行。
+
+### 自动发布（推荐）
+
+`.github/workflows/release.yml` 在 `push main` 时运行：
+
+1. 有 `.changeset/*.md` → `changesets/action` 创建/更新 **Version Packages** PR（版本号 + CHANGELOG）。
+2. 合并该 PR → 同一 workflow 执行 `pnpm changeset:publish`，经 npm Trusted Publishing（OIDC）发布，并创建 `@code4x/cli@x.y.z` tag 与 GitHub Release。
+3. 发布前会执行 `vp check` / `vp test`；不需要 `NPM_TOKEN`。
+
+仓库一次性配置：
+
+- npmjs.com → `@code4x/cli` → Settings → Trusted Publisher → GitHub Actions：owner `Felix-V587`、repo `code4x-create`、workflow `release.yml`、environment `npm-publish`，并勾选 `npm publish`。
+- GitHub → Settings → Actions → General：允许 GitHub Actions 创建/批准 PR。
+- GitHub → Settings → Environments：`npm-publish` 限制 `main`（当前已配置）。
+
+日常流程：
 
 ```bash
-pnpm changeset           # 记录一条变更（选包 + bump 级别 + 摘要）
-pnpm changeset:version   # 汇总 changesets → 改版本号 / CHANGELOG（不提交）
-pnpm changeset:publish   # 构建并发布到 npm（public）
+pnpm changeset          # 记录变更（选 @code4x/cli + bump 级别 + 摘要）
+git add .changeset && git commit -m "chore: add changeset"
+git push github main
+```
+
+随后合并自动生成的 release PR 即可；`@code4x/cli` 的 npm 页面与 GitHub Release 会同步更新。
+
+### 本地手动发布（备用）
+
+```bash
+pnpm changeset
+pnpm changeset:version
+pnpm changeset:publish
 ```
 
 - 包内 `prepublishOnly` 已配置 `vp run build`（`vp pack`），发布前自动重建 `dist/`；发布 tarball 含 `package.json` / `README.md` / `LICENSE` / `dist/**`（模板与 features 资产随 `dist/` 一起打包）。
 - 使用形态：`pnpm dlx @code4x/cli <dir>`（等价 `npx @code4x/cli@latest <dir>`）；命令名（bin）仍为 `create-code4x`，故 tarball 安装后可直接 `create-code4x <dir>`。旧的 `pnpm create code4x` 形式展开为 `create-code4x`，**不再映射本包**。
-- 远端已配置：`origin` = Gitee（`git@gitee.com:code4x/code4x-create.git`），`github` = GitHub（`git@github.com:Felix-V587/code4x-create.git`，GitHub Actions CI 在此运行）；包内 `repository` 指向 GitHub 仓库。changesets 的 `baseBranch` 已按 `main` 配置。
-- 尚待 npm 凭据（当前 `~/.npmrc` 中 token 已失效，`npm whoami` 返回 401）后才能实际发布。
+- 远端已配置：`origin` = Gitee（`git@gitee.com:code4x/code4x-create.git`），`github` = GitHub（`git@github.com:Felix-V587/code4x-create.git`）；包内 `repository` 指向 GitHub 仓库。changesets 的 `baseBranch` 已按 `main` 配置。
 - 包内 `bumpp` 仍保留于 devDependencies，但**发布流程以 changesets 为准**（决策见 [docs/06](./docs/06-template-ecosystem-plan.md) 修订记录）。
 
 ## 仓库结构
