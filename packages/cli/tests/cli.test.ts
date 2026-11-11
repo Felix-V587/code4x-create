@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, test } from "vite-plus/test";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -24,6 +25,21 @@ function tempRoot(): string {
 afterAll(() => {
   for (const root of roots) rmSync(root, { recursive: true, force: true });
 });
+
+function git(cwd: string, ...args: string[]): string {
+  const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new Error(`git ${args.join(" ")} failed: ${result.stderr || result.stdout}`);
+  }
+  return `${result.stdout ?? ""}`.trim();
+}
+
+function initRepo(dir: string): void {
+  mkdirSync(dir, { recursive: true });
+  git(dir, "init", "-q");
+  git(dir, "config", "user.email", "test@example.com");
+  git(dir, "config", "user.name", "Test User");
+}
 
 async function invoke(args: string[], cwd: string, extra: Partial<CliIO> = {}) {
   const out: string[] = [];
@@ -160,6 +176,44 @@ describe("cli e2e", () => {
     const { code } = await invoke([], root, { isTTY: true, createPrompter: () => prompter });
     expect(code).toBe(0);
     expect(existsSync(join(target, "old.txt"))).toBe(false);
+    expect(existsSync(join(target, "package.json"))).toBe(true);
+  });
+
+  test("interactive commit action commits the generated project", async () => {
+    const root = tempRoot();
+    const target = join(root, "repo");
+    initRepo(target);
+    const prompter = scriptedPrompter({
+      text: [target, "test: scaffold project"],
+      select: ["standalone", "hono", "npm", "commit"],
+      multiselect: [[]],
+      confirm: [false],
+    });
+    const { code, stderr } = await invoke([], root, {
+      isTTY: true,
+      createPrompter: () => prompter,
+    });
+    expect(code, stderr).toBe(0);
+    expect(git(target, "log", "-1", "--pretty=%s")).toBe("test: scaffold project");
+    expect(git(target, "ls-files", "package.json")).toContain("package.json");
+  });
+
+  test("interactive branch action switches before writing the project", async () => {
+    const root = tempRoot();
+    const repo = join(root, "repo");
+    initRepo(repo);
+    git(repo, "commit", "--allow-empty", "-q", "-m", "init");
+    const target = join(repo, "project");
+    mkdirSync(target);
+    const prompter = scriptedPrompter({
+      text: [target, "feature/scaffold"],
+      select: ["standalone", "hono", "npm", "branch"],
+      multiselect: [[]],
+      confirm: [false],
+    });
+    const { code } = await invoke([], root, { isTTY: true, createPrompter: () => prompter });
+    expect(code).toBe(0);
+    expect(git(repo, "branch", "--show-current")).toBe("feature/scaffold");
     expect(existsSync(join(target, "package.json"))).toBe(true);
   });
 

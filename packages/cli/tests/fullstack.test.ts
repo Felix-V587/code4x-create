@@ -189,7 +189,7 @@ describe("fullstack / render", () => {
     expect(deps["vue-i18n"]).toBeUndefined();
     const scripts = (pkg(files, "apps/web/package.json") as { scripts: Record<string, string> })
       .scripts;
-    expect(scripts.dev).toBe("vp dev --port 5175 --strictPort");
+    expect(scripts.dev).toBe("vp dev");
   });
 
   test("rendering twice is byte-identical", () => {
@@ -296,18 +296,23 @@ describe("fullstack / scaffold", () => {
 
   test("workspace env files drive API port and web proxy", () => {
     const { files } = build();
-    expect(file(files, ".env").contents).toContain("API_DEV_PROXY=http://localhost:3000");
+    expect(file(files, ".env").contents).toContain("API_PORT=3030");
+    expect(file(files, ".env").contents).toContain("WEB_PORT=8088");
+    expect(file(files, ".env").contents).toContain("API_DEV_PROXY=http://localhost:3030");
     expect(file(files, ".env").contents).toContain("VITE_API_BASE_URL=/api");
 
     const apiConfig = file(files, "apps/api/vite.config.ts").contents;
     expect(apiConfig).toContain("const env = loadEnv(mode, '../../', '')");
-    expect(apiConfig).toContain("const port = Number(process.env.PORT ?? env.PORT ?? 3000)");
+    expect(apiConfig).toContain(
+      "process.env.API_PORT ?? process.env.PORT ?? env.API_PORT ?? env.PORT ?? 3030",
+    );
     expect(
       (pkg(files, "apps/api/package.json") as { scripts: Record<string, string> }).scripts.start,
     ).toBe("node --env-file=../../.env dist/index.js");
 
     const webConfig = file(files, "apps/web/vite.config.ts").contents;
     expect(webConfig).toContain("envDir: '../../'");
+    expect(webConfig).toContain("port: Number(process.env.WEB_PORT ?? env.WEB_PORT ?? 8088)");
     expect(webConfig).toContain("target: apiTarget,");
     expect(webConfig).not.toContain("rewrite:");
   });

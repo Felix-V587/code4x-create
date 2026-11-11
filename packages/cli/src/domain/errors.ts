@@ -35,6 +35,7 @@ export type ErrorCode =
   | "E-CONFIG-PARSE"
   | "E-CONFLICT"
   | "E-OVERWRITE-REFUSED"
+  | "E-GIT"
   | "E-UNKNOWN-FRAMEWORK";
 
 export interface Code4xErrorOptions {

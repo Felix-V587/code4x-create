@@ -118,6 +118,14 @@ export function writeProject(
   const staged = files.filter((file) => basename(file.path) !== "package.json");
 
   const staging = mkdtempSync(join(parent, `${TMP_PREFIX}${name}-`));
+  // A target that is itself a git worktree must keep `.git` across the atomic
+  // replace, otherwise `--force` would silently detach the project from the
+  // repository the user chose to commit/branch in.
+  const targetGit = join(resolved, ".git");
+  const gitBackup = existsSync(targetGit)
+    ? join(parent, `.code4x-git-${name}-${process.pid}-${Date.now()}`)
+    : undefined;
+  if (gitBackup) renameSync(targetGit, gitBackup);
   try {
     for (const file of staged) {
       const destination = join(staging, file.path);
@@ -128,7 +136,15 @@ export function writeProject(
     renameSync(staging, resolved);
   } catch (error) {
     rmSync(staging, { recursive: true, force: true });
+    if (gitBackup && existsSync(gitBackup)) {
+      mkdirSync(resolved, { recursive: true });
+      renameSync(gitBackup, join(resolved, ".git"));
+    }
     throw error;
+  }
+  if (gitBackup) {
+    mkdirSync(resolved, { recursive: true });
+    renameSync(gitBackup, join(resolved, ".git"));
   }
 
   // Write the deferred `package.json` files into the final target.

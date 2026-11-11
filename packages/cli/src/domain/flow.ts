@@ -85,6 +85,8 @@ export const CUSTOM_FOLDER = "__custom__";
 export interface FlowDeps {
   detectPm(targetDir: string): PmDetection;
   nestedGitRepo(targetDir: string): boolean;
+  /** Whether the target already exists and which repo (if any) contains it. */
+  targetGit(targetDir: string): { exists: boolean; repoRoot: string | null };
   /** Optional: when the invocation cwd is inside a workspace, offer folders. */
   workspaceLayout?(): WorkspaceLayoutInfo | undefined;
 }
@@ -353,10 +355,56 @@ export async function collectAnswers(
     install = await prompter.confirm({ message: "Install dependencies?", initialValue: false });
   }
 
-  // N7 — git (default Yes; nested repo -> skip + note).
+  // N7 — git. A target that already lives in a repository cannot be `git init`ed
+  // meaningfully; offer commit/branch instead. A not-yet-created target inside
+  // an existing repo keeps the historical "skip init" note.
   let git = partial.git;
+  let gitAction: Answers["gitAction"];
+  let gitMessage: string | undefined;
+  let gitBranch: string | undefined;
   if (git === undefined) {
-    if (deps.nestedGitRepo(targetDir)) {
+    const state = deps.targetGit(targetDir);
+    if (state.exists && state.repoRoot !== null) {
+      git = false;
+      const action = (await prompter.select({
+        message: "This directory is already in a git repository",
+        initialValue: "commit",
+        options: [
+          {
+            value: "commit",
+            label: "Commit current project",
+            hint: "git add + commit after generation",
+          },
+          {
+            value: "branch",
+            label: "Create and switch to a new branch",
+            hint: "before writing generated files",
+          },
+          { value: "skip", label: "Do nothing", hint: "keep the current branch/working tree" },
+        ],
+      })) as string;
+      if (action === "commit") {
+        const defaultMessage = `chore: scaffold ${projectName}`;
+        const answer = (
+          await prompter.text({
+            message: "Commit message",
+            defaultValue: defaultMessage,
+          })
+        ).trim();
+        gitAction = "commit";
+        gitMessage = answer === "" ? defaultMessage : answer;
+      } else if (action === "branch") {
+        const defaultBranch = `code4x/${projectName}`;
+        const answer = (
+          await prompter.text({
+            message: "New branch name",
+            defaultValue: defaultBranch,
+          })
+        ).trim();
+        gitAction = "branch";
+        gitBranch = answer === "" ? defaultBranch : answer;
+      }
+    } else if (deps.nestedGitRepo(targetDir)) {
       git = false;
       prompter.note("inside existing repo, skipping git init", "git");
     } else {
@@ -377,6 +425,9 @@ export async function collectAnswers(
     install,
     git,
   };
+  if (gitAction !== undefined) answers.gitAction = gitAction;
+  if (gitMessage !== undefined) answers.gitMessage = gitMessage;
+  if (gitBranch !== undefined) answers.gitBranch = gitBranch;
   if (projectType === "monorepo") {
     answers.appName = appName;
     answers.workspaceName = workspaceName;

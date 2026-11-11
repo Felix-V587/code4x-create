@@ -71,8 +71,8 @@ node packages/cli/dist/cli.mjs my-stack --fullstack -y
 ```
 
 - `apps/api`：Hono `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening；示例 `GET/POST /api/todos`）
-- `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175（`Home.vue` 经 Alova 调 `/api/todos`）
-- 根 `.env` / `.env.example`：`PORT`、`LOG_LEVEL`、`API_DEV_PROXY`、`VITE_API_BASE_URL`；Vite 应用通过 `envDir: '../../'` 共享，生产可切绝对 API 地址
+- `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 8088（`Home.vue` 经 Alova 调 `/api/todos`）
+- 根 `.env` / `.env.example`：`API_PORT`（3030）、`WEB_PORT`（8088）、`LOG_LEVEL`、`API_DEV_PROXY`、`VITE_API_BASE_URL`；Vite 应用通过 `envDir: '../../'` 共享，生产可切绝对 API 地址
 - `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173（示例 `app:todo` IPC）
 - `packages/shared-types`：共享领域类型（`Todo` / `CreateTodoInput` / `ApiError` / `HealthStatus`），三端以 `workspace:*` 引用
 - 根 `AGENTS.md` + 各子项目 `AGENTS.md`：按技术栈写入官方 `llms.txt` 链接（Electron / TypeScript 等无 llms.txt 的给官方文档）

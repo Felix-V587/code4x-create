@@ -12,7 +12,7 @@ N2b 应用名（仅 Monorepo；默认 api / web / desktop）
 N4 可选能力（见下）
 N5 包管理器（默认 = 探测结果；Monorepo 固定 pnpm）
 N6 是否安装依赖（默认 No）
-N7 是否初始化 git（默认 Yes）
+N7 git 行为（初始化 / 提交 / 切换分支，见下）
 ```
 
 ### 项目类型
@@ -30,9 +30,9 @@ Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 wor
 选择 **Full-stack project**（或非交互 `--fullstack`）会跳过框架/能力提问，直接固定为：
 
 - `apps/api`：Hono `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening）
-- `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175
+- `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 8088
 - `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173；内嵌 Hono API（`app://./api/*`），打包后无需单独启动后端
-- 根 `.env` / `.env.example` 提供 `PORT` / `LOG_LEVEL` / `API_DEV_PROXY` / `VITE_API_BASE_URL`
+- 根 `.env` / `.env.example` 提供 `API_PORT`（3030）/ `WEB_PORT`（8088）/ `LOG_LEVEL` / `API_DEV_PROXY` / `VITE_API_BASE_URL`
 - 根 `pnpm dev` 并行启动三端；包管理器固定 pnpm
 
 全栈模式不接受 `--framework` / `--features` / `--preset` / `--app`（会报 `E-CONFLICT`）。
@@ -77,15 +77,12 @@ Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 wor
 
 ## 目录冲突
 
-目标目录非空（白名单 `.git` / `.DS_Store` / `.code4xrc.json` 之外有文件）时，会提供三选：
+目标目录非空（白名单 `.git` / `.DS_Store` / `.code4xrc.json` 之外有文件）时会先确认是否覆盖：
 
-| 选项 | 行为 |
-|---|---|
-| Cancel | 中止，退出码 130 |
-| Overwrite (clean) | 清空后重写 |
-| Merge (skip-collisions) | 保留已有文件，只写入不冲突的文件 |
+- 之前由 code4x 生成的目录（含 `.code4xrc.json`）：确认后按 `--overwrite` 语义清空重写。
+- 任意其他目录：确认后按 `--force` 语义强制清空重写。
 
-目标目录已存在且非空时会先询问是否覆盖：生成目录用 `--overwrite`，任意目录用 `--force`；非交互模式缺少对应 flag 时直接报 `E-DIR-NOT-EMPTY`。
+拒绝则退出 130；非交互模式缺少 `--overwrite` / `--force` 时直接报 `E-DIR-NOT-EMPTY`。
 
 ## 项目名归一化
 
@@ -95,9 +92,17 @@ Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 wor
 
 Monorepo 模式下应用名同样归一化后作为 `apps/<应用名>` 与应用的包名；workspace 根的包名由目标目录名归一化得到。
 
-## 嵌套 git 仓库
+## 目标已在 git 仓库内
 
-如果目标目录位于一个已有 git 仓库内，会跳过 `git init` 并提示：
+如果目标目录**已存在**且位于 git 仓库内，不再询问是否 `git init`，改为：
+
+| 选项 | 行为 |
+|---|---|
+| Commit current project | 生成完成后 `git add` 当前项目并提交；可输入提交信息（默认 `chore: scaffold <project>`） |
+| Create and switch to a new branch | 写入文件前切出新分支；可输入分支名（默认 `code4x/<project>`） |
+| Do nothing | 保持当前分支与工作区不变 |
+
+如果目标目录**尚不存在**但位于已有 git 仓库内，跳过 `git init` 并提示：
 
 ```text
 note: inside existing repo, skipping git init

@@ -166,7 +166,9 @@ describe("render / monorepo", () => {
 
   test("workspace env files are generated and app configs load them", () => {
     const { files } = generate([], MONOREPO);
-    expect(file(files, ".env").contents).toContain("API_DEV_PROXY=http://localhost:3000");
+    expect(file(files, ".env").contents).toContain("API_PORT=3030");
+    expect(file(files, ".env").contents).toContain("WEB_PORT=8088");
+    expect(file(files, ".env").contents).toContain("API_DEV_PROXY=http://localhost:3030");
     expect(file(files, ".env").contents).toContain("VITE_API_BASE_URL=/api");
     expect(file(files, ".env.example").contents).toContain("Copy to .env");
     const webConfig = file(files, "apps/web/vite.config.ts").contents;
@@ -179,7 +181,9 @@ describe("render / monorepo", () => {
     const { files } = generate([], { ...MONOREPO, framework: "hono", appName: "api" });
     const config = file(files, "apps/api/vite.config.ts").contents;
     expect(config).toContain("const env = loadEnv(mode, '../../', '')");
-    expect(config).toContain("const port = Number(process.env.PORT ?? env.PORT ?? 3000)");
+    expect(config).toContain(
+      "process.env.API_PORT ?? process.env.PORT ?? env.API_PORT ?? env.PORT ?? 3030",
+    );
     const appPkg = JSON.parse(file(files, "apps/api/package.json").contents) as {
       scripts: Record<string, string>;
     };

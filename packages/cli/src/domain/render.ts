@@ -497,8 +497,8 @@ pnpm dev
 
 The workspace root \`.env\` (generated, gitignored; see \`.env.example\`) is shared by apps:
 
-- API: \`PORT\`, \`LOG_LEVEL\`
-- Web: \`API_DEV_PROXY\` (dev proxy target), \`VITE_API_BASE_URL\` (build-time API base)
+- API: \`API_PORT\` (default 3030), \`LOG_LEVEL\`
+- Web: \`WEB_PORT\` (default 8088), \`API_DEV_PROXY\` (dev proxy), \`VITE_API_BASE_URL\` (build-time API base)
 
 Vue loads it through \`envDir: '../../'\`; Hono reads it in \`vite.config.ts\` and via
 \`node --env-file=../../.env\` in the generated \`start\` script.

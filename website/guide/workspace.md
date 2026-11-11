@@ -163,16 +163,16 @@ my-stack/
 ├── README.md
 ├── .code4xrc.json          # stack.apps 记录三端
 ├── apps/
-│   ├── api/                # Hono hono-full（校验/文档/日志/hardening，dev 3000）+ AGENTS.md
-│   ├── web/                # Vue 全家桶 + reka-ui + alova + unocss（dev 5175）+ AGENTS.md
+│   ├── api/                # Hono hono-full（校验/文档/日志/hardening，dev 3030）+ AGENTS.md
+│   ├── web/                # Vue 全家桶 + reka-ui + alova + unocss（dev 8088）+ AGENTS.md
 │   └── desktop/            # Electron + electron-builder（渲染器 dev 5173）+ AGENTS.md
 └── packages/
     └── shared-types/       # 共享领域类型（Todo / ApiError 等）+ AGENTS.md
 ```
 
 - 根脚本经 Vite+ 任务运行器执行：`pnpm build` → `vp run -r build`，`pnpm test` → `vp run -r test`，`pnpm check` → `vp check`（整仓一次），`pnpm dev` → `vp run -r --parallel dev`。
-- 根 `.env`（gitignore）与 `.env.example` 提供 workspace 级环境变量：API `PORT` / `LOG_LEVEL`，Web `API_DEV_PROXY` / `VITE_API_BASE_URL`；Vite 应用通过 `envDir: '../../'` 共享读取。
-- `pnpm dev` 并行启动三端 + 共享类型 watch；Web 使用 5175，避免与 Electron 渲染器 5173 冲突。
+- 根 `.env`（gitignore）与 `.env.example` 提供 workspace 级环境变量：API `API_PORT`（3030）/ `LOG_LEVEL`，Web `WEB_PORT`（8088）/ `API_DEV_PROXY` / `VITE_API_BASE_URL`；Vite 应用通过 `envDir: '../../'` 共享读取。
+- `pnpm dev` 并行启动三端 + 共享类型 watch；Web 默认 8088、API 默认 3030（来自根 `.env` 的 `WEB_PORT` / `API_PORT`），避免与 Electron 渲染器 5173 冲突。
 - 自带一条可运行的纵向样板链路：`apps/api` 的 `GET/POST /api/todos` → `apps/web` 的 `Home.vue` 经 Alova 调用（开发期 `/api` 代理到 `API_DEV_PROXY`）→ `apps/desktop` 内嵌 Hono API（`app://./api/*`）与 `app:todo` IPC；类型统一来自 `packages/shared-types`。
 - 根与每个子项目都生成 `AGENTS.md`，按技术栈列出官方 `llms.txt` 链接（Electron / electron-builder / TypeScript 等暂无 llms.txt 的给出官方文档入口）。
 - 固定 pnpm；不接受 `--framework` / `--features` / `--preset` / `--app`。

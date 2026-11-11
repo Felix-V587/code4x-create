@@ -25,7 +25,7 @@ my-api/
 | 健康检查 | `GET /healthz` 存活；`GET /readyz` 依赖探测，失败返回 503 |
 | 统一错误信封 | `app.onError` / `app.notFound` 输出 `{ code, message, requestId }` |
 | 优雅停机 | 构建插件启用 `shutdownTimeoutMs: 5000`，`SIGTERM` 可正常退出 |
-| 端口 | `PORT` 在构建期烘焙；不设置时默认 3000 |
+| 端口 | 独立项目：`PORT` 在构建期烘焙，默认 3000；workspace（monorepo/fullstack）：根 `.env` 的 `API_PORT`，默认 3030 |
 
 未知路由返回 404 JSON 信封：
 
@@ -60,7 +60,7 @@ my-api/
 ## 常用命令
 
 ```bash
-pnpm dev          # vp dev，默认 3000
+pnpm dev          # vp dev，独立项目默认 3000；workspace 默认 API_PORT=3030
 pnpm build        # vp build → dist/
 pnpm start        # node dist/index.js
 pnpm check        # vp check

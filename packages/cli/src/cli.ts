@@ -7,13 +7,13 @@
  * `Prompter` interface, so tests run a scripted UI without a TTY.
  */
 
-import { readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import mri from "mri";
 
-import { Code4xError, isCode4xError, usage } from "./domain/errors.ts";
+import { Code4xError, fail, isCode4xError, usage } from "./domain/errors.ts";
 import {
   expandPreset,
   normalizePackageName,
@@ -47,7 +47,7 @@ import {
   type FullstackAppPlan,
   type FullstackRcApp,
 } from "./domain/fullstack.ts";
-import { findRepoRoot, initGit } from "./io/git.ts";
+import { commitProject, findRepoRoot, initGit, switchNewBranch } from "./io/git.ts";
 import { createClackPrompter } from "./io/prompts.ts";
 import { runInstall } from "./io/install.ts";
 import { inspectTarget, writeProject } from "./io/write.ts";
@@ -323,6 +323,10 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
       answers = await collectAnswers(partial, prompter, registry, {
         detectPm: (dir) => detectPackageManagerWithSource(io.env, resolve(io.cwd, dir)),
         nestedGitRepo: (dir) => findRepoRoot(dirname(resolve(io.cwd, dir))) !== null,
+        targetGit: (dir) => {
+          const resolved = resolve(io.cwd, dir);
+          return { exists: existsSync(resolved), repoRoot: findRepoRoot(resolved) };
+        },
         workspaceLayout: () => readWorkspaceLayout(io.cwd),
       });
     } catch (error) {
@@ -566,6 +570,20 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     io.out(JSON.stringify(buildJsonOutput(answers, plan, files, nextSteps, stack), null, 2));
   }
 
+  if (answers.gitAction === "branch" && answers.gitBranch !== undefined && !dryRun) {
+    const repoRoot = findRepoRoot(resolve(io.cwd, answers.targetDir));
+    if (repoRoot === null) {
+      fail("E-GIT", "cannot switch branch: target is not inside a git repository");
+    }
+    const result = switchNewBranch(repoRoot, answers.gitBranch);
+    if (!result.ok) {
+      fail("E-GIT", `cannot switch to branch "${answers.gitBranch}": ${result.note ?? ""}`, {
+        fix: "choose a valid branch name, or pick another git action",
+      });
+    }
+    note(`note: switched to new branch ${answers.gitBranch}`);
+  }
+
   // Resolve against the injected cwd (production: process.cwd()) so relative
   // interactive targets behave the same in tests and embedded callers.
   const written = writeProject(files, resolve(io.cwd, answers.targetDir), {
@@ -589,6 +607,23 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
       resolve(io.cwd, answers.targetDir),
     );
     if (code !== 0 && !json) io.err(`install exited with code ${code}`);
+  }
+
+  if (answers.gitAction === "commit" && !dryRun) {
+    const repoRoot = findRepoRoot(resolve(io.cwd, answers.targetDir));
+    if (repoRoot === null) {
+      fail("E-GIT", "cannot commit: target is not inside a git repository");
+    }
+    const message = answers.gitMessage ?? `chore: scaffold ${answers.projectName}`;
+    const result = commitProject(repoRoot, resolve(io.cwd, answers.targetDir), message);
+    if (!result.ok) {
+      fail("E-GIT", `git commit failed: ${result.note ?? "unknown error"}`, {
+        fix: "inspect the repository, then commit manually",
+      });
+    }
+    note(
+      result.skipped ? `note: ${result.note ?? "nothing to commit"}` : `note: committed ${message}`,
+    );
   }
 
   if (answers.git) {
@@ -717,7 +752,13 @@ function printManifest(answers: Answers, io: CliIO): void {
   io.out(`  preset:     ${answers.preset ?? "(none)"}`);
   io.out(`  packageMgr: ${answers.packageManager ?? "(none)"}`);
   io.out(`  install:    ${answers.install ? "yes" : "no"}`);
-  io.out(`  git:        ${answers.git ? "yes" : "no"}`);
+  const gitDetail =
+    answers.gitAction === "commit"
+      ? ` (commit: ${answers.gitMessage ?? "(default message)"})`
+      : answers.gitAction === "branch"
+        ? ` (branch: ${answers.gitBranch ?? "(default name)"})`
+        : "";
+  io.out(`  git:        ${answers.git ? "yes" : "no"}${gitDetail}`);
 }
 
 function printNextSteps(steps: string[], io: CliIO): void {

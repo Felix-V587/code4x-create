@@ -17,11 +17,12 @@ import type { VirtualFile } from "./types.ts";
 const ENV_BODY = lines(
   "# Workspace-level environment (also loaded by Vite apps via envDir).",
   "# API",
-  "PORT=3000",
+  "API_PORT=3030",
   "LOG_LEVEL=info",
   "",
-  "# Web: dev-server proxy target for /api.",
-  "API_DEV_PROXY=http://localhost:3000",
+  "# Web: dev-server port and proxy target for /api.",
+  "WEB_PORT=8088",
+  "API_DEV_PROXY=http://localhost:3030",
   "",
   "# Web: API base URL. Keep /api for a same-origin reverse proxy, or set an",
   "# absolute origin such as https://api.example.com/api for a split deployment.",
@@ -36,11 +37,12 @@ export function workspaceEnvFiles(): VirtualFile[] {
       contents: `${lines(
         "# Copy to .env and adjust for this workspace.",
         "# API",
-        "PORT=3000",
+        "API_PORT=3030",
         "LOG_LEVEL=info",
         "",
-        "# Web: dev-server proxy target for /api.",
-        "API_DEV_PROXY=http://localhost:3000",
+        "# Web: dev-server port and proxy target for /api.",
+        "WEB_PORT=8088",
+        "API_DEV_PROXY=http://localhost:3030",
         "",
         "# Web: API base URL. Keep /api for a same-origin reverse proxy, or set an",
         "# absolute origin such as https://api.example.com/api for a split deployment.",
@@ -68,7 +70,7 @@ export function patchHonoWorkspaceEnv(files: VirtualFile[], appPath: string): vo
       "const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development'",
       "const env = loadEnv(mode, '../../', '')",
       "process.env.LOG_LEVEL ??= env.LOG_LEVEL",
-      "const port = Number(process.env.PORT ?? env.PORT ?? 3000)",
+      "const port = Number(process.env.API_PORT ?? process.env.PORT ?? env.API_PORT ?? env.PORT ?? 3030)",
     ),
   );
   patchPackageJson(files, `${appPath}/package.json`, (pkg) => {
@@ -103,7 +105,7 @@ export function patchVueWorkspaceEnv(
       "const apiTarget =",
       "  process.env.API_DEV_PROXY ??",
       "  env.API_DEV_PROXY ??",
-      "  `http://localhost:${process.env.PORT ?? env.PORT ?? 3000}`",
+      "  `http://localhost:${process.env.API_PORT ?? env.API_PORT ?? 3030}`",
     ),
   );
   patchText(
@@ -121,6 +123,8 @@ export function patchVueWorkspaceEnv(
     "  plugins: lazyPlugins(() => [",
     lines(
       "  server: {",
+      "    port: Number(process.env.WEB_PORT ?? env.WEB_PORT ?? 8088),",
+      "    strictPort: true,",
       "    // `/api` 转发到后端；目标来自 workspace 根 .env 的 API_DEV_PROXY。",
       "    proxy: {",
       "      '/api': {",

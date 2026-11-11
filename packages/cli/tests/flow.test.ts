@@ -17,6 +17,7 @@ function deps(overrides: Partial<FlowDeps> = {}): FlowDeps {
   return {
     detectPm: () => ({ pm: "npm", source: "default" }),
     nestedGitRepo: () => false,
+    targetGit: () => ({ exists: false, repoRoot: null }),
     ...overrides,
   };
 }
@@ -179,6 +180,45 @@ describe("collectAnswers", () => {
     expect(
       prompter.log.some((line) => line.startsWith("confirm:Initialize a git repository?")),
     ).toBe(false);
+  });
+
+  test("existing target in a repo offers commit with a message instead of git init", async () => {
+    const prompter = scriptedPrompter({
+      text: ["./app", "test: scaffold"],
+      select: ["standalone", "hono", "npm", "commit"],
+      multiselect: [[]],
+      confirm: [false],
+    });
+    const answers = await collectAnswers(
+      {},
+      prompter,
+      registry,
+      deps({ targetGit: () => ({ exists: true, repoRoot: "/repo" }) }),
+    );
+    expect(answers.git).toBe(false);
+    expect(answers.gitAction).toBe("commit");
+    expect(answers.gitMessage).toBe("test: scaffold");
+    expect(
+      prompter.log.some((line) => line.startsWith("confirm:Initialize a git repository?")),
+    ).toBe(false);
+  });
+
+  test("existing target in a repo offers a new branch instead of git init", async () => {
+    const prompter = scriptedPrompter({
+      text: ["./app", "feature/scaffold"],
+      select: ["standalone", "hono", "npm", "branch"],
+      multiselect: [[]],
+      confirm: [false],
+    });
+    const answers = await collectAnswers(
+      {},
+      prompter,
+      registry,
+      deps({ targetGit: () => ({ exists: true, repoRoot: "/repo" }) }),
+    );
+    expect(answers.git).toBe(false);
+    expect(answers.gitAction).toBe("branch");
+    expect(answers.gitBranch).toBe("feature/scaffold");
   });
 
   test("cancellation propagates as CancelledError", async () => {

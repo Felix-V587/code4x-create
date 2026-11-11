@@ -38,7 +38,7 @@ D 域校验（resolve() 的 STEP-a）：依赖前缀匹配 / 闭包 / 冲突 / E
 | N4 | features | framework 已定且该框架有可选 feature | `--features` 显式给出（含 `none`）/ preset 隐含 | 无预选；Vue 分步见 §2.1 | flag > config > preset |
 | N5 | packageManager | 未绑定 | `--pm` 合法 | user-agent 探测结果；失败默认 `npm`；monorepo 固定 `pnpm`（不问） | flag > config；探测只产默认值 |
 | N6 | install | 未绑定 | `--install/--no-install` 或已 -y | false | flag |
-| N7 | git | 未绑定且未嵌于既有 git repo（嵌套时**不发问**，自动 no + 一行说明） | `--git/--no-git` 或已 -y | true | flag + 嵌套检测 |
+| N7 | git | 目标已存在且在 repo 内：Commit / New branch / Do nothing；目标未创建但嵌套：不发问，自动 no + note；否则 init 确认 | `--git/--no-git` 或已 -y | true | flag + targetGit/嵌套检测 |
 
 **跳过粒度**：某字段「已提供」= P0 结束后以**合法值**绑定；非法值不算绑定（走 §3.4 分支）。`--framework vue` **只跳 N2，features 照问**——框架与 features 是独立维度，无膨胀推断；要一次性全定，用 `--yes` / `--preset`。
 
@@ -128,14 +128,14 @@ Vue blueprint 声明 `promptSections`，feature 通过 `promptSection` 归组；
 
 | 应用 | 框架 | 默认能力 | dev |
 |---|---|---|---|
-| `apps/api` | Hono | `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening） | 3000 |
-| `apps/web` | Vue | router + pinia + vueuse + vueuse-router + testing + reka-ui + alova + unocss | 5175 |
+| `apps/api` | Hono | `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening） | 3030 |
+| `apps/web` | Vue | router + pinia + vueuse + vueuse-router + testing + reka-ui + alova + unocss | 8088 |
 | `apps/desktop` | Electron | electron/builder | 5173 |
 
 - 固定 pnpm；`--framework` / `--features` / `--preset` / `--app` → `E-CONFLICT`。
 - 根 `package.json` 提供 `dev`/`build`/`check`/`test`/`preview` 与 `dev:api`/`dev:web`/`dev:desktop`。
 - `.code4xrc.json` 的 `stack.apps` 记录三端计划；`plan.features` 为三端闭包并集。
-- Web 使用 5175，避免与 Electron 固定渲染器端口 5173 冲突。
+- Web 默认 8088、API 默认 3030（根 `.env` 的 `WEB_PORT` / `API_PORT`），避免与 Electron 固定渲染器端口 5173 冲突。
 
 呈现决策：**不用 groupMultiselect**（框架已定，选项天然单组；超 ~7 项再考虑分组）；`required: false`；**不把 requires 闭包预填进 selection**——UI 只反映用户勾选，swagger 的 hint 写明 "includes Zod validation"，闭包在 resolve() 补齐并在 summary 行标注 `<hono/zod (required by swagger)>`。这保住「prompts 是 UI」：`Answers.features` = 用户原始勾选，`.code4xrc` 同时存 explicit 与 resolved 两份。
 
@@ -145,6 +145,16 @@ Vue blueprint 声明 `promptSections`，feature 通过 `promptSection` 归组；
 ◆  Package manager   options [pnpm] npm / [npm] yarn / …（默认 = 探测结果；失败提示 "detected: none → npm"）
 ◆  Install dependencies?         (Y/n)  hint: pnpm install          — default: No
 ◆  Initialize a git repository?         hint: creates .git + initial branch — default: Yes
+```
+
+目标目录**已存在且位于 git 仓库内**时，`Initialize` 换成：
+
+```text
+◆  This directory is already in a git repository
+   › Commit current project            hint: git add + commit after generation
+     Create and switch to a new branch hint: before writing generated files
+     Do nothing                        hint: keep current branch/working tree
+◆  Commit message / New branch name    （可空，取默认值）
 ```
 
 **提问语言：英文 v1**。受众与 agent/CI 语境皆为英文；文案集中到单一 copy 常量文件（每 key 一条），未来 i18n = 换字典文件，不引入运行时 i18n 库。
@@ -267,7 +277,7 @@ $ create-code4x my-api -f hono --features pinia
 | ⑤ | 大写项目名 | `My-API` → dir 原样，name `my-api`（同④） |
 | ⑥ | Windows 保留名（con/nul） | 不特判；fs 报错透传 [已知局限] |
 | ⑦ | features ∉ framework | 前缀校验，§3.4 文案 |
-| ⑧ | 嵌套 git repo | 跳过 git 节点 + 一行 `note: inside existing repo, skipping git init` |
+| ⑧ | 嵌套 git repo | 目标未创建：跳过 init + note；目标已存在：改为 Commit / Branch / Do nothing（branch 写入前切换，commit 生成后提交） |
 | ⑨ | `--git` 与 `--no-git` 并存 | last-wins |
 | ⑩ | `--config` 不存在/解析失败 | `E-CONFIG-READ` / `E-CONFIG-PARSE` |
 

@@ -167,10 +167,6 @@ export function renderFullstack(
     adaptNestedApp(files, appPrefix);
   }
 
-  // Electron 开发壳固定占用 `http://localhost:5173`；给浏览器应用分配独立
-  // 的严格端口，避免 `pnpm dev` 并行启动时冲突。
-  patchWebDevPort(files);
-
   // 共享类型包 + 三端示例接线 + 根/子项目 AGENTS.md。
   const vitePlus = highestVitePlusRange(files);
   applyFullstackScaffold(files, { workspaceName, vitePlus });
@@ -250,15 +246,6 @@ export function syntheticFullstackPlan(
 
 function unique(ids: FeatureId[]): FeatureId[] {
   return [...new Set(ids)];
-}
-
-function patchWebDevPort(files: VirtualFile[]): void {
-  const file = files.find((entry) => entry.path === "apps/web/package.json");
-  if (!file) return;
-  const pkg = JSON.parse(file.contents) as { scripts?: Record<string, string> };
-  pkg.scripts ??= {};
-  pkg.scripts.dev = "vp dev --port 5175 --strictPort";
-  file.contents = `${JSON.stringify(pkg, null, 2)}\n`;
 }
 
 /**
@@ -349,8 +336,8 @@ pnpm dev
 
 workspace 根生成 \`.env\`（已 gitignore）与 \`.env.example\`：
 
-- API：\`PORT\`（默认 3000）、\`LOG_LEVEL\`
-- Web：\`API_DEV_PROXY\`（开发代理目标）、\`VITE_API_BASE_URL\`（生产 API 地址）
+- API：\`API_PORT\`（默认 3030）、\`LOG_LEVEL\`
+- Web：\`WEB_PORT\`（默认 8088）、\`API_DEV_PROXY\`（开发代理目标）、\`VITE_API_BASE_URL\`（生产 API 地址）
 
 Vite 应用通过 \`envDir: '../../'\` 读取根 \`.env\`；API 的 \`vite.config.ts\` 用 \`loadEnv()\` 读取构建/开发端口，生产 \`pnpm start\` 用 \`node --env-file=../../.env\`。生产部署可保持 \`VITE_API_BASE_URL=/api\` 由同源反向代理转发，或设置绝对 API 地址。
 
@@ -362,7 +349,7 @@ Vite 应用通过 \`envDir: '../../'\` 读取根 \`.env\`；API 的 \`vite.confi
 - \`pnpm check\` → \`vp check\`：对整个 workspace 做格式化 + lint + 类型检查
 - \`pnpm test\` → \`vp run -r test\`：递归执行各应用测试
 - \`pnpm dev\` → \`vp run -r --parallel dev\`：并行启动三端 + 共享类型 watch
-- \`pnpm dev:api\`（3000）/ \`pnpm dev:web\`（5175）/ \`pnpm dev:desktop\`（Electron 窗口）：单独启动某个应用
+- \`pnpm dev:api\`（3030）/ \`pnpm dev:web\`（8088）/ \`pnpm dev:desktop\`（Electron 窗口）：单独启动某个应用
 - \`pnpm preview\`：预览前端构建产物
 
 包管理器固定 pnpm；\`packages/*\` 已加入 workspace 配置，可按需放置共享代码。

@@ -62,6 +62,12 @@ export type Answers = {
   packageManager?: PackageManager;
   install?: boolean;
   git?: boolean;
+  /** Interactive action when the target is already inside a git repository. */
+  gitAction?: "commit" | "branch";
+  /** Optional commit message for `gitAction: "commit"`. */
+  gitMessage?: string;
+  /** Optional new branch name for `gitAction: "branch"`. */
+  gitBranch?: string;
   preset?: string;
   /** Reserved. Only `"ts"` is legal; v1 does not implement variant logic. */
   variant?: "ts";
