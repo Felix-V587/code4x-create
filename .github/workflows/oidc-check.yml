@@ -32,7 +32,7 @@ jobs:
               code=$(curl -sS -o "$body" -w '%{http_code}' -X POST \
                 -H "Authorization: Bearer ${id_token}" \
                 -H "Accept: application/json" \
-                "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@code4x%2Fcli")
+                "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@code4x%2fcli")
 
               if [ "$code" = "200" ] || [ "$code" = "201" ]; then
                 result="OIDC exchange OK (HTTP ${code})"
