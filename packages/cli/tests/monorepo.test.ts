@@ -117,6 +117,20 @@ describe("render / monorepo", () => {
     expect(rootPkg.devDependencies["vite-plus"]).toBe(appPkg.devDependencies["vite-plus"]);
   });
 
+  test("nested app drops the app-level pnpm policy and gets workspace README", () => {
+    const { files } = generate([], MONOREPO);
+    const appPkg = JSON.parse(file(files, "apps/web/package.json").contents) as {
+      pnpm?: unknown;
+    };
+    expect(appPkg.pnpm).toBeUndefined();
+
+    const readme = file(files, "apps/web/README.md").contents;
+    expect(readme).toContain("**Workspace app**");
+    expect(readme).toContain("pnpm --filter ./apps/web <script>");
+    expect(readme).not.toContain("## `.code4xrc.json`");
+    expect(readme).not.toContain("###");
+  });
+
   test("root vite.config.ts wires defaultPackage, script cache and shared lint/fmt", () => {
     const { files } = generate([], MONOREPO);
     const config = file(files, "vite.config.ts");

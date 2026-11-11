@@ -8,13 +8,15 @@
 import { basename } from "node:path";
 
 import { applyFullstackScaffold, sharedTypesPackageName } from "./fullstackScaffold.ts";
-import { normalizePackageName, resolve } from "./resolve.ts";
+import { expandPreset, normalizePackageName, resolve } from "./resolve.ts";
 import {
+  adaptNestedApp,
   collectAllowBuilds,
   collectPeerDependencyRules,
-  render,
+  renderApplication,
   renderMonorepoViteConfig,
   renderMonorepoWorkspaceYaml,
+  WORKSPACE_GITIGNORE,
   WORKSPACE_YAML_PATH,
 } from "./render.ts";
 import type { Registry } from "./registry.ts";
@@ -33,21 +35,16 @@ export const FULLSTACK_APPS: StackApp[] = [
   {
     name: "api",
     framework: "hono",
-    features: ["hono/api-guard", "hono/zod", "hono/testing"],
+    // Standard Hono baseline; full-stack adds no API-only extras.
+    preset: "hono-standard",
+    features: [],
   },
   {
     name: "web",
     framework: "vue",
-    features: [
-      "vue/router",
-      "vue/pinia",
-      "vue/vueuse",
-      "vue/vueuse-router",
-      "vue/testing",
-      "vue/reka-ui",
-      "vue/alova",
-      "vue/unocss",
-    ],
+    // Standard Vue baseline + the full-stack request/UI/CSS layer.
+    preset: "vue-standard",
+    features: ["vue/vueuse-router", "vue/testing", "vue/reka-ui", "vue/alova", "vue/unocss"],
   },
   {
     name: "desktop",
@@ -66,6 +63,11 @@ export function uniqueWorkspaceName(workspaceName: string, appNames: string[]): 
   return appNames.includes(workspaceName) ? `${workspaceName}-workspace` : workspaceName;
 }
 
+/** Expand an app's standard preset before appending its extra features. */
+function presetFeatures(app: StackApp, registry: Registry): FeatureId[] {
+  return app.preset === undefined ? [] : [...expandPreset(app.preset, registry).features];
+}
+
 /** 为三个固定应用分别构造 Plan（应用按嵌套 workspace 渲染）。 */
 export function buildFullstackPlans(
   answers: Answers,
@@ -73,12 +75,17 @@ export function buildFullstackPlans(
   context?: ProjectContext,
 ): FullstackAppPlan[] {
   return FULLSTACK_APPS.map((app) => {
+    // Full-stack is a monorepo preset: every app is planned exactly like a
+    // monorepo app (`projectType: "monorepo"`) and rendered through the shared
+    // `renderApplication()`. `render()` must not be called on these plans —
+    // that would add a nested workspace root.
     const appAnswers: Answers = {
       targetDir: answers.targetDir,
       projectName: app.name,
       framework: app.framework,
-      projectType: "standalone",
-      features: [...app.features],
+      projectType: "monorepo",
+      appName: app.name,
+      features: [...presetFeatures(app, registry), ...app.features],
       packageManager: "pnpm",
       install: false,
       git: false,
@@ -152,9 +159,11 @@ export function renderFullstack(
 
   const files: VirtualFile[] = [];
   for (const { app, plan } of plans) {
-    for (const file of render(plan, registry, plan.context)) {
-      files.push({ ...file, path: `apps/${app.name}/${file.path}` });
+    const appPrefix = `apps/${app.name}`;
+    for (const file of renderApplication(plan, registry, plan.context)) {
+      files.push({ ...file, path: `${appPrefix}/${file.path}` });
     }
+    adaptNestedApp(files, appPrefix);
   }
 
   // Electron 开发壳固定占用 `http://localhost:5173`；给浏览器应用分配独立
@@ -186,7 +195,7 @@ export function renderFullstack(
     },
     {
       path: ".gitignore",
-      contents: "node_modules\ndist\n*.local\n.DS_Store\n",
+      contents: WORKSPACE_GITIGNORE,
       source: "base",
     },
     {

@@ -56,7 +56,7 @@ export function render(
   }
 
   if (plan.answers.projectType !== "monorepo") {
-    return renderApp(plan, reg, context);
+    return renderApplication(plan, reg, context);
   }
 
   return renderMonorepo(plan, reg, context, blueprint.title);
@@ -85,12 +85,13 @@ function renderMonorepo(
     host: { catalog: {}, allowBuilds: [] },
   };
 
-  const appFiles = renderApp(plan, reg, nestedContext);
+  const appFiles = renderApplication(plan, reg, nestedContext);
   const prefix = `apps/${appName}`;
   const files: VirtualFile[] = appFiles.map((file) => ({
     ...file,
     path: `${prefix}/${file.path}`,
   }));
+  adaptNestedApp(files, prefix);
 
   const appPackage = appFiles.find((file) => file.path === "package.json");
   const scripts = monorepoRootScripts(appPackage?.contents, appName);
@@ -120,7 +121,7 @@ function renderMonorepo(
     },
     {
       path: ".gitignore",
-      contents: MONOREPO_GITIGNORE,
+      contents: WORKSPACE_GITIGNORE,
       source: "base",
     },
     {
@@ -133,7 +134,11 @@ function renderMonorepo(
   return files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 }
 
-function renderApp(plan: Plan, reg: Registry, context: ProjectContext | undefined): VirtualFile[] {
+export function renderApplication(
+  plan: Plan,
+  reg: Registry,
+  context: ProjectContext | undefined,
+): VirtualFile[] {
   const blueprint = reg.frameworks[plan.framework];
   if (!blueprint) {
     fail("E-INVALID-VALUE", `unknown framework "${plan.framework}"`);
@@ -323,7 +328,44 @@ function yamlQuote(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-const MONOREPO_GITIGNORE = "node_modules\ndist\n*.local\n.DS_Store\n";
+export const WORKSPACE_GITIGNORE = "node_modules\ndist\n*.local\n.DS_Store\n";
+
+/**
+ * Monorepo adaptation for an already-prefixed app tree:
+ *   - the workspace root owns `allowBuilds` / peer policy, so the app-level
+ *     `pnpm` block is redundant (and misleading) once nested;
+ *   - the standalone README's `.code4xrc.json` section describes a file the app
+ *     does not have; replace it with a workspace note and root-level commands.
+ */
+export function adaptNestedApp(files: VirtualFile[], appPath: string): void {
+  const packageFile = files.find((entry) => entry.path === `${appPath}/package.json`);
+  if (packageFile) {
+    const pkg = parsePackageJson(packageFile.contents);
+    if (pkg.pnpm !== undefined) {
+      delete pkg.pnpm;
+      packageFile.contents = `${JSON.stringify(pkg, null, 2)}\n`;
+    }
+  }
+
+  const readme = files.find((entry) => entry.path === `${appPath}/README.md`);
+  if (readme) {
+    let contents = readme.contents.replace(/\n## `\.code4xrc\.json`[\s\S]*$/, "");
+    contents = `${contents.replace(/\s+$/, "")}\n`;
+    const newline = contents.indexOf("\n");
+    if (newline !== -1) {
+      const note = [
+        "",
+        `> **Workspace app** — this app lives under \`${appPath}\` in a pnpm workspace.`,
+        "> Run `pnpm install`, `pnpm dev`, `pnpm build`, and `pnpm check` from the workspace root,",
+        `> or \`pnpm --filter ./${appPath} <script>\` for this app alone.`,
+        "> Generation metadata lives in the root `.code4xrc.json`.",
+        "",
+      ].join("\n");
+      contents = `${contents.slice(0, newline + 1)}${note}${contents.slice(newline + 1)}`;
+    }
+    readme.contents = contents;
+  }
+}
 
 /**
  * Workspace-root `pnpm-workspace.yaml` for a generated monorepo. The `packages`

@@ -138,7 +138,8 @@ my-workspace/
   - `pnpm dev` → `vp run -r dev`；`preview` / `start` / `dist` 等应用专属脚本 → `vp run --filter ./apps/<app> <script>`
 - 根 `vite.config.ts` 用 `defaultPackage` 把裸 `vp dev` / `vp build` / `vp preview` / `vp pack` 固定到 `apps/<app>`（等价于隐式 `vp -C apps/<app>`），并开启 `run.cache.scripts`，让 `vp run -r test` 等可缓存脚本命中 Vite Task 缓存；`lint` / `fmt` 与生成应用保持一致，`vp check` 可直接在根执行。
 - 若目标目录名恰好与应用名相同（例如目录 `web` + 默认应用 `web`），根包名自动追加 `-workspace`（`web-workspace`），避免 workspace 包名歧义。
-- 根 `pnpm-workspace.yaml` 直接写入应用所需的 `allowBuilds`，因此**不会**再输出“请宿主补充 allowBuilds”的提示。
+- 根 `pnpm-workspace.yaml` 直接写入应用所需的 `allowBuilds`，因此**不会**再输出“请宿主补充 allowBuilds”的提示；应用级 `pnpm` 构建策略会被移除，统一由根配置接管。
+- 应用的 `README.md` 会自动加上 workspace 说明（根命令 / `pnpm --filter`），并移除 standalone 才有的 app 级 `.code4xrc.json` 章节。
 - 包管理器固定为 pnpm；`--pm npm` 等会报 `E-INVALID-VALUE`。
 - 依赖安装与 `git init` 都在 workspace 根执行。
 - 应用仍按“嵌套 workspace”渲染：不会生成 `apps/web/pnpm-workspace.yaml`，Tailwind 使用 `source('../')`。

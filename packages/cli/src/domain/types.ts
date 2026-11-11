@@ -34,7 +34,9 @@ export type ProjectType = "standalone" | "monorepo" | "fullstack";
 export interface StackApp {
   name: string;
   framework: FrameworkId;
-  /** Explicit feature selection; the resolver completes the closure. */
+  /** Standard preset used as the baseline (e.g. `hono-standard`). */
+  preset?: string;
+  /** Extra features appended to the preset; the resolver completes the closure. */
   features: FeatureId[];
 }
 

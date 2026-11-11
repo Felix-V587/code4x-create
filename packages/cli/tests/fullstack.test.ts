@@ -258,6 +258,29 @@ describe("fullstack / scaffold", () => {
     expect(file(files, "apps/desktop/src/renderer/src/App.vue").contents).toContain("api.todo()");
   });
 
+  test("fullstack apps keep the standard framework Vite configs", () => {
+    const { files, plans } = build();
+    expect(plans.every(({ plan }) => plan.answers.projectType === "monorepo")).toBe(true);
+
+    const apiConfig = file(files, "apps/api/vite.config.ts").contents;
+    expect(apiConfig).toContain("devServer({ entry: 'src/index.ts' })");
+    expect(apiConfig).toContain("build({ entry: 'src/index.ts', port, shutdownTimeoutMs: 5000 })");
+
+    expect(file(files, "apps/web/vite.config.ts").contents).toContain("vue(),");
+    expect(file(files, "apps/desktop/vite.config.ts").contents).toContain("vue()");
+  });
+
+  test("nested apps use workspace READMEs and the root build policy", () => {
+    const { files } = build();
+    for (const app of ["api", "web", "desktop"]) {
+      const appPkg = pkg(files, `apps/${app}/package.json`) as { pnpm?: unknown };
+      expect(appPkg.pnpm).toBeUndefined();
+      const readme = file(files, `apps/${app}/README.md`).contents;
+      expect(readme).toContain("**Workspace app**");
+      expect(readme).not.toContain("## `.code4xrc.json`");
+    }
+  });
+
   test("generates root and per-project AGENTS.md with stack llms.txt links", () => {
     const { files } = build();
     const root = file(files, "AGENTS.md").contents;

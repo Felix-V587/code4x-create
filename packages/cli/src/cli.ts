@@ -663,8 +663,13 @@ function printManifest(answers: Answers, io: CliIO): void {
   if (answers.projectType === "fullstack") {
     io.out("  apps:");
     for (const app of answers.stackApps ?? FULLSTACK_APPS) {
-      const features = app.features.length > 0 ? app.features.join(", ") : "(none)";
-      io.out(`    ${app.name.padEnd(8)} ${app.framework.padEnd(10)} ${features}`);
+      const parts = [
+        ...(app.preset === undefined ? [] : [`preset:${app.preset}`]),
+        ...app.features,
+      ];
+      io.out(
+        `    ${app.name.padEnd(8)} ${app.framework.padEnd(10)} ${parts.join(", ") || "(none)"}`,
+      );
     }
   }
   io.out(
