@@ -1,6 +1,6 @@
 {
   "name": "@code4x/cli",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Scaffold multi-framework projects with optional integrations.",
   "license": "MIT",
   "author": "longyong.xu <2310122662@qq.com>",
