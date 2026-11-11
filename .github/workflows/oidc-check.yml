@@ -8,15 +8,12 @@ on:
 permissions:
   contents: read
   id-token: write
-  issues: write
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - name: Check npm OIDC exchange
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -u
 
@@ -45,10 +42,5 @@ jobs:
             fi
           fi
 
-          echo "$result" >> "$GITHUB_STEP_SUMMARY"
-          jq -n --arg body "OIDC diagnostic: $result" '{body:$body}' > /tmp/comment.json
-          curl -sS -X POST \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/Felix-V587/code4x-create/issues/1/comments" \
-            -d @/tmp/comment.json > /dev/null
+          echo "OIDC diagnostic: ${result}"
+          echo "::error title=OIDC diagnostic::${result}"
