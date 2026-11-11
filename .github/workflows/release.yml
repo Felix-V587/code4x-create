@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never cancel an in-flight publish.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # npm Trusted Publishing (OIDC)
+
+jobs:
+  release:
+    name: Version / Publish
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.11.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm exec vp install
+
+      - name: Check (fmt + lint + types)
+        run: pnpm exec vp check
+
+      - name: Test
+        run: pnpm exec vp test
+
+      # On a normal push: opens/updates the "Version Packages" PR if changesets exist.
+      # On the release PR merge: publishes to npm via OIDC and creates the tag + GitHub Release.
+      # Do not add NPM_TOKEN: npm Trusted Publishing exchanges the GitHub OIDC token instead.
+      - name: Create release PR or publish
+        uses: changesets/action@v2.1.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version-script: pnpm changeset:version
+          publish-script: pnpm changeset:publish
+          commit-message: "chore: release"
+          pr-title: "chore: release"
+          pr-base-branch: main
+          create-github-releases: true
+          push-git-tags: true
