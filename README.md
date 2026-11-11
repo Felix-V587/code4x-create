@@ -70,8 +70,9 @@ N0 选择 **Full-stack project**（或 `--fullstack`）会一次生成标准全�
 node packages/cli/dist/cli.mjs my-stack --fullstack -y
 ```
 
-- `apps/api`：Hono `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening；示例 `GET/POST /todos`）
+- `apps/api`：Hono `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening；示例 `GET/POST /api/todos`）
 - `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175（`Home.vue` 经 Alova 调 `/api/todos`）
+- 根 `.env` / `.env.example`：`PORT`、`LOG_LEVEL`、`API_DEV_PROXY`、`VITE_API_BASE_URL`；Vite 应用通过 `envDir: '../../'` 共享，生产可切绝对 API 地址
 - `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173（示例 `app:todo` IPC）
 - `packages/shared-types`：共享领域类型（`Todo` / `CreateTodoInput` / `ApiError` / `HealthStatus`），三端以 `workspace:*` 引用
 - 根 `AGENTS.md` + 各子项目 `AGENTS.md`：按技术栈写入官方 `llms.txt` 链接（Electron / TypeScript 等无 llms.txt 的给官方文档）
@@ -86,7 +87,7 @@ node packages/cli/dist/cli.mjs my-stack --fullstack -y
 
 - `-f/--framework`、`--features`（裸名唯一解析、`none` 清空）、`-p/--preset`、`--pm`
 - `--install/--no-install`、`--git/--no-git`、`-y/--yes`、`--config`、`--json`、`--dry-run`
-- `--overwrite`（护栏：仅允许覆盖含 `.code4xrc.json` 的目录）、`--template` 别名
+- `--overwrite`（覆盖含 `.code4xrc.json` 的生成目录）、`--force`（强制覆盖任意已存在目录）、`--template` 别名
 - 生成物包含 `.code4xrc.json`：features 解析闭包 + 文件来源 + sha256（为将来「给已有项目加 feature」预留）
 
 ## 开发

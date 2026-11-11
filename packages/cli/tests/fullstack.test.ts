@@ -224,6 +224,11 @@ describe("fullstack / scaffold", () => {
     expect(shared.name).toBe("@my-fullstack/shared-types");
     expect(shared.scripts.build).toBe("vp pack");
     expect(shared.exports).toBeDefined();
+    expect((pkg(files, "apps/api/package.json") as { exports: unknown }).exports).toBeDefined();
+    expect(
+      (pkg(files, "apps/desktop/package.json") as { dependencies: Record<string, string> })
+        .dependencies.api,
+    ).toBe("workspace:*");
     expect(file(files, "packages/shared-types/src/index.ts").contents).toContain(
       "export interface Todo",
     );
@@ -242,20 +247,21 @@ describe("fullstack / scaffold", () => {
     const { files } = build();
     const apiIndex = file(files, "apps/api/src/index.ts").contents;
     expect(apiIndex).toContain("import { todos } from './routes/todos'");
-    expect(apiIndex).toContain("app.route('/todos', todos)");
+    expect(apiIndex).toContain("app.route('/api/todos', todos)");
     expect(file(files, "apps/api/src/routes/todos.ts").contents).toContain(
       "import type { CreateTodoInput, Todo } from '@my-fullstack/shared-types'",
     );
     expect(file(files, "apps/api/src/routes/todos.test.ts").contents).toContain(
-      "POST /todos validates and appends",
+      "POST /api/todos validates and appends",
     );
 
     expect(file(files, "apps/web/src/api/todos.ts").contents).toContain(
       "import type { Todo } from '@my-fullstack/shared-types'",
     );
     expect(file(files, "apps/web/src/views/Home.vue").contents).toContain("useTodos()");
+    expect(file(files, "apps/web/vite.config.ts").contents).toContain("target: apiTarget,");
     expect(file(files, "apps/web/vite.config.ts").contents).toContain(
-      "target: 'http://localhost:3000'",
+      "const env = loadEnv(mode, '../../', '')",
     );
 
     const ipc = file(files, "apps/desktop/src/shared/ipc.ts").contents;
@@ -286,6 +292,24 @@ describe("fullstack / scaffold", () => {
       expect(readme).toContain("**Workspace app**");
       expect(readme).not.toContain("## `.code4xrc.json`");
     }
+  });
+
+  test("workspace env files drive API port and web proxy", () => {
+    const { files } = build();
+    expect(file(files, ".env").contents).toContain("API_DEV_PROXY=http://localhost:3000");
+    expect(file(files, ".env").contents).toContain("VITE_API_BASE_URL=/api");
+
+    const apiConfig = file(files, "apps/api/vite.config.ts").contents;
+    expect(apiConfig).toContain("const env = loadEnv(mode, '../../', '')");
+    expect(apiConfig).toContain("const port = Number(process.env.PORT ?? env.PORT ?? 3000)");
+    expect(
+      (pkg(files, "apps/api/package.json") as { scripts: Record<string, string> }).scripts.start,
+    ).toBe("node --env-file=../../.env dist/index.js");
+
+    const webConfig = file(files, "apps/web/vite.config.ts").contents;
+    expect(webConfig).toContain("envDir: '../../'");
+    expect(webConfig).toContain("target: apiTarget,");
+    expect(webConfig).not.toContain("rewrite:");
   });
 
   test("generates root and per-project AGENTS.md with stack llms.txt links", () => {

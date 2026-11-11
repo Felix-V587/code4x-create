@@ -30,7 +30,8 @@
 | `--template <name>` | 框架名或预设 id | 兼容别名：框架名 → `--framework`，预设 id → `--preset` |
 | `--dry-run` | — | 只解析与渲染，不写盘；打印将写入的文件数 |
 | `--json` | — | 向 stdout 输出机器可读计划（仅非交互） |
-| `--overwrite` | — | 允许覆盖已有目录（护栏见下） |
+| `--overwrite` | — | 覆盖之前由 code4x 生成的目录（含 `.code4xrc.json`） |
+| `--force` | — | 强制覆盖任意已存在的目标目录（包含非 code4x 生成的项目） |
 
 布尔参数支持 `--no-<name>` 形式；重复参数按 last-wins 处理。
 
@@ -97,7 +98,8 @@ node packages/cli/dist/cli.mjs my-stack --fullstack -y
 ```
 
 - 固定生成 `apps/api`（Hono `hono-full`：api-guard + zod + testing + swagger-openapi + logging + http-hardening）、`apps/web`（Vue router/pinia/vueuse/vueuse-router/testing + reka-ui + alova + unocss）、`apps/desktop`（Electron + electron-builder）与 `packages/shared-types`（共享 `Todo` / `ApiError` 等类型）。
-- 自带可运行样板链路：API `GET/POST /todos` → Web `Home.vue` 经 Alova 调用 → Desktop `app:todo` IPC；三端类型统一来自 `packages/shared-types`。
+- 自带可运行样板链路：API `GET/POST /api/todos` → Web `Home.vue` 经 Alova 调用 → Desktop 内嵌 Hono API（`app://./api/*`）与 `app:todo` IPC；三端类型统一来自 `packages/shared-types`。
+- 根 `.env` / `.env.example` 提供 `PORT` / `LOG_LEVEL` / `API_DEV_PROXY` / `VITE_API_BASE_URL`；生产可保持 `/api` 走同源反向代理，或设置绝对 API 地址。
 - 根 `package.json` 提供 `dev` / `build` / `typecheck` / `check` / `test` / `preview` 与 `dev:api` / `dev:web` / `dev:desktop`，经项目内 Vite+ 任务运行器执行（`build` = `vp run -r build`，`check` = `vp check`）。
 - `pnpm dev`（`vp run -r --parallel dev`）并行启动三端 + 共享类型 watch：API 3000、Web 5175、Electron 渲染器 5173。
 - 根与各子项目生成 `AGENTS.md`，按技术栈列出官方 `llms.txt` 链接（无 llms.txt 的给出官方文档入口）。

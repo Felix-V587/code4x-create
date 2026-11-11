@@ -131,6 +131,38 @@ describe("cli e2e", () => {
     expect(existsSync(join(target, ".code4xrc.json"))).toBe(true);
   });
 
+  test("--force replaces a non-generated directory", async () => {
+    const root = tempRoot();
+    const target = join(root, "forced");
+    mkdirSync(target);
+    writeFileSync(join(target, "old.txt"), "x");
+    const { code, stderr } = await invoke(
+      ["-f", "hono", "-y", "--no-git", "--force", target],
+      root,
+    );
+    expect(stderr).toBe("");
+    expect(code).toBe(0);
+    expect(existsSync(join(target, "old.txt"))).toBe(false);
+    expect(existsSync(join(target, "package.json"))).toBe(true);
+  });
+
+  test("interactive confirms force overwrite for an existing non-generated directory", async () => {
+    const root = tempRoot();
+    const target = join(root, "interactive-force");
+    mkdirSync(target);
+    writeFileSync(join(target, "old.txt"), "x");
+    const prompter = scriptedPrompter({
+      text: [target],
+      select: ["standalone", "hono", "npm"],
+      multiselect: [[]],
+      confirm: [false, false, true],
+    });
+    const { code } = await invoke([], root, { isTTY: true, createPrompter: () => prompter });
+    expect(code).toBe(0);
+    expect(existsSync(join(target, "old.txt"))).toBe(false);
+    expect(existsSync(join(target, "package.json"))).toBe(true);
+  });
+
   test("--features pinia -f hono -> E-FEATURE-FRAMEWORK, exit 1", async () => {
     const root = tempRoot();
     const { code, stderr } = await invoke(

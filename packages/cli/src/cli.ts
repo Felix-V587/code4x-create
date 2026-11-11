@@ -50,7 +50,7 @@ import {
 import { findRepoRoot, initGit } from "./io/git.ts";
 import { createClackPrompter } from "./io/prompts.ts";
 import { runInstall } from "./io/install.ts";
-import { writeProject } from "./io/write.ts";
+import { inspectTarget, writeProject } from "./io/write.ts";
 import type {
   Answers,
   PackageManager,
@@ -143,6 +143,7 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
       "git",
       "json",
       "overwrite",
+      "force",
       "dry-run",
       "CI",
       "interactive",
@@ -167,7 +168,8 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   const flagFeatures = normaliseFeatures(parsed.features);
   const yes = Boolean(parsed.yes) || Boolean(parsed.CI);
   const ci = Boolean(parsed.CI);
-  const overwrite = Boolean(parsed.overwrite);
+  let overwrite = Boolean(parsed.overwrite);
+  let force = Boolean(parsed.force);
   const dryRun = Boolean(parsed["dry-run"]);
   const json = Boolean(parsed.json);
 
@@ -312,8 +314,10 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   if (config.variant === "ts") partial.variant = "ts";
 
   let answers: Answers;
+  let activePrompter: Prompter | undefined;
   if (interactive) {
     const prompter = io.createPrompter();
+    activePrompter = prompter;
     prompter.intro("create-code4x");
     try {
       answers = await collectAnswers(partial, prompter, registry, {
@@ -448,6 +452,31 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
     });
   }
 
+  // Existing target: interactive runs confirm, non-interactive runs defer to
+  // `assertWritable` (which suggests `--force` for non-generated directories).
+  const targetState = inspectTarget(resolve(io.cwd, answers.targetDir));
+  if (targetState.exists && !targetState.empty) {
+    if (force) {
+      overwrite = true;
+    } else if (interactive && activePrompter) {
+      const alreadyAllowed = overwrite && targetState.generated;
+      if (!alreadyAllowed) {
+        const confirmed = await activePrompter.confirm({
+          message: targetState.generated
+            ? `Directory "${answers.targetDir}" already contains a generated project. Overwrite it?`
+            : `Directory "${answers.targetDir}" already exists and is not a create-code4x project. Force overwrite?`,
+          initialValue: false,
+        });
+        if (!confirmed) {
+          activePrompter.outro("Operation cancelled");
+          return 130;
+        }
+        if (targetState.generated) overwrite = true;
+        else force = true;
+      }
+    }
+  }
+
   const detection = detectPackageManagerWithSource(io.env, resolve(io.cwd, answers.targetDir));
   // A generated monorepo/full-stack workspace is a workspace root of its own:
   // apps are nested in the workspace we create, with an empty (pure-data) host
@@ -539,7 +568,11 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
 
   // Resolve against the injected cwd (production: process.cwd()) so relative
   // interactive targets behave the same in tests and embedded callers.
-  const written = writeProject(files, resolve(io.cwd, answers.targetDir), { overwrite, dryRun });
+  const written = writeProject(files, resolve(io.cwd, answers.targetDir), {
+    overwrite,
+    force,
+    dryRun,
+  });
   if (dryRun) {
     if (!json) io.out(`dry run: ${written.length} files would be written to ${answers.targetDir}`);
     return 0;

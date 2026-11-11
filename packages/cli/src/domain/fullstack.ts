@@ -8,6 +8,7 @@
 import { basename } from "node:path";
 
 import { applyFullstackScaffold, sharedTypesPackageName } from "./fullstackScaffold.ts";
+import { patchHonoWorkspaceEnv, patchVueWorkspaceEnv, workspaceEnvFiles } from "./workspaceEnv.ts";
 import { expandPreset, normalizePackageName, resolve } from "./resolve.ts";
 import {
   adaptNestedApp,
@@ -173,8 +174,11 @@ export function renderFullstack(
   // 共享类型包 + 三端示例接线 + 根/子项目 AGENTS.md。
   const vitePlus = highestVitePlusRange(files);
   applyFullstackScaffold(files, { workspaceName, vitePlus });
+  patchHonoWorkspaceEnv(files, "apps/api");
+  patchVueWorkspaceEnv(files, "apps/web", { rewrite: false });
 
   files.push(
+    ...workspaceEnvFiles(),
     {
       path: WORKSPACE_YAML_PATH,
       contents: renderMonorepoWorkspaceYaml(
@@ -329,9 +333,9 @@ function renderFullstackReadme(workspaceName: string): string {
 
 ## 样板代码
 
-- API：\`GET /todos\` / \`POST /todos\`（内存存储，zod 校验，\`src/routes/todos.ts\`）
+- API：\`GET /api/todos\` / \`POST /api/todos\`（内存存储，zod 校验，\`src/routes/todos.ts\`）
 - Web：\`Home.vue\` 经 Alova 调用 \`/api/todos\`（开发期代理到 API）
-- Desktop：\`app:todo\` IPC 通道，返回 \`${shared}\` 的 \`Todo\` 形状
+- Desktop：\`app:todo\` IPC 通道 + 内嵌 Hono API（\`app://./api/*\`），打包后无需单独启动后端
 - Shared：\`Todo\` / \`CreateTodoInput\` / \`ApiError\` / \`HealthStatus\`
 
 ## 快速开始
@@ -340,6 +344,15 @@ function renderFullstackReadme(workspaceName: string): string {
 pnpm install
 pnpm dev
 \`\`\`
+
+## 环境变量
+
+workspace 根生成 \`.env\`（已 gitignore）与 \`.env.example\`：
+
+- API：\`PORT\`（默认 3000）、\`LOG_LEVEL\`
+- Web：\`API_DEV_PROXY\`（开发代理目标）、\`VITE_API_BASE_URL\`（生产 API 地址）
+
+Vite 应用通过 \`envDir: '../../'\` 读取根 \`.env\`；API 的 \`vite.config.ts\` 用 \`loadEnv()\` 读取构建/开发端口，生产 \`pnpm start\` 用 \`node --env-file=../../.env\`。生产部署可保持 \`VITE_API_BASE_URL=/api\` 由同源反向代理转发，或设置绝对 API 地址。
 
 ## 常用脚本
 

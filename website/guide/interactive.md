@@ -31,7 +31,8 @@ Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 wor
 
 - `apps/api`：Hono `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening）
 - `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175
-- `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173
+- `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173；内嵌 Hono API（`app://./api/*`），打包后无需单独启动后端
+- 根 `.env` / `.env.example` 提供 `PORT` / `LOG_LEVEL` / `API_DEV_PROXY` / `VITE_API_BASE_URL`
 - 根 `pnpm dev` 并行启动三端；包管理器固定 pnpm
 
 全栈模式不接受 `--framework` / `--features` / `--preset` / `--app`（会报 `E-CONFLICT`）。
@@ -84,7 +85,7 @@ Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 wor
 | Overwrite (clean) | 清空后重写 |
 | Merge (skip-collisions) | 保留已有文件，只写入不冲突的文件 |
 
-非交互模式没有 `--overwrite` 时直接报 `E-DIR-NOT-EMPTY`。
+目标目录已存在且非空时会先询问是否覆盖：生成目录用 `--overwrite`，任意目录用 `--force`；非交互模式缺少对应 flag 时直接报 `E-DIR-NOT-EMPTY`。
 
 ## 项目名归一化
 

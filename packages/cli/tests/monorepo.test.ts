@@ -67,6 +67,8 @@ describe("render / monorepo", () => {
 
     // Only the workspace-root files live outside the app directory.
     expect(paths.filter((path) => !path.startsWith("apps/web/"))).toEqual([
+      ".env",
+      ".env.example",
       ".gitignore",
       "README.md",
       "package.json",
@@ -157,7 +159,31 @@ describe("render / monorepo", () => {
 
   test("root .gitignore has the workspace defaults", () => {
     const { files } = generate([], MONOREPO);
-    expect(file(files, ".gitignore").contents).toBe("node_modules\ndist\n*.local\n.DS_Store\n");
+    expect(file(files, ".gitignore").contents).toBe(
+      "node_modules\ndist\n*.local\n.DS_Store\n.env\n.env.*\n!.env.example\n",
+    );
+  });
+
+  test("workspace env files are generated and app configs load them", () => {
+    const { files } = generate([], MONOREPO);
+    expect(file(files, ".env").contents).toContain("API_DEV_PROXY=http://localhost:3000");
+    expect(file(files, ".env").contents).toContain("VITE_API_BASE_URL=/api");
+    expect(file(files, ".env.example").contents).toContain("Copy to .env");
+    const webConfig = file(files, "apps/web/vite.config.ts").contents;
+    expect(webConfig).toContain("envDir: '../../'");
+    expect(webConfig).toContain("target: apiTarget,");
+    expect(webConfig).toContain("rewrite: (path) => path.replace(/^\\/api/, ''),");
+  });
+
+  test("hono monorepo loads PORT and LOG_LEVEL from the root env", () => {
+    const { files } = generate([], { ...MONOREPO, framework: "hono", appName: "api" });
+    const config = file(files, "apps/api/vite.config.ts").contents;
+    expect(config).toContain("const env = loadEnv(mode, '../../', '')");
+    expect(config).toContain("const port = Number(process.env.PORT ?? env.PORT ?? 3000)");
+    const appPkg = JSON.parse(file(files, "apps/api/package.json").contents) as {
+      scripts: Record<string, string>;
+    };
+    expect(appPkg.scripts.start).toBe("node --env-file=../../.env dist/index.js");
   });
 
   test("root README describes the workspace and the app path", () => {

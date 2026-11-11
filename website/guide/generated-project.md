@@ -55,6 +55,7 @@
 | `package.json` | private workspace 根；`vite-plus` devDependency + 经 Vite+ 任务运行器执行的 scripts（`build` = `vp run -r build`，`check` = `vp check`，应用专属脚本走 `vp run --filter`） |
 | `pnpm-workspace.yaml` | `packages: apps/*, packages/*` + 应用所需的 `allowBuilds` |
 | `vite.config.ts` | 工作区根配置：`defaultPackage` 指向 `apps/<app>`、`run.cache.scripts`、共享 `lint` / `fmt` |
+| `.env` / `.env.example` | workspace 级环境变量：`PORT` / `LOG_LEVEL` / `API_DEV_PROXY` / `VITE_API_BASE_URL`；`.env` 已 gitignore |
 | `.gitignore` / `README.md` | 工作区级 |
 | `.code4xrc.json` | 工作区级元数据；`answers.projectType = "monorepo"`，`appName` / `workspaceName` 记录在案 |
 
@@ -74,9 +75,10 @@
 
 ## 重新生成 / 覆盖
 
-- 目标目录非空时，非交互模式需要 `--overwrite`。
+- 目标目录非空时，非交互模式需要 `--overwrite`（生成目录）或 `--force`（任意目录）。
 - `--overwrite` 只允许覆盖包含 `.code4xrc.json` 的目录（即之前由 code4x 生成），防止误删用户项目。
-- 覆盖会清空目录后重写；交互模式还提供「Merge (skip-collisions)」保留已有文件。
+- `--force` 显式允许覆盖任意已存在目录；交互模式下会先确认再删除。
+- 覆盖会清空目录后重写；标准 / Monorepo / Full-stack 均适用。
 
 ## 生成物不包含
 

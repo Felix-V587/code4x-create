@@ -7,7 +7,7 @@
  * working vertical slice:
  *
  *   packages/shared-types  <- Todo / ApiError shapes (single source of truth)
- *   apps/api               <- GET/POST /todos, typed by shared-types
+ *   apps/api               <- GET/POST /api/todos, typed by shared-types
  *   apps/web               <- Home.vue calls /api/todos through Alova
  *   apps/desktop           <- app:todo IPC channel returning a shared Todo
  *
@@ -15,7 +15,7 @@
  * silently producing a half-wired workspace.
  */
 
-import { fail } from "./errors.ts";
+import { lines, patchPackageJson, patchText, replaceFile } from "./patch.ts";
 import type { VirtualFile } from "./types.ts";
 
 export interface FullstackScaffoldOptions {
@@ -53,6 +53,23 @@ export function applyFullstackScaffold(
       pkg.dependencies = dependencies;
     });
   }
+
+  // The desktop main process imports the Hono app directly (bundled by
+  // `vp pack`) and routes `app://.../api/*` to it; no separate API process.
+  patchPackageJson(files, "apps/api/package.json", (pkg) => {
+    pkg.types = "./src/index.ts";
+    pkg.exports = {
+      ".": {
+        types: "./src/index.ts",
+        default: "./src/index.ts",
+      },
+    };
+  });
+  patchPackageJson(files, "apps/desktop/package.json", (pkg) => {
+    const dependencies = (pkg.dependencies as Record<string, string> | undefined) ?? {};
+    dependencies.api = "workspace:*";
+    pkg.dependencies = dependencies;
+  });
 
   patchApi(files);
   patchWeb(files, shared);
@@ -113,7 +130,7 @@ function patchApi(files: VirtualFile[]): void {
     files,
     "apps/api/src/index.ts",
     "app.route('/', health)",
-    "app.route('/', health)\napp.route('/todos', todos)",
+    "app.route('/', health)\napp.route('/api/todos', todos)",
   );
 }
 
@@ -157,28 +174,54 @@ function patchWeb(files: VirtualFile[], shared: string): void {
       "</template>",
     ),
   );
-
-  patchText(
-    files,
-    "apps/web/vite.config.ts",
-    "  plugins: lazyPlugins(() => [",
-    lines(
-      "  server: {",
-      "    // Alova 默认请求 `/api`；开发时转发到 apps/api（3000）。",
-      "    proxy: {",
-      "      '/api': {",
-      "        target: 'http://localhost:3000',",
-      "        changeOrigin: true,",
-      "        rewrite: (path) => path.replace(/^\\/api/, ''),",
-      "      },",
-      "    },",
-      "  },",
-      "  plugins: lazyPlugins(() => [",
-    ),
-  );
 }
 
 function patchDesktop(files: VirtualFile[], shared: string): void {
+  patchText(
+    files,
+    "apps/desktop/src/main/index.ts",
+    "import { app, BrowserWindow, ipcMain, net, protocol, shell } from 'electron'",
+    lines(
+      "import { app, BrowserWindow, ipcMain, net, protocol, shell } from 'electron'",
+      "import apiApp from 'api'",
+    ),
+  );
+  patchText(
+    files,
+    "apps/desktop/src/main/index.ts",
+    lines(
+      "    protocol.handle('app', (request) => {",
+      "      const { pathname } = new URL(request.url)",
+      "      const target = resolveRendererFile(pathname)",
+    ),
+    lines(
+      "    protocol.handle('app', (request) => {",
+      "      const { pathname } = new URL(request.url)",
+      "      // 内嵌 API：app://./api/* 直接交给 Hono app，无需额外端口。",
+      "      if (pathname === '/api' || pathname.startsWith('/api/')) {",
+      "        return apiApp.fetch(request)",
+      "      }",
+      "      const target = resolveRendererFile(pathname)",
+    ),
+  );
+  patchText(
+    files,
+    "apps/desktop/vite.config.ts",
+    "      alwaysBundle: ['zod'],",
+    lines(
+      "      alwaysBundle: [",
+      "        'api',",
+      "        '@hono/swagger-ui',",
+      "        '@hono/zod-validator',",
+      "        'hono',",
+      "        'hono-openapi',",
+      "        'hono-pino',",
+      "        'pino',",
+      "        'zod',",
+      "      ],",
+    ),
+  );
+
   patchText(
     files,
     "apps/desktop/src/shared/ipc.ts",
@@ -275,6 +318,19 @@ function patchDesktop(files: VirtualFile[], shared: string): void {
       "  error.value = ''",
       "  todo.value = await api.todo()",
       "}",
+      "",
+      "async function loadApiTodos() {",
+      "  error.value = ''",
+      "  try {",
+      "    const response = await fetch('/api/todos')",
+      "    if (!response.ok) throw new Error(`API ${response.status}`)",
+      "    apiTodos.value = (await response.json()) as Todo[]",
+      "  } catch (caught) {",
+      "    error.value = caught instanceof Error ? caught.message : String(caught)",
+      "  }",
+      "}",
+      "",
+      "void loadApiTodos()",
       "",
       "async function echo() {",
       "  error.value = ''",
@@ -497,8 +553,8 @@ function renderApiTodosTest(shared: string): string {
     "import app from '../index'",
     "",
     "describe('todos route (sample)', () => {",
-    "  test('GET /todos returns the seeded list', async () => {",
-    "    const response = await app.request('/todos')",
+    "  test('GET /api/todos returns the seeded list', async () => {",
+    "    const response = await app.request('/api/todos')",
     "    expect(response.status).toBe(200)",
     "    const body = (await response.json()) as Todo[]",
     "    expect(body.length).toBeGreaterThan(0)",
@@ -509,8 +565,8 @@ function renderApiTodosTest(shared: string): string {
     "    })",
     "  })",
     "",
-    "  test('POST /todos validates and appends', async () => {",
-    "    const response = await app.request('/todos', {",
+    "  test('POST /api/todos validates and appends', async () => {",
+    "    const response = await app.request('/api/todos', {",
     "      method: 'POST',",
     "      headers: { 'content-type': 'application/json' },",
     "      body: JSON.stringify({ title: 'Write a test' }),",
@@ -562,6 +618,7 @@ function renderRootAgents(workspaceName: string, shared: string): string {
     "- 新增依赖用 `pnpm add`（在对应子项目目录内），不要手写 `node_modules` 路径。",
     "- 提交前至少运行 `pnpm check`；涉及运行时行为时再运行 `pnpm test`。",
     "- 跨进程通信（Electron）只走 `src/shared/ipc.ts` 的通道表。",
+    "- workspace 根 `.env` 是共享环境配置（`PORT` / `LOG_LEVEL` / `API_DEV_PROXY` / `VITE_API_BASE_URL`）；`.env` 已 gitignore，变更同步 `.env.example`。",
     "",
     "## 参考文档（llms.txt）",
     "",
@@ -596,7 +653,8 @@ function renderApiAgents(shared: string): string {
     "- 请求校验用 `zValidator` + `src/http/validation.ts` 的 `validationHook`；",
     "  错误响应统一为 `{ code, message, details?, requestId }`。",
     `- 领域类型从 \`${shared}\` 导入（\`import type\`），不要重复定义。`,
-    "- 示例：`GET /todos` / `POST /todos`（`src/routes/todos.ts`）。",
+    "- 示例：`GET /api/todos` / `POST /api/todos`（`src/routes/todos.ts`）。",
+    "- `PORT` / `LOG_LEVEL` 来自 workspace 根 `.env`（Vite config 通过 `loadEnv` 读取；`pnpm start` 通过 `node --env-file` 读取）。",
     "- 预设 `hono-full` 额外提供 `/docs`（Swagger UI）、`/openapi.json`、pino 日志与 timeout/body-limit/compress。",
     "",
     "## 参考文档（llms.txt）",
@@ -630,6 +688,7 @@ function renderWebAgents(shared: string): string {
     "## 约定",
     "",
     "- 页面放 `src/views`，路由表在 `src/router/index.ts`。",
+    "- 开发代理目标 `API_DEV_PROXY` 与构建期 API 地址 `VITE_API_BASE_URL` 来自 workspace 根 `.env`。",
     "- 请求统一走 `src/lib/alova.ts`；示例 `src/api/todos.ts` + `src/composables/useTodos.ts`。",
     `- 领域类型从 \`${shared}\` 导入（\`import type\`），不要重复定义。`,
     "- UI 原语优先用 Reka UI；样式用 UnoCSS。",
@@ -720,48 +779,3 @@ function renderSharedTypesAgents(): string {
 // --------------------------------------------------------------------------
 // helpers
 // --------------------------------------------------------------------------
-
-function lines(...items: string[]): string {
-  return `${items.join("\n")}\n`;
-}
-
-function requireFile(files: VirtualFile[], path: string): VirtualFile {
-  const file = files.find((entry) => entry.path === path);
-  if (file === undefined) {
-    fail("E-FILE-WRITE", `fullstack scaffold: missing file "${path}"`);
-  }
-  return file;
-}
-
-function replaceFile(files: VirtualFile[], path: string, contents: string): void {
-  requireFile(files, path).contents = contents;
-}
-
-function patchText(files: VirtualFile[], path: string, search: string, replacement: string): void {
-  const file = requireFile(files, path);
-  if (!file.contents.includes(search)) {
-    fail("E-FILE-WRITE", `fullstack scaffold: missing anchor in "${path}"`);
-  }
-  // `lines()` ends with a newline. When the anchor does not consume that
-  // newline, trim it from the replacement or every insertion grows a blank
-  // line; when the anchor itself ends with one, keep it to avoid joining lines.
-  const inline =
-    !search.endsWith("\n") && replacement.endsWith("\n") ? replacement.slice(0, -1) : replacement;
-  file.contents = file.contents.replace(search, inline);
-}
-
-function patchPackageJson(
-  files: VirtualFile[],
-  path: string,
-  mutate: (pkg: Record<string, unknown>) => void,
-): void {
-  const file = requireFile(files, path);
-  let pkg: Record<string, unknown>;
-  try {
-    pkg = JSON.parse(file.contents) as Record<string, unknown>;
-  } catch {
-    fail("E-FILE-WRITE", `fullstack scaffold: invalid package.json "${path}"`);
-  }
-  mutate(pkg);
-  file.contents = `${JSON.stringify(pkg, null, 2)}\n`;
-}

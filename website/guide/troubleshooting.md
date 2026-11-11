@@ -28,8 +28,8 @@
 
 | 码 | 含义 |
 |---|---|
-| `E-DIR-NOT-EMPTY` | 目标目录非空且未给 `--overwrite` |
-| `E-OVERWRITE-REFUSED` | 目标目录不含 `.code4xrc.json`，拒绝覆盖 |
+| `E-DIR-NOT-EMPTY` | 目标目录非空且未给 `--overwrite` / `--force` |
+| `E-OVERWRITE-REFUSED` | 目标目录不含 `.code4xrc.json`；补 `--force` 可强制覆盖 |
 | `E-FEATURE-FRAMEWORK` | feature 属于其它框架 |
 | `E-MIXED-FRAMEWORK` | features 横跨多个框架 |
 | `E-MISSING-REQ` | feature 依赖未满足 |
@@ -73,8 +73,11 @@ allowBuilds:
 ### 目录非空 / 想重新生成
 
 ```bash
-# 只允许覆盖之前由 code4x 生成的目录
+# 覆盖之前由 code4x 生成的目录
 node packages/cli/dist/cli.mjs my-app -f vue --overwrite -y
+
+# 强制覆盖任意已有目录（包括非 code4x 项目）
+node packages/cli/dist/cli.mjs my-app -f vue --force -y
 ```
 
 如果不是 code4x 生成的目录，请换一个目标目录；脚手架不会强制删除用户项目。

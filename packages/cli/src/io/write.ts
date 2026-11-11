@@ -24,9 +24,10 @@
  * the documented semantic change; atomicity for the bulk of the tree is
  * unchanged.
  *
- * Non-empty target dirs require `--overwrite`, which additionally refuses to
- * `rm -rf` anything that was not produced by create-code4x (no `.code4xrc.json`
- * present -> `E-OVERWRITE-REFUSED`).
+ * Non-empty target dirs require `--overwrite` (generated projects only) or
+ * `--force` (delete any existing contents). `--overwrite` still refuses to
+ * `rm -rf` anything that was not produced by create-code4x; `--force` is the
+ * explicit escape hatch.
  */
 
 import {
@@ -49,26 +50,49 @@ const TMP_PREFIX = ".code4x-tmp-";
 
 export interface WriteOptions {
   overwrite?: boolean;
+  /** Delete any existing target contents (bypasses the generated-project guard). */
+  force?: boolean;
   dryRun?: boolean;
 }
 
-/** Validate the destination; throws `E-DIR-NOT-EMPTY` / `E-OVERWRITE-REFUSED`. */
-export function assertWritable(targetDir: string, overwrite: boolean): void {
+export interface TargetState {
+  exists: boolean;
+  /** True when missing or only whitelisted entries (`--force` is unnecessary). */
+  empty: boolean;
+  /** A previous create-code4x project (`--overwrite` is sufficient). */
+  generated: boolean;
+}
+
+/** Inspect a target before prompting / writing. */
+export function inspectTarget(targetDir: string): TargetState {
   const resolved = resolve(targetDir);
-  if (!existsSync(resolved)) return;
+  if (!existsSync(resolved)) return { exists: false, empty: true, generated: false };
+  const generated = existsSync(join(resolved, ".code4xrc.json"));
+  if (!statSync(resolved).isDirectory()) {
+    return { exists: true, empty: false, generated };
+  }
+  const entries = readdirSync(resolved).filter((entry) => !WHITELIST.has(entry));
+  return { exists: true, empty: entries.length === 0, generated };
+}
+
+/** Validate the destination; throws `E-DIR-NOT-EMPTY` / `E-OVERWRITE-REFUSED`. */
+export function assertWritable(targetDir: string, overwrite: boolean, force = false): void {
+  const resolved = resolve(targetDir);
+  const state = inspectTarget(resolved);
+  if (!state.exists) return;
   if (!statSync(resolved).isDirectory()) {
     fail("E-DIR-NOT-EMPTY", `"${targetDir}" exists and is not a directory`);
   }
-  const entries = readdirSync(resolved).filter((entry) => !WHITELIST.has(entry));
-  if (entries.length === 0) return;
+  if (state.empty) return;
+  if (force) return;
   if (!overwrite) {
     fail("E-DIR-NOT-EMPTY", `directory "${targetDir}" is not empty`, {
-      fix: "choose an empty directory, or pass --overwrite to replace a generated project",
+      fix: "choose an empty directory, or pass --overwrite (generated) / --force (any directory)",
     });
   }
-  if (!existsSync(join(resolved, ".code4xrc.json"))) {
+  if (!state.generated) {
     fail("E-OVERWRITE-REFUSED", `refusing to overwrite "${targetDir}": no .code4xrc.json found`, {
-      fix: "remove the directory manually, or choose an empty one",
+      fix: "pass --force to delete it, or choose an empty directory",
     });
   }
 }
@@ -83,7 +107,7 @@ export function writeProject(
   const parent = dirname(resolved);
   const name = basename(resolved);
 
-  assertWritable(resolved, options.overwrite ?? false);
+  assertWritable(resolved, options.overwrite ?? false, options.force ?? false);
   if (options.dryRun) return files.map((file) => file.path);
 
   mkdirSync(parent, { recursive: true });

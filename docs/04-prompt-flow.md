@@ -170,7 +170,7 @@ Vue blueprint 声明 `promptSections`，feature 通过 `promptSection` 归组；
 | 别名 | `--template <name>` | — | 见下 | `--template vue` |
 | 预览 | `--dry-run` | — | | |
 | 输出 | `--json` | — | 见 §6 | |
-| 目录冲突 | `--overwrite` | — | boolean | |
+| 目录冲突 | `--overwrite` / `--force` | — | boolean；overwrite 仅生成目录，force 任意目录 | |
 
 `--template` 别名：接受且**打印映射说明**——匹配 `{hono, vue}` → `--framework`；匹配 preset id → `--preset`；其余 → 非法值（走 §3.4）。v1 不收 `vue-ts` 类变体 id（不在注册表）。**[OQ-A]**
 
@@ -262,7 +262,7 @@ $ create-code4x my-api -f hono --features pinia
 |---|---|---|
 | ① | 目录不存在 | CWD-relative 解析；父目录不存在 → 递归 mkdir |
 | ② | 空目录（含仅 `.git` / `.DS_Store` / `.code4xrc.json` 白名单） | 静默继续（或一行 INFO）；交互路径不问 |
-| ③ | 非空（白名单外） | 交互：clack 三选 `Cancel / Overwrite (clean) / Merge (skip-collisions)`；**非交互**：无 `--overwrite` → `E-DIR-NOT-EMPTY`（带 fix 提示）；`--overwrite` = rm-rf 后重写（危险护栏见 OQ-B） |
+| ③ | 非空（白名单外） | 交互：先 confirm 是否覆盖（生成目录 → overwrite，非生成目录 → force）；拒绝则退出 130。**非交互**：无 `--overwrite` / `--force` → `E-DIR-NOT-EMPTY`；`--overwrite` 仅允许含 `.code4xrc.json` 的目录，`--force` 允许任意目录（均 rm-rf 后重写） |
 | ④ | package name 归一化 | lowercase、空格/下划线→`-`、非法字符与中文剥离、压缩连字符、空段兜底 `my-app`。**目录名保持用户输入原样**（仅 FS 用途），package.json name 用归一化；交互在选中后一行 INFO 显示；**绝不追加一轮额外 confirm** |
 | ⑤ | 大写项目名 | `My-API` → dir 原样，name `my-api`（同④） |
 | ⑥ | Windows 保留名（con/nul） | 不特判；fs 报错透传 [已知局限] |
