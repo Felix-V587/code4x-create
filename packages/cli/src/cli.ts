@@ -325,7 +325,12 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
         nestedGitRepo: (dir) => findRepoRoot(dirname(resolve(io.cwd, dir))) !== null,
         targetGit: (dir) => {
           const resolved = resolve(io.cwd, dir);
-          return { exists: existsSync(resolved), repoRoot: findRepoRoot(resolved) };
+          const state = inspectTarget(resolved);
+          return {
+            exists: existsSync(resolved),
+            repoRoot: findRepoRoot(resolved),
+            empty: state.empty,
+          };
         },
         workspaceLayout: () => readWorkspaceLayout(io.cwd),
       });
@@ -459,6 +464,12 @@ async function execute(argv: string[], io: CliIO): Promise<number> {
   // Existing target: interactive runs confirm, non-interactive runs defer to
   // `assertWritable` (which suggests `--force` for non-generated directories).
   const targetState = inspectTarget(resolve(io.cwd, answers.targetDir));
+  if (answers.gitClean) {
+    // Commit/branch + explicit clean: skip the later overwrite prompt and
+    // preserve `.git` through writeProject's backup/restore.
+    overwrite = true;
+    force = true;
+  }
   if (targetState.exists && !targetState.empty) {
     if (force) {
       overwrite = true;

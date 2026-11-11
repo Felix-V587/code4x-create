@@ -86,7 +86,7 @@ export interface FlowDeps {
   detectPm(targetDir: string): PmDetection;
   nestedGitRepo(targetDir: string): boolean;
   /** Whether the target already exists and which repo (if any) contains it. */
-  targetGit(targetDir: string): { exists: boolean; repoRoot: string | null };
+  targetGit(targetDir: string): { exists: boolean; repoRoot: string | null; empty: boolean };
   /** Optional: when the invocation cwd is inside a workspace, offer folders. */
   workspaceLayout?(): WorkspaceLayoutInfo | undefined;
 }
@@ -362,6 +362,7 @@ export async function collectAnswers(
   let gitAction: Answers["gitAction"];
   let gitMessage: string | undefined;
   let gitBranch: string | undefined;
+  let gitClean: boolean | undefined;
   if (git === undefined) {
     const state = deps.targetGit(targetDir);
     if (state.exists && state.repoRoot !== null) {
@@ -404,6 +405,12 @@ export async function collectAnswers(
         gitAction = "branch";
         gitBranch = answer === "" ? defaultBranch : answer;
       }
+      if (gitAction !== undefined && !state.empty) {
+        gitClean = await prompter.confirm({
+          message: "Clear all existing project files? (.git is preserved)",
+          initialValue: false,
+        });
+      }
     } else if (deps.nestedGitRepo(targetDir)) {
       git = false;
       prompter.note("inside existing repo, skipping git init", "git");
@@ -428,6 +435,7 @@ export async function collectAnswers(
   if (gitAction !== undefined) answers.gitAction = gitAction;
   if (gitMessage !== undefined) answers.gitMessage = gitMessage;
   if (gitBranch !== undefined) answers.gitBranch = gitBranch;
+  if (gitClean !== undefined) answers.gitClean = gitClean;
   if (projectType === "monorepo") {
     answers.appName = appName;
     answers.workspaceName = workspaceName;

@@ -11,7 +11,7 @@ function deps(overrides: Partial<FlowDeps> = {}): FlowDeps {
   return {
     detectPm: () => ({ pm: "npm", source: "default" }),
     nestedGitRepo: () => false,
-    targetGit: () => ({ exists: false, repoRoot: null }),
+    targetGit: () => ({ exists: false, repoRoot: null, empty: true }),
     ...overrides,
   };
 }

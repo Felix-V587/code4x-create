@@ -68,6 +68,8 @@ export type Answers = {
   gitMessage?: string;
   /** Optional new branch name for `gitAction: "branch"`. */
   gitBranch?: string;
+  /** Clear existing target files (`.git` is preserved) after commit/branch. */
+  gitClean?: boolean;
   preset?: string;
   /** Reserved. Only `"ts"` is legal; v1 does not implement variant logic. */
   variant?: "ts";

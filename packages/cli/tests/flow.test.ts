@@ -17,7 +17,7 @@ function deps(overrides: Partial<FlowDeps> = {}): FlowDeps {
   return {
     detectPm: () => ({ pm: "npm", source: "default" }),
     nestedGitRepo: () => false,
-    targetGit: () => ({ exists: false, repoRoot: null }),
+    targetGit: () => ({ exists: false, repoRoot: null, empty: true }),
     ...overrides,
   };
 }
@@ -187,17 +187,18 @@ describe("collectAnswers", () => {
       text: ["./app", "test: scaffold"],
       select: ["standalone", "hono", "npm", "commit"],
       multiselect: [[]],
-      confirm: [false],
+      confirm: [false, true],
     });
     const answers = await collectAnswers(
       {},
       prompter,
       registry,
-      deps({ targetGit: () => ({ exists: true, repoRoot: "/repo" }) }),
+      deps({ targetGit: () => ({ exists: true, repoRoot: "/repo", empty: false }) }),
     );
     expect(answers.git).toBe(false);
     expect(answers.gitAction).toBe("commit");
     expect(answers.gitMessage).toBe("test: scaffold");
+    expect(answers.gitClean).toBe(true);
     expect(
       prompter.log.some((line) => line.startsWith("confirm:Initialize a git repository?")),
     ).toBe(false);
@@ -208,17 +209,18 @@ describe("collectAnswers", () => {
       text: ["./app", "feature/scaffold"],
       select: ["standalone", "hono", "npm", "branch"],
       multiselect: [[]],
-      confirm: [false],
+      confirm: [false, false],
     });
     const answers = await collectAnswers(
       {},
       prompter,
       registry,
-      deps({ targetGit: () => ({ exists: true, repoRoot: "/repo" }) }),
+      deps({ targetGit: () => ({ exists: true, repoRoot: "/repo", empty: false }) }),
     );
     expect(answers.git).toBe(false);
     expect(answers.gitAction).toBe("branch");
     expect(answers.gitBranch).toBe("feature/scaffold");
+    expect(answers.gitClean).toBe(false);
   });
 
   test("cancellation propagates as CancelledError", async () => {

@@ -155,6 +155,7 @@ Vue blueprint 声明 `promptSections`，feature 通过 `promptSection` 归组；
      Create and switch to a new branch hint: before writing generated files
      Do nothing                        hint: keep current branch/working tree
 ◆  Commit message / New branch name    （可空，取默认值）
+◆  Clear all existing project files?   (y/N)  hint: keeps .git; No = normal overwrite flow
 ```
 
 **提问语言：英文 v1**。受众与 agent/CI 语境皆为英文；文案集中到单一 copy 常量文件（每 key 一条），未来 i18n = 换字典文件，不引入运行时 i18n 库。
@@ -277,7 +278,7 @@ $ create-code4x my-api -f hono --features pinia
 | ⑤ | 大写项目名 | `My-API` → dir 原样，name `my-api`（同④） |
 | ⑥ | Windows 保留名（con/nul） | 不特判；fs 报错透传 [已知局限] |
 | ⑦ | features ∉ framework | 前缀校验，§3.4 文案 |
-| ⑧ | 嵌套 git repo | 目标未创建：跳过 init + note；目标已存在：改为 Commit / Branch / Do nothing（branch 写入前切换，commit 生成后提交） |
+| ⑧ | 嵌套 git repo | 目标未创建：跳过 init + note；目标已存在：Commit / Branch / Do nothing；Commit/Branch 后可再选清空（保留 `.git`），否则走 overwrite 流程 |
 | ⑨ | `--git` 与 `--no-git` 并存 | last-wins |
 | ⑩ | `--config` 不存在/解析失败 | `E-CONFIG-READ` / `E-CONFIG-PARSE` |
 

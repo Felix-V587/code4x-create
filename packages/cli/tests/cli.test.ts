@@ -198,6 +198,29 @@ describe("cli e2e", () => {
     expect(git(target, "ls-files", "package.json")).toContain("package.json");
   });
 
+  test("clean option clears old files but keeps the git repository", async () => {
+    const root = tempRoot();
+    const target = join(root, "clean-repo");
+    initRepo(target);
+    writeFileSync(join(target, "old.txt"), "old");
+    git(target, "add", "-A");
+    git(target, "commit", "-q", "-m", "old");
+    const prompter = scriptedPrompter({
+      text: [target, "test: clean scaffold"],
+      select: ["standalone", "hono", "npm", "commit"],
+      multiselect: [[]],
+      confirm: [false, true],
+    });
+    const { code, stderr } = await invoke([], root, {
+      isTTY: true,
+      createPrompter: () => prompter,
+    });
+    expect(code, stderr).toBe(0);
+    expect(existsSync(join(target, "old.txt"))).toBe(false);
+    expect(existsSync(join(target, ".git"))).toBe(true);
+    expect(git(target, "log", "-1", "--pretty=%s")).toBe("test: clean scaffold");
+  });
+
   test("interactive branch action switches before writing the project", async () => {
     const root = tempRoot();
     const repo = join(root, "repo");

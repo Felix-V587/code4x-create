@@ -102,6 +102,11 @@ Monorepo 模式下应用名同样归一化后作为 `apps/<应用名>` 与应用
 | Create and switch to a new branch | 写入文件前切出新分支；可输入分支名（默认 `code4x/<project>`） |
 | Do nothing | 保持当前分支与工作区不变 |
 
+选择 Commit 或 New branch 后，若目标目录已有文件，会再询问：
+
+- **Yes**：清空原项目全部文件（保留 `.git`），直接写入新项目，不再触发 overwrite 确认。
+- **No**：按原有 overwrite 流程处理（生成目录用 `--overwrite`，任意目录用 `--force`；交互模式继续确认）。
+
 如果目标目录**尚不存在**但位于已有 git 仓库内，跳过 `git init` 并提示：
 
 ```text
