@@ -35,8 +35,8 @@ export const FULLSTACK_APPS: StackApp[] = [
   {
     name: "api",
     framework: "hono",
-    // Standard Hono baseline; full-stack adds no API-only extras.
-    preset: "hono-standard",
+    // Production-grade API preset: docs + logging + hardening.
+    preset: "hono-full",
     features: [],
   },
   {
@@ -320,7 +320,7 @@ function renderFullstackReadme(workspaceName: string): string {
 
 ## 应用
 
-- \`apps/api\` —— Hono 后端（api-guard + zod + testing）
+- \`apps/api\` —— Hono 后端（hono-full：api-guard + zod + testing + swagger-openapi + logging + http-hardening）
 - \`apps/web\` —— Vue 前端（router / pinia / vueuse / vueuse-router / testing + reka-ui / alova / unocss）
 - \`apps/desktop\` —— Electron 桌面壳（electron-builder）
 - \`packages/shared-types\` —— 共享领域类型（\`${shared}\`）

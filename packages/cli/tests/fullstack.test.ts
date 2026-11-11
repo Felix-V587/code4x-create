@@ -80,7 +80,14 @@ describe("fullstack / plans", () => {
     const { plans } = build();
     const api = plans.find(({ app }) => app.name === "api")?.plan;
     expect(api?.features).toEqual(
-      expect.arrayContaining(["hono/api-guard", "hono/zod", "hono/testing"]),
+      expect.arrayContaining([
+        "hono/api-guard",
+        "hono/http-hardening",
+        "hono/logging",
+        "hono/swagger-openapi",
+        "hono/testing",
+        "hono/zod",
+      ]),
     );
     const desktop = plans.find(({ app }) => app.name === "desktop")?.plan;
     expect(desktop?.features).toContain("electron/builder");

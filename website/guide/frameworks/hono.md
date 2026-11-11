@@ -55,6 +55,8 @@ my-api/
 | `hono-standard` | api-guard + zod + testing |
 | `hono-full` | standard + swagger-openapi + logging + http-hardening |
 
+> 全栈快捷模式的 `apps/api` 使用 `hono-full`。
+
 ## 常用命令
 
 ```bash

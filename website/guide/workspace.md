@@ -163,7 +163,7 @@ my-stack/
 ├── README.md
 ├── .code4xrc.json          # stack.apps 记录三端
 ├── apps/
-│   ├── api/                # Hono + api-guard + zod + testing（dev 3000）+ AGENTS.md
+│   ├── api/                # Hono hono-full（校验/文档/日志/hardening，dev 3000）+ AGENTS.md
 │   ├── web/                # Vue 全家桶 + reka-ui + alova + unocss（dev 5175）+ AGENTS.md
 │   └── desktop/            # Electron + electron-builder（渲染器 dev 5173）+ AGENTS.md
 └── packages/

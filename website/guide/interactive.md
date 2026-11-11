@@ -29,7 +29,7 @@ Monorepo 模式下包管理器固定为 `pnpm`，安装与 `git init` 都在 wor
 
 选择 **Full-stack project**（或非交互 `--fullstack`）会跳过框架/能力提问，直接固定为：
 
-- `apps/api`：Hono + api-guard + zod + testing
+- `apps/api`：Hono `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening）
 - `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175
 - `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173
 - 根 `pnpm dev` 并行启动三端；包管理器固定 pnpm

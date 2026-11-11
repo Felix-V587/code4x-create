@@ -70,7 +70,7 @@ N0 选择 **Full-stack project**（或 `--fullstack`）会一次生成标准全�
 node packages/cli/dist/cli.mjs my-stack --fullstack -y
 ```
 
-- `apps/api`：Hono + api-guard + zod + testing（示例 `GET/POST /todos`）
+- `apps/api`：Hono `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening；示例 `GET/POST /todos`）
 - `apps/web`：Vue（router / pinia / vueuse / vueuse-router / testing）+ reka-ui + alova + unocss，dev 端口 5175（`Home.vue` 经 Alova 调 `/api/todos`）
 - `apps/desktop`：Electron 桌面壳 + electron-builder，dev 端口 5173（示例 `app:todo` IPC）
 - `packages/shared-types`：共享领域类型（`Todo` / `CreateTodoInput` / `ApiError` / `HealthStatus`），三端以 `workspace:*` 引用
