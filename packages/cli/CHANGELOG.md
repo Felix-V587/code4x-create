@@ -1,5 +1,12 @@
 # @code4x/cli
 
+## 0.4.1
+
+### Patch Changes
+
+- b85ce03: 全栈快捷模式的 API 改用 `hono-full` 预设（增加 swagger-openapi、logging、http-hardening）；文档站补充各模式默认预设、Hono/Vue/Electron 预设展开与 Full-stack 应用组合。
+- 1ec20a1: 全栈生成改为单仓库派生：app plan 统一按 `projectType: "monorepo"` 与 `renderApplication()` 渲染，全栈基线改用 `hono-standard` / `vue-standard` 等标准预设；monorepo/fullstack 统一做嵌套适配（移除 app 级 `pnpm` 策略、README 改写为 workspace 说明并去掉 app 级 `.code4xrc.json` 章节）。补充 Hono Vite 插件回归断言。
+
 ## 0.4.0
 
 ### Minor Changes
