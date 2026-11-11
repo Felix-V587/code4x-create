@@ -128,7 +128,7 @@ Vue blueprint 声明 `promptSections`，feature 通过 `promptSection` 归组；
 
 | 应用 | 框架 | 默认能力 | dev |
 |---|---|---|---|
-| `apps/api` | Hono | api-guard + zod + testing | 3000 |
+| `apps/api` | Hono | `hono-full`（api-guard + zod + testing + swagger-openapi + logging + http-hardening） | 3000 |
 | `apps/web` | Vue | router + pinia + vueuse + vueuse-router + testing + reka-ui + alova + unocss | 5175 |
 | `apps/desktop` | Electron | electron/builder | 5173 |
 
